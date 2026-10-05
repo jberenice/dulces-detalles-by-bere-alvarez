@@ -1,0 +1,140 @@
+@import "tailwindcss";
+
+/* ====================================================================
+   Dulces Detalles — sistema de diseño
+   Paleta de marca: menta #7fcaa6 · salvia #6aa68a · rosa #eb5473 · crema #fffaef · negro
+   Chocolate (del logotipo) para títulos y texto cálido.
+   ==================================================================== */
+@theme {
+  --font-sans: var(--font-body), ui-sans-serif, system-ui, sans-serif;
+  --font-display: var(--font-display-serif), ui-serif, Georgia, serif;
+  --font-script: var(--font-dancing), cursive;
+
+  --color-mint-50: #effaf4;
+  --color-mint-100: #dcf3e7;
+  --color-mint-200: #bce6d1;
+  --color-mint-300: #9ad7b9;
+  --color-mint-400: #7fcaa6;
+  --color-mint-500: #6aa68a;
+  --color-mint-600: #528a70;
+  --color-mint-700: #3f6d58;
+
+  --color-rose-50: #fdf0f3;
+  --color-rose-100: #fbdde4;
+  --color-rose-200: #f7bccb;
+  --color-rose-300: #f28ea6;
+  --color-rose-400: #ee6e8b;
+  --color-rose-500: #eb5473;
+  --color-rose-600: #d43a5b;
+  --color-rose-700: #b02a49;
+
+  --color-cream-50: #fffdf8;
+  --color-cream-100: #fffaef;
+  --color-cream-200: #fbf1dc;
+  --color-cream-300: #f4e4c2;
+
+  --color-cocoa-300: #c9a585;
+  --color-cocoa-400: #a87b55;
+  --color-cocoa-500: #8a5a2e;
+  --color-cocoa-600: #6f4318;
+  --color-cocoa-700: #5a3512;
+  --color-cocoa-800: #3f250d;
+  --color-cocoa-900: #2a1909;
+
+  --shadow-soft: 0 1px 2px rgb(63 37 13 / 0.04), 0 8px 24px -8px rgb(63 37 13 / 0.10);
+  --shadow-lift: 0 2px 4px rgb(63 37 13 / 0.05), 0 18px 40px -12px rgb(63 37 13 / 0.18);
+  --shadow-rose: 0 10px 24px -10px rgb(235 84 115 / 0.55);
+
+  --radius-4xl: 2rem;
+
+  --animate-fade-up: fade-up 0.5s cubic-bezier(0.22, 1, 0.36, 1) both;
+  --animate-float: float 6s ease-in-out infinite;
+
+  @keyframes fade-up {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+  @keyframes float {
+    0%, 100% { transform: translateY(0) rotate(0deg); }
+    50% { transform: translateY(-10px) rotate(3deg); }
+  }
+}
+
+@layer base {
+  html {
+    -webkit-tap-highlight-color: transparent;
+  }
+  body {
+    background: var(--color-cream-100);
+    color: var(--color-cocoa-800);
+    font-feature-settings: "ss01", "cv11";
+    -webkit-font-smoothing: antialiased;
+  }
+  h1, h2, h3, h4 {
+    font-family: var(--font-display);
+    color: var(--color-cocoa-700);
+    letter-spacing: -0.01em;
+  }
+  ::selection {
+    background: var(--color-rose-200);
+    color: var(--color-cocoa-900);
+  }
+  input[type="number"]::-webkit-inner-spin-button,
+  input[type="number"]::-webkit-outer-spin-button {
+    opacity: 0.4;
+  }
+  :focus-visible {
+    outline: 2px solid var(--color-rose-400);
+    outline-offset: 2px;
+  }
+}
+
+@layer components {
+  .card {
+    @apply rounded-3xl border border-cocoa-800/5 bg-white shadow-soft;
+  }
+  .label {
+    @apply mb-1.5 block text-[13px] font-semibold text-cocoa-600;
+  }
+  .field {
+    @apply w-full rounded-2xl border border-cocoa-800/10 bg-cream-50 px-4 py-2.5 text-[15px] text-cocoa-800 placeholder:text-cocoa-300 transition outline-none focus:border-rose-300 focus:bg-white focus:ring-4 focus:ring-rose-100 disabled:opacity-60;
+  }
+  .table-base {
+    @apply w-full text-left text-sm;
+  }
+  .table-base th {
+    @apply px-4 py-3 text-[11px] font-bold tracking-wider text-cocoa-400 uppercase;
+  }
+  .table-base td {
+    @apply border-t border-cocoa-800/5 px-4 py-3.5 align-middle;
+  }
+  .table-base tbody tr {
+    @apply transition-colors hover:bg-cream-100/60;
+  }
+  .sprinkles {
+    background-image:
+      radial-gradient(circle at 12% 18%, rgb(235 84 115 / 0.16) 0 3px, transparent 4px),
+      radial-gradient(circle at 78% 12%, rgb(127 202 166 / 0.22) 0 4px, transparent 5px),
+      radial-gradient(circle at 88% 70%, rgb(235 84 115 / 0.12) 0 3px, transparent 4px),
+      radial-gradient(circle at 30% 82%, rgb(127 202 166 / 0.2) 0 3px, transparent 4px),
+      radial-gradient(circle at 55% 40%, rgb(168 123 85 / 0.10) 0 2px, transparent 3px);
+    background-size: 220px 220px;
+  }
+}
+
+@utility scrollbar-none {
+  scrollbar-width: none;
+  &::-webkit-scrollbar {
+    display: none;
+  }
+}
+
+@utility pb-safe {
+  padding-bottom: max(env(safe-area-inset-bottom), 0px);
+}
+
+@media print {
+  .no-print {
+    display: none !important;
+  }
+}
