@@ -176,3 +176,33 @@
   font-family: var(--st-heading);
   color: var(--st-text);
 }
+
+/* Precios: glaseado que se derrite */
+@keyframes pour {
+  from { transform: scaleY(0); }
+  to { transform: scaleY(1); }
+}
+@keyframes melt {
+  0%, 100% { transform: scaleY(1); }
+  50% { transform: scaleY(1.32); }
+}
+@keyframes drop-fall {
+  0%, 55% { transform: translateY(0) scale(0.4); opacity: 0; }
+  62% { transform: translateY(0) scale(1); opacity: 1; }
+  92% { opacity: 1; }
+  100% { transform: translateY(70px) scale(0.75, 1.15); opacity: 0; }
+}
+@keyframes bob {
+  0%, 100% { transform: translateY(0) rotate(-5deg); }
+  50% { transform: translateY(-7px) rotate(5deg); }
+}
+@keyframes wiggle {
+  0%, 100% { transform: rotate(0); }
+  25% { transform: rotate(-12deg) scale(1.08); }
+  75% { transform: rotate(10deg) scale(1.08); }
+}
+@keyframes sprinkle {
+  0% { transform: translate(0, 0) rotate(0); opacity: 0; }
+  15% { opacity: 1; }
+  100% { transform: translate(var(--dx), var(--dy)) rotate(var(--rot)); opacity: 0; }
+}

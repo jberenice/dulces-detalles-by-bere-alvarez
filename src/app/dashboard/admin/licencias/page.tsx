@@ -211,7 +211,7 @@ export default function LicensesPage() {
                       ) : r.term_days && r.status === "disponible" ? (
                         <span className="text-cocoa-400">{r.term_days} días al activarse</span>
                       ) : (
-                        "De por vida"
+                        "Sin vencimiento"
                       )}
                     </td>
                     <td>

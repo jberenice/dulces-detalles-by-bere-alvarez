@@ -4,6 +4,7 @@
  *    el panel de licencias y los candados del menú leen de este archivo.
  */
 export type PlanId = "basico" | "profesional" | "premium";
+/** "vitalicia" ya no se vende (precio null en todos los planes); se conserva para las licencias que ya existían */
 export type Billing = "mensual" | "anual" | "vitalicia";
 
 export const PLAN_RANK: Record<PlanId, number> = { basico: 1, profesional: 2, premium: 3 };
@@ -41,7 +42,7 @@ export const PLANS: {
     id: "profesional",
     name: "Profesional",
     tagline: "Para vender en línea y organizar tu cocina",
-    prices: { mensual: 299, anual: 2990, vitalicia: 5990 },
+    prices: { mensual: 299, anual: 2990, vitalicia: null },
     highlight: true,
     features: [
       "Todo lo del plan Básico",
@@ -58,7 +59,7 @@ export const PLANS: {
     id: "premium",
     name: "Premium",
     tagline: "Para crecer con tu marca y cuidar tu ganancia",
-    prices: { mensual: 499, anual: 4990, vitalicia: 8990 },
+    prices: { mensual: 499, anual: 4990, vitalicia: null },
     features: [
       "Todo lo del plan Profesional",
       "Alerta de margen cuando suben tus ingredientes",

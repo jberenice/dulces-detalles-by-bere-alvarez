@@ -105,7 +105,7 @@ Están en `/aviso-de-privacidad`, `/terminos-y-condiciones` y `/politica-de-cook
 
 ## 🔑 Cómo generar licencias
 1. Entra con tu cuenta de administradora → menú **Administración → Licencias**.
-2. **Generar licencias** → plan (Básico, Profesional o Premium), periodo (mensual, anual o de por vida), precio cobrado, cantidad y nota. Los códigos se copian al portapapeles.
+2. **Generar licencias** → plan (Básico, Profesional o Premium), periodo (mensual o anual), precio cobrado, cantidad y nota. Los códigos se copian al portapapeles.
 3. Envía el código a tu clienta: se registra en `/registro` con él. La vigencia mensual/anual **empieza a contar cuando lo activa**.
 4. Desde el mismo panel puedes **cambiar de plan**, **renovar** (suma un mes o un año y registra el pago), **suspender**, **reactivar** o **liberar el dispositivo**.
 5. **Administración → Métricas**: licencias activas, por vencer (con botón para recordarles por WhatsApp), nuevas del mes, ingresos y demos.
@@ -115,7 +115,7 @@ Los precios, nombres y lo que incluye cada plan se editan en `src/lib/plans.ts` 
 - **Básico:** costeo, cotizaciones, pedidos con pagos parciales, calendario, clientes, reportes y respaldo.
 - **Profesional:** + minitienda (variantes, galería, zonas, cupo diario, QR), seguimiento de cotizaciones, saldos, producción, inventario, plantillas y notificaciones.
 - **Premium:** + alerta de margen, correos con logo y colores propios, recordatorio de saldo por correo a clientes y resumen diario por correo.
-Las licencias que ya existían quedan como **Premium de por vida**.
+Ya no se venden licencias de por vida; las que ya existían quedan como **Premium sin vencimiento**.
 
 ## 📣 Página principal
 - **Video:** graba un recorrido de 60–90 s, súbelo a YouTube como "No listado" y pega el ID en `src/lib/marketing.ts` (`DEMO_VIDEO_ID`).
