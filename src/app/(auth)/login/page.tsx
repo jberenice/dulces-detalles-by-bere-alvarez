@@ -1,14 +1,15 @@
 "use client";
-import { Suspense, useState } from "react";
+import { Suspense, useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
-import { Mail, Lock } from "lucide-react";
+import { Mail } from "lucide-react";
 import { toast } from "sonner";
 import { createClient } from "@/lib/supabase/client";
 import { claimDevice } from "@/lib/session";
 import { safeNext } from "@/lib/safe-redirect";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Field";
+import { PasswordInput } from "@/components/ui/PasswordInput";
 
 function LoginForm() {
   const router = useRouter();
@@ -16,6 +17,16 @@ function LoginForm() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
+  const [remember, setRemember] = useState(true);
+
+  // Solo se recuerda el correo (nunca la contraseña); tu navegador puede guardar la contraseña de forma segura
+  useEffect(() => {
+    try {
+      const saved = localStorage.getItem("dd-remember-email");
+      if (saved) setEmail(saved);
+      else if (saved === null && localStorage.getItem("dd-remember-off")) setRemember(false);
+    } catch {}
+  }, []);
 
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -27,6 +38,15 @@ function LoginForm() {
       toast.error(error.message === "Invalid login credentials" ? "Correo o contraseña incorrectos" : error.message);
       return;
     }
+    try {
+      if (remember) {
+        localStorage.setItem("dd-remember-email", email.trim());
+        localStorage.removeItem("dd-remember-off");
+      } else {
+        localStorage.removeItem("dd-remember-email");
+        localStorage.setItem("dd-remember-off", "1");
+      }
+    } catch {}
     await claimDevice();
     const next = params.get("next");
     router.replace(safeNext(next));
@@ -45,8 +65,12 @@ function LoginForm() {
 
       <form onSubmit={onSubmit} className="mt-8 space-y-4">
         <Input label="Correo electrónico" type="email" required autoComplete="email" value={email} onChange={(e) => setEmail(e.target.value)} prefix={<Mail className="h-4 w-4" />} placeholder="tucorreo@ejemplo.com" />
-        <Input label="Contraseña" type="password" required autoComplete="current-password" value={password} onChange={(e) => setPassword(e.target.value)} prefix={<Lock className="h-4 w-4" />} placeholder="••••••••" />
-        <div className="flex justify-end">
+        <PasswordInput label="Contraseña" required autoComplete="current-password" value={password} onChange={(e) => setPassword(e.target.value)} placeholder="••••••••" />
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <label className="flex cursor-pointer items-center gap-2 text-sm text-cocoa-500 select-none">
+            <input type="checkbox" checked={remember} onChange={(e) => setRemember(e.target.checked)} className="h-4 w-4 accent-rose-500" />
+            Recordar mi correo
+          </label>
           <Link href="/recuperar" className="text-sm font-semibold text-rose-500 hover:underline">
             ¿Olvidaste tu contraseña?
           </Link>

@@ -34,6 +34,7 @@ Al activar la licencia se puede **precargar el recetario** con tus datos reales:
    - `supabase/migrations/0003_security.sql` (límites de intentos, aislamiento entre cuentas, licencias aleatorias)
    - `supabase/migrations/0004_facebook_reminders.sql` (Facebook, recordatorios y aceptación de términos)
    - `supabase/migrations/0005_timezones.sql` (zona horaria por usuaria)
+   - `supabase/migrations/0006_store_design.sql` (diseño personalizable de la minitienda)
    - `supabase/cron_setup.sql` (recordatorios cada hora; reemplaza tu dominio y tu CRON_SECRET antes de ejecutarlo)
    - `supabase/admin_setup.sql` → el resultado te muestra **tu código de licencia de administradora** (aleatorio)
 3. **Authentication → URL Configuration**

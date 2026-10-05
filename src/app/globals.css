@@ -138,3 +138,11 @@
     display: none !important;
   }
 }
+
+/* Minitienda personalizable: títulos con la tipografía elegida por cada repostería */
+.st-root h1,
+.st-root h2,
+.st-root h3 {
+  font-family: var(--st-heading);
+  color: var(--st-text);
+}

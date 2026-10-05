@@ -9,7 +9,7 @@ import { Input } from "@/components/ui/Field";
 import { Tabs } from "@/components/ui/Tabs";
 import { BarList, CHART, SalesAreaChart, qtyFmt } from "@/components/dashboard/Charts";
 import { fetchSales, summarize } from "@/lib/sales";
-import { addDays, date, folio, money, num, parseDate, toISODate } from "@/lib/format";
+import { addDays, date, folio, money, money0, num, parseDate, toISODate } from "@/lib/format";
 import { ORDER_STATUS } from "@/lib/constants";
 
 type Range = "7d" | "30d" | "mes" | "mes_ant" | "3m" | "anio" | "custom";
@@ -137,10 +137,10 @@ export default function ReportsPage() {
           [...Array(4)].map((_, i) => <Skeleton key={i} className="h-[116px]" />)
         ) : (
           <>
-            <StatCard label="Ventas" value={money(s.revenue)} hint={`${s.count} pedidos`} icon={<TrendingUp className="h-5 w-5" />} tone="rose" />
-            <StatCard label="Utilidad estimada" value={money(s.profit)} hint={`Costo de producción ${money(s.cost)}`} icon={<Sparkles className="h-5 w-5" />} tone="mint" />
-            <StatCard label="Ticket promedio" value={money(s.avgTicket)} hint={`${num(s.pieces, 0)} piezas vendidas`} icon={<Receipt className="h-5 w-5" />} tone="cocoa" />
-            <StatCard label="Cobrado" value={money(s.collected)} hint={`Pendiente ${money(s.pending)}`} icon={<HandCoins className="h-5 w-5" />} tone="cream" />
+            <StatCard label="Ventas" value={money0(s.revenue)} hint={`${s.count} pedido${s.count === 1 ? "" : "s"}`} icon={<TrendingUp className="h-5 w-5" />} tone="rose" />
+            <StatCard label="Utilidad estimada" value={money0(s.profit)} hint={`Costo de producción ${money(s.cost)}`} icon={<Sparkles className="h-5 w-5" />} tone="mint" />
+            <StatCard label="Ticket promedio" value={money0(s.avgTicket)} hint={`${num(s.pieces, 0)} piezas vendidas`} icon={<Receipt className="h-5 w-5" />} tone="cocoa" />
+            <StatCard label="Cobrado" value={money0(s.collected)} hint={`Pendiente ${money(s.pending)}`} icon={<HandCoins className="h-5 w-5" />} tone="cream" />
           </>
         )}
       </div>
@@ -170,7 +170,6 @@ export default function ReportsPage() {
                 ]}
               />
             }
-            className="flex-col sm:flex-row"
           />
           <div className="p-5 sm:p-6">
             {loading ? <Skeleton className="h-72" /> : <BarList items={ranked} max={10} valueFormat={rank === "qty" ? qtyFmt : (v) => money(v)} sub={(i) => i.extra} color={rank === "profit" ? CHART.green : CHART.rose} />}

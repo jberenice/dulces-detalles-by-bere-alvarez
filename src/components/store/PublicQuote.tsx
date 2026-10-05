@@ -145,7 +145,7 @@ export function PublicQuote({ data, token }: { data: PublicQuoteData; token: str
         {b.store_slug && (
           <a href={`/tienda/${b.store_slug}`} className="mt-2 inline-flex items-center gap-1.5 text-sm font-bold text-cocoa-500 hover:text-rose-500"><Store className="h-4 w-4" /> Visita nuestra tienda</a>
         )}
-        <SiteFooter compact />
+        <SiteFooter compact social={false} />
       </div>
     </div>
   );

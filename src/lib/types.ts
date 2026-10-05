@@ -34,6 +34,10 @@ export type Profile = {
   store_delivery: boolean;
   store_pickup: boolean;
   store_shipping_fee: number;
+  store_theme: unknown;
+  store_about: string | null;
+  store_hours: string | null;
+  store_announcement: string | null;
 };
 
 export type FixedCost = { id: string; name: string; monthly_amount: number };
@@ -78,6 +82,8 @@ export type Dessert = {
   apply_card_fee: boolean;
   sale_price: number | null;
   store_visible: boolean;
+  store_featured?: boolean;
+  store_position?: number;
   active: boolean;
   created_at: string;
   dessert_items?: DessertItem[];

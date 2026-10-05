@@ -1,6 +1,6 @@
 "use client";
 import { Area, AreaChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
-import { money, money0, num, parseDate } from "@/lib/format";
+import { money, num, parseDate } from "@/lib/format";
 
 /** Paleta de gráficas (validada para daltonismo): rosa de marca + verde profundo para contraste */
 export const CHART = {
@@ -28,8 +28,14 @@ export function SalesAreaChart({ data, height = 260, granularity = "day" }: { da
             </linearGradient>
           </defs>
           <CartesianGrid vertical={false} stroke={CHART.grid} />
-          <XAxis dataKey="day" tickFormatter={fmtTick} tickLine={false} axisLine={false} tick={{ fill: CHART.axis, fontSize: 11 }} minTickGap={24} />
-          <YAxis tickFormatter={(v) => money0(v).replace("MX", "")} tickLine={false} axisLine={false} tick={{ fill: CHART.axis, fontSize: 11 }} width={64} />
+          <XAxis dataKey="day" tickFormatter={fmtTick} tickLine={false} axisLine={false} tick={{ fill: CHART.axis, fontSize: 10 }} minTickGap={28} />
+          <YAxis
+            tickFormatter={(v: number) => "$" + new Intl.NumberFormat("es-MX", { notation: "compact", maximumFractionDigits: 1 }).format(v)}
+            tickLine={false}
+            axisLine={false}
+            tick={{ fill: CHART.axis, fontSize: 10 }}
+            width={44}
+          />
           <Tooltip
             cursor={{ stroke: CHART.rose, strokeWidth: 1, strokeDasharray: "4 4" }}
             content={({ active, payload }) =>

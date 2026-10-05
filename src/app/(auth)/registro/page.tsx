@@ -8,12 +8,14 @@ import { createClient } from "@/lib/supabase/client";
 import { claimDevice } from "@/lib/session";
 import { Button } from "@/components/ui/Button";
 import { Input, Toggle } from "@/components/ui/Field";
+import { PasswordInput } from "@/components/ui/PasswordInput";
 
 export default function RegisterPage() {
   const router = useRouter();
   const [form, setForm] = useState({ owner_name: "", business_name: "", phone: "", email: "", password: "", code: "" });
   const [seed, setSeed] = useState(true);
   const [accepted, setAccepted] = useState(false);
+  const [confirm, setConfirm] = useState("");
   const [loading, setLoading] = useState(false);
   const [sent, setSent] = useState(false);
   const set = (k: keyof typeof form) => (e: React.ChangeEvent<HTMLInputElement>) => setForm({ ...form, [k]: e.target.value });
@@ -21,6 +23,7 @@ export default function RegisterPage() {
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault();
     if (form.password.length < 8) return toast.error("La contraseña debe tener al menos 8 caracteres");
+    if (form.password !== confirm) return toast.error("Las contraseñas no coinciden");
     if (!accepted) return toast.error("Debes aceptar los términos y el aviso de privacidad");
     setLoading(true);
     const supabase = createClient();
@@ -102,7 +105,8 @@ export default function RegisterPage() {
         </div>
         <Input label="WhatsApp" type="tel" value={form.phone} onChange={set("phone")} placeholder="998 123 4567" />
         <Input label="Correo electrónico" type="email" required autoComplete="email" value={form.email} onChange={set("email")} />
-        <Input label="Contraseña" type="password" required autoComplete="new-password" value={form.password} onChange={set("password")} hint="Mínimo 8 caracteres" />
+        <PasswordInput label="Contraseña" required autoComplete="new-password" value={form.password} onChange={set("password")} hint="Mínimo 8 caracteres" />
+        <PasswordInput label="Confirma tu contraseña" required autoComplete="new-password" value={confirm} onChange={(e) => setConfirm(e.target.value)} error={confirm && confirm !== form.password ? "Las contraseñas no coinciden" : undefined} />
         <Toggle
           checked={seed}
           onChange={setSeed}

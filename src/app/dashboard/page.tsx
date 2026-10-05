@@ -10,7 +10,7 @@ import { ButtonLink } from "@/components/ui/Button";
 import { BarList, SalesAreaChart, qtyFmt } from "@/components/dashboard/Charts";
 import { fetchSales, summarize } from "@/lib/sales";
 import { ORDER_STATUS, QUOTE_STATUS } from "@/lib/constants";
-import { addDays, date, folio, money, parseDate, toISODate } from "@/lib/format";
+import { addDays, date, folio, money, money0, parseDate, toISODate } from "@/lib/format";
 import type { Order, Quote } from "@/lib/types";
 
 export default function DashboardHome() {
@@ -97,10 +97,10 @@ export default function DashboardHome() {
           [...Array(4)].map((_, i) => <Skeleton key={i} className="h-[116px]" />)
         ) : (
           <>
-            <StatCard label="Ventas del mes" value={money(month.revenue)} hint={`${month.count} pedidos`} icon={<TrendingUp className="h-5 w-5" />} tone="rose" />
-            <StatCard label="Utilidad estimada" value={money(month.profit)} hint={month.revenue ? `${Math.round((month.profit / month.revenue) * 100)}% de las ventas` : "—"} icon={<Sparkles className="h-5 w-5" />} tone="mint" />
-            <StatCard label="Pedidos activos" value={data.activeCount} hint={`${month.pieces.toLocaleString("es-MX")} piezas este mes`} icon={<ShoppingBag className="h-5 w-5" />} tone="cocoa" />
-            <StatCard label="Por cobrar" value={money(data.receivable)} hint="Saldo de pedidos activos" icon={<HandCoins className="h-5 w-5" />} tone="cream" />
+            <StatCard label="Ventas del mes" value={money0(month.revenue)} hint={`${month.count} pedido${month.count === 1 ? "" : "s"}`} icon={<TrendingUp className="h-5 w-5" />} tone="rose" />
+            <StatCard label="Utilidad estimada" value={money0(month.profit)} hint={month.revenue ? `${Math.round((month.profit / month.revenue) * 100)}% de las ventas` : "—"} icon={<Sparkles className="h-5 w-5" />} tone="mint" />
+            <StatCard label="Pedidos activos" value={data.activeCount} hint={`${month.pieces.toLocaleString("es-MX")} pieza${month.pieces === 1 ? "" : "s"} este mes`} icon={<ShoppingBag className="h-5 w-5" />} tone="cocoa" />
+            <StatCard label="Por cobrar" value={money0(data.receivable)} hint="Saldo de pedidos activos" icon={<HandCoins className="h-5 w-5" />} tone="cream" />
           </>
         )}
       </div>

@@ -4,6 +4,7 @@ import { ArrowRight, BarChart3, CakeSlice, Calculator, FileText, Heart, KeyRound
 import { redirect } from "next/navigation";
 import { ButtonLink } from "@/components/ui/Button";
 import { SiteFooter } from "@/components/legal/SiteFooter";
+import { SocialLinks } from "@/components/legal/SocialLinks";
 
 const FEATURES = [
   { icon: FileText, title: "Cotizaciones en PDF", text: "Con tu logo y colores. Envíalas por WhatsApp o correo y tu cliente las acepta en línea.", tone: "bg-rose-50 text-rose-500" },
@@ -121,6 +122,14 @@ export default async function Landing({ searchParams }: { searchParams: Promise<
             ))}
           </ol>
         </div>
+      </section>
+
+      {/* Redes sociales */}
+      <section className="mx-auto max-w-4xl px-4 py-16 text-center sm:px-6">
+        <p className="font-script text-2xl text-rose-500">Endulza tu feed</p>
+        <h2 className="mt-1 text-3xl font-semibold sm:text-4xl">Síguenos en nuestras redes sociales</h2>
+        <p className="mx-auto mt-2 max-w-lg text-cocoa-400">Novedades, recetas, tips para tu repostería y los pedidos más bonitos de Dulces Detalles.</p>
+        <SocialLinks className="mx-auto mt-8 max-w-2xl" />
       </section>
 
       <SiteFooter />

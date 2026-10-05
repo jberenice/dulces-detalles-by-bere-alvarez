@@ -22,17 +22,17 @@ export function CardHeader({
   className?: string;
 }) {
   return (
-    <div className={cn("flex items-start justify-between gap-4 px-5 pt-5 sm:px-6 sm:pt-6", className)}>
-      <div className="flex items-center gap-3">
+    <div className={cn("flex flex-wrap items-start justify-between gap-x-4 gap-y-3 px-4 pt-4 sm:px-6 sm:pt-6", className)}>
+      <div className="flex min-w-0 flex-1 items-center gap-3">
         {icon && (
-          <span className="grid h-10 w-10 shrink-0 place-items-center rounded-2xl bg-rose-50 text-rose-500">{icon}</span>
+          <span className="grid h-9 w-9 shrink-0 place-items-center rounded-2xl bg-rose-50 text-rose-500 sm:h-10 sm:w-10">{icon}</span>
         )}
-        <div>
-          <h3 className="text-lg font-semibold">{title}</h3>
-          {subtitle && <p className="text-[13px] text-cocoa-400">{subtitle}</p>}
+        <div className="min-w-0">
+          <h3 className="text-base leading-snug font-semibold sm:text-lg">{title}</h3>
+          {subtitle && <p className="text-[12.5px] text-cocoa-400 sm:text-[13px]">{subtitle}</p>}
         </div>
       </div>
-      {action}
+      {action && <div className="shrink-0">{action}</div>}
     </div>
   );
 }
@@ -111,15 +111,15 @@ export function StatCard({
     cream: "bg-cream-200 text-cocoa-500",
   };
   return (
-    <Card className="relative overflow-hidden p-5">
-      <div className="flex items-start justify-between gap-3">
-        <div className="min-w-0">
-          <p className="text-[12px] font-bold tracking-wider text-cocoa-400 uppercase">{label}</p>
-          <p className="mt-2 truncate font-display text-[26px] leading-none font-semibold text-cocoa-800 tabular-nums">{value}</p>
-          {hint && <p className="mt-2 text-xs text-cocoa-400">{hint}</p>}
-        </div>
-        {icon && <span className={cn("grid h-11 w-11 shrink-0 place-items-center rounded-2xl", tones[tone])}>{icon}</span>}
-      </div>
+    <Card className="relative overflow-hidden p-3.5 sm:p-5">
+      {icon && (
+        <span className={cn("absolute top-3 right-3 grid h-8 w-8 place-items-center rounded-xl sm:top-5 sm:right-5 sm:h-11 sm:w-11 sm:rounded-2xl [&_svg]:h-4 [&_svg]:w-4 sm:[&_svg]:h-5 sm:[&_svg]:w-5", tones[tone])}>
+          {icon}
+        </span>
+      )}
+      <p className="pr-10 text-[10.5px] leading-tight font-bold tracking-wider text-cocoa-400 uppercase sm:pr-14 sm:text-[12px]">{label}</p>
+      <p className="mt-2.5 font-display text-[21px] leading-none font-semibold break-words text-cocoa-800 tabular-nums sm:mt-3 sm:text-[26px]">{value}</p>
+      {hint && <p className="mt-2 text-[11.5px] leading-snug text-cocoa-400 sm:text-xs">{hint}</p>}
     </Card>
   );
 }
