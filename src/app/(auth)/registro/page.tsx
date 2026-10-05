@@ -23,7 +23,11 @@ export default function RegisterPage() {
     setLoading(true);
     const supabase = createClient();
     const code = form.code.trim().toUpperCase();
-    const { data: available } = await supabase.rpc("check_license_code", { p_code: code });
+    const { data: available, error: checkError } = await supabase.rpc("check_license_code", { p_code: code });
+    if (checkError) {
+      setLoading(false);
+      return toast.error(`No se pudo validar el código: ${checkError.message}. Revisa que hayas ejecutado las migraciones en Supabase.`);
+    }
     if (!available) {
       setLoading(false);
       return toast.error("El código de licencia no es válido o ya fue utilizado");
