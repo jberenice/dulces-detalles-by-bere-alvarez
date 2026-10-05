@@ -132,11 +132,11 @@ export function Shell({ children }: { children: React.ReactNode }) {
 
   const SidebarContent = (
     <div className="flex h-full flex-col">
-      <div className="flex items-center gap-1 pt-6 pr-3 pb-5 pl-6">
+      <div className="flex items-center gap-1 pt-6 pr-2 pb-5 pl-5">
       <Link href="/dashboard" className="flex min-w-0 flex-1 items-center gap-3">
-        <Image src={profile.logo_url || "/logo-transparent.png"} alt="" width={52} height={52} className="h-[52px] w-[52px] rounded-2xl object-contain" unoptimized={!!profile.logo_url} />
+        <Image src={profile.logo_url || "/logo-transparent.png"} alt="" width={48} height={48} className="h-12 w-12 shrink-0 rounded-2xl object-contain" unoptimized={!!profile.logo_url} />
         <div className="min-w-0 leading-tight">
-          <p className="truncate font-display text-[17px] font-semibold text-cocoa-700">{profile.business_name}</p>
+          <p className="line-clamp-2 font-display text-[15px] leading-tight font-semibold break-words text-cocoa-700" title={profile.business_name}>{profile.business_name}</p>
           <p className="truncate text-xs text-cocoa-400">{profile.owner_name ?? profile.email}</p>
         </div>
       </Link>
