@@ -33,6 +33,9 @@ import {
   Globe,
   IdCard,
   Gift,
+  Bug,
+  CalendarHeart,
+  Star,
 } from "lucide-react";
 import { cn } from "@/lib/cn";
 import { signOutDevice } from "@/lib/session";
@@ -69,6 +72,8 @@ const NAV = [
   { group: "Negocio", items: [
     { href: "/dashboard/reportes", label: "Reportes", icon: BarChart3 },
     { href: "/dashboard/tienda", label: "Mi tienda", icon: Store },
+    { href: "/dashboard/temporadas", label: "Temporadas y cupones", icon: CalendarHeart },
+    { href: "/dashboard/resenas", label: "Reseñas", icon: Star },
     { href: "/dashboard/impresos", label: "Tarjetas y etiquetas", icon: IdCard },
     { href: "/dashboard/mensajes", label: "Mensajes", icon: MessageSquareText },
     { href: "/dashboard/respaldo", label: "Respaldo", icon: DatabaseBackup },
@@ -146,6 +151,7 @@ export function Shell({ children }: { children: React.ReactNode }) {
         { href: "/dashboard/admin", label: "Métricas", icon: Gauge, exact: true },
         { href: "/dashboard/admin/licencias", label: "Licencias", icon: KeyRound },
         { href: "/dashboard/admin/dominios", label: "Dominios", icon: Globe },
+        { href: "/dashboard/admin/errores", label: "Errores y respaldos", icon: Bug },
       ] }]
     : NAV;
 

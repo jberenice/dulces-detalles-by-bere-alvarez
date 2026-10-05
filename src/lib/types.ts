@@ -50,6 +50,85 @@ export type Profile = {
   onboarding?: Record<string, boolean> | null;
   balance_reminder_email?: boolean;
   print_designs?: Record<string, unknown> | null;
+  custom_cake?: CustomCakeSettings | null;
+  loyalty?: LoyaltySettings | null;
+};
+
+/** Pasteles personalizados desde la tienda */
+export type CustomCakeSettings = {
+  enabled?: boolean;
+  min_notice_days?: number;
+  flavors?: string[];
+  fillings?: string[];
+  toppings?: string[];
+  shapes?: string[];
+  occasions?: string[];
+  intro?: string;
+  min_people?: number;
+};
+/** Tarjeta de sellos */
+export type LoyaltySettings = { enabled?: boolean; stamps?: number; reward?: string; min_total?: number };
+
+export type Season = {
+  id: string;
+  name: string;
+  emoji: string | null;
+  start_date: string;
+  end_date: string;
+  yearly: boolean;
+  banner: string | null;
+  active: boolean;
+  created_at: string;
+};
+
+export type Coupon = {
+  id: string;
+  code: string;
+  description: string | null;
+  kind: "porcentaje" | "monto";
+  value: number;
+  min_subtotal: number;
+  starts_on: string | null;
+  ends_on: string | null;
+  season_id: string | null;
+  max_uses: number | null;
+  uses: number;
+  active: boolean;
+  created_at: string;
+};
+
+export type Review = {
+  id: string;
+  order_id: string | null;
+  client_id: string | null;
+  token: string;
+  customer_name: string | null;
+  rating: number | null;
+  comment: string | null;
+  photo_path: string | null;
+  submitted_at: string | null;
+  approved: boolean;
+  moderated_at: string | null;
+  created_at: string;
+};
+
+export type CustomRequest = {
+  people?: number;
+  flavor?: string;
+  filling?: string;
+  topping?: string;
+  shape?: string;
+  design?: string;
+  message?: string;
+  occasion?: string;
+  budget?: number;
+  time?: string;
+  delivery_type?: "recoger" | "envio";
+  zone?: string;
+  address?: string;
+  name?: string;
+  phone?: string;
+  email?: string;
 };
 
 export type DeliveryZone = { name: string; fee: number };
@@ -103,6 +182,12 @@ export type Dessert = {
   variants?: VariantGroup[];
   gallery?: string[];
   min_notice_days?: number | null;
+  season_id?: string | null;
+  allergens?: string[];
+  may_contain?: string[];
+  ingredients_label?: string | null;
+  shelf_life_days?: number | null;
+  storage_note?: string | null;
   active: boolean;
   created_at: string;
   dessert_items?: DessertItem[];
@@ -142,6 +227,7 @@ export type Package = {
   active: boolean;
   position: number;
   min_notice_days: number | null;
+  season_id?: string | null;
   created_at: string;
 };
 
@@ -181,6 +267,9 @@ export type Quote = {
   accepted_at: string | null;
   followed_up_at?: string | null;
   follow_up_count?: number;
+  source?: "manual" | "tienda";
+  request?: CustomRequest | null;
+  reference_images?: string[];
   created_at: string;
   clients?: Pick<Client, "id" | "name" | "phone" | "email" | "address"> | null;
   quote_items?: LineItem[];
@@ -215,6 +304,7 @@ export type Order = {
   public_token?: string;
   inventory_applied?: boolean;
   delivery_zone?: string | null;
+  coupon_code?: string | null;
   created_at: string;
   clients?: Pick<Client, "id" | "name" | "phone" | "email" | "address"> | null;
   order_items?: LineItem[];

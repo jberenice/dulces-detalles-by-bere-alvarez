@@ -22,4 +22,18 @@ select cron.schedule(
   $$
 );
 
+-- Respaldo diario a las 3:07 am hora de Cancún (08:07 UTC): guarda todo en Storage → respaldos
+select cron.unschedule('dd-respaldo') where exists (select 1 from cron.job where jobname = 'dd-respaldo');
+select cron.schedule(
+  'dd-respaldo',
+  '7 8 * * *',
+  $$
+  select net.http_get(
+    url     := 'https://dulcesdetallesbyberealvarez.com/api/cron/respaldo',
+    headers := jsonb_build_object('Authorization', 'Bearer TU_CRON_SECRET'),
+    timeout_milliseconds := 60000
+  );
+  $$
+);
+
 -- Para revisar ejecuciones:  select * from cron.job_run_details order by start_time desc limit 10;

@@ -1,5 +1,5 @@
 "use client";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { CalendarHeart, Download, Eye, FileText, Mail, MessageCircle, Pencil, Plus, Share2, Trash2 } from "lucide-react";
@@ -21,6 +21,11 @@ import type { Quote, QuoteStatus } from "@/lib/types";
 export default function QuotesPage() {
   const sb = createClient();
   const [tab, setTab] = useState<"todas" | QuoteStatus>("todas");
+  // Permite abrir una pestaña directo (?tab=borrador), p. ej. desde el aviso de pasteles por cotizar
+  useEffect(() => {
+    const t = new URLSearchParams(window.location.search).get("tab");
+    if (t && ["borrador", "enviada", "aceptada", "vencida"].includes(t)) setTab(t as QuoteStatus);
+  }, []);
   const [q, setQ] = useState("");
   const router = useRouter();
   const confirm = useConfirm();
@@ -97,6 +102,7 @@ export default function QuotesPage() {
                       <div className="flex items-center gap-2">
                         <span className="text-xs font-bold text-cocoa-300">{folio("C", x.folio)}</span>
                         <Badge tone={st.tone}>{st.label}</Badge>
+                        {x.source === "tienda" && <Badge tone="rose">🎂 {Number(x.total) ? "De tu tienda" : "Pedido desde tu tienda · falta precio"}</Badge>}
                       </div>
                       <p className="mt-0.5 truncate font-semibold text-cocoa-700">{x.clients?.name ?? "Sin cliente"}{x.title ? <span className="font-normal text-cocoa-400"> · {x.title}</span> : null}</p>
                       <p className="flex items-center gap-1 text-xs text-cocoa-400">

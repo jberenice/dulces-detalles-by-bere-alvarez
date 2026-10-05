@@ -36,6 +36,13 @@ export type PrintDesign = {
   showInstagram: boolean;
   showFacebook: boolean;
   showUrl: boolean;
+  /** Ficha del postre (etiquetas): postre elegido y qué datos mostrar */
+  dessertId: string;
+  showIngredients: boolean;
+  showAllergens: boolean;
+  showBestBefore: boolean;
+  /** Fecha de elaboración (AAAA-MM-DD); vacía = renglón para llenar a mano */
+  madeOn: string;
 };
 
 export type SizeOption = { id: string; label: string; w: number; h: number; shapes: Shape[] };
@@ -59,6 +66,7 @@ export const KINDS: Record<PrintKind, { label: string; hint: string; sizes: Size
       { id: "7x4", label: "7 × 4 cm", w: 7, h: 4, shapes: ["rectangulo"] },
       { id: "10x5", label: "10 × 5 cm", w: 10, h: 5, shapes: ["rectangulo"] },
       { id: "6x3", label: "6 × 3 cm", w: 6, h: 3, shapes: ["rectangulo"] },
+      { id: "10x7", label: "Ficha 10 × 7 cm", w: 10, h: 7, shapes: ["rectangulo"] },
     ],
   },
   sticker: {
@@ -179,6 +187,11 @@ export function defaultDesign(kind: PrintKind, base: { bg?: string; primary?: st
     showInstagram: kind !== "sticker",
     showFacebook: kind === "tarjeta" || kind === "qr",
     showUrl: kind === "tarjeta",
+    dessertId: "",
+    showIngredients: true,
+    showAllergens: true,
+    showBestBefore: true,
+    madeOn: "",
   };
 }
 
@@ -219,6 +232,11 @@ export function normalizeDesign(kind: PrintKind, raw: unknown, base?: { bg?: str
     showInstagram: bool(r.showInstagram, oldLines ?? d.showInstagram),
     showFacebook: bool(r.showFacebook, d.showFacebook),
     showUrl: bool(r.showUrl, d.showUrl),
+    dessertId: typeof r.dessertId === "string" && /^[0-9a-f-]{36}$/i.test(r.dessertId) ? r.dessertId : "",
+    showIngredients: bool(r.showIngredients, true),
+    showAllergens: bool(r.showAllergens, true),
+    showBestBefore: bool(r.showBestBefore, true),
+    madeOn: typeof r.madeOn === "string" && /^\d{4}-\d{2}-\d{2}$/.test(r.madeOn) ? r.madeOn : "",
   };
 }
 
@@ -248,6 +266,8 @@ export type PrintData = {
   instagram: string; // usuario
   facebook: string; // usuario o página
   fonts: Record<Font, string>;
+  /** Ficha del postre elegido (solo etiquetas) */
+  label?: { name: string; ingredients: string; contains: string; mayContain: string; bestBefore: string; storage: string } | null;
 };
 
 const esc = (s: string) => s.replace(/[&<>"']/g, (c) => `&#${c.charCodeAt(0)};`);
@@ -591,7 +611,22 @@ export function renderItem(kind: PrintKind, d: PrintDesign, data: PrintData) {
     `<div style="display:flex;gap:.3em;align-items:flex-start;justify-content:${align === "center" ? "center" : "flex-start"};font-family:${sans};font-size:${size}em;color:${d.text};line-height:1.25;max-width:100%;${extra}"><span style="display:flex">${icon(ic, d.primary)}</span><span style="overflow-wrap:anywhere;min-width:0;text-align:left">${text}</span></div>`;
   const infoHtml = (align: "left" | "center") =>
     info.map((l) => row(align, 0.46, "", l.icon, esc(l.text))).join("") + (urlText ? row(align, 0.42, "font-weight:700;opacity:.88", "web", breakable(urlText)) : "");
-  const textBlock = (align: "left" | "center", withLogo: boolean) => `${withLogo ? logoEm(1.9) : ""}${titleHtml()}${subHtml}${divider()}${infoHtml(align)}`;
+  // Ficha del postre: nombre, ingredientes, alérgenos, consumo preferente y conservación
+  const lb = kind === "etiqueta" ? data.label : null;
+  const fichaHtml = (align: "left" | "center") => {
+    if (!lb) return "";
+    const line = (label: string, text: string, extra = "") =>
+      text ? `<div style="font-family:${sans};font-size:.36em;line-height:1.3;color:${d.text};text-align:${align};max-width:100%;overflow-wrap:anywhere;${extra}"><b style="color:${d.primary}">${label}</b> ${esc(text)}</div>` : "";
+    return [
+      `<div style="font-family:${font};font-weight:700;font-size:.62em;line-height:1.15;color:${d.text};margin-top:.1em">${esc(lb.name)}</div>`,
+      d.showIngredients ? line("Ingredientes:", lb.ingredients) : "",
+      d.showAllergens ? line("Contiene:", lb.contains, "font-weight:700") : "",
+      d.showAllergens ? line("Puede contener:", lb.mayContain) : "",
+      d.showBestBefore ? line("Consumir antes de:", lb.bestBefore) : "",
+      line("", lb.storage, "font-style:italic;opacity:.85"),
+    ].join("");
+  };
+  const textBlock = (align: "left" | "center", withLogo: boolean) => `${withLogo ? logoEm(1.9) : ""}${titleHtml()}${subHtml}${divider()}${infoHtml(align)}${fichaHtml(align)}`;
   /** Columna de texto: ocupa lo que sobra mientras se mide y luego se encoge a su contenido */
   const col = (inner: string, extra = "") =>
     `<div class="dd-col" style="flex:1 1 0;min-width:0;min-height:0;align-self:stretch;display:flex;flex-direction:column;justify-content:center;${extra}">${inner}</div>`;
@@ -610,7 +645,7 @@ export function renderItem(kind: PrintKind, d: PrintDesign, data: PrintData) {
       <div data-band style="position:absolute;left:${n3(inset)}cm;right:${n3(inset)}cm;top:${n3(top)}cm;height:${n3(bandH! - top)}cm;display:flex;flex-direction:column;justify-content:center">
         ${fitBox(`${hasLogo ? logoEm(1.45) : ""}${titleHtml(d.bg)}`, Math.min(bandH! * 0.42, maxK * 1.7), "center", "flex-direction:row;justify-content:center;gap:.3em")}
       </div>`;
-    const rest = `${subHtml}${divider()}${infoHtml(horizontal ? "left" : "center")}`;
+    const rest = `${subHtml}${divider()}${infoHtml(horizontal ? "left" : "center")}${fichaHtml(horizontal ? "left" : "center")}`;
     if (horizontal) {
       const q = d.showQr ? Math.min(ah, aw * 0.36) : 0;
       content = side(`${qrImg(q)}${rest ? col(fitBox(rest, maxK, "left")) : ""}`);

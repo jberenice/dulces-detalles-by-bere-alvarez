@@ -18,6 +18,7 @@ import { buildPdf, downloadBlob, orderToPdf } from "@/lib/pdf";
 import { sharePdf } from "@/lib/documents";
 import { googleCalendarUrl } from "@/lib/reminders";
 import { date, dateLong, folio, money, num, waLink } from "@/lib/format";
+import { ReviewRequestButton } from "@/components/dashboard/ReviewRequestButton";
 import { cn } from "@/lib/cn";
 import type { Order, OrderPayment, OrderStatus } from "@/lib/types";
 
@@ -233,6 +234,7 @@ export default function OrderDetailPage({ params }: { params: Promise<{ id: stri
                   {m.label}
                 </a>
               ))}
+              {o.status === "entregado" && <ReviewRequestButton order={o} phone={phone} name={name} />}
             </div>
           </Card>
         </div>

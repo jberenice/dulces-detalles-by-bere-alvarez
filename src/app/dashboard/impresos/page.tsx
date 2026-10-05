@@ -34,7 +34,9 @@ import {
   type PrintKind,
   type Shape,
 } from "@/lib/printDesigns";
-import type { Profile } from "@/lib/types";
+import type { Dessert, Profile } from "@/lib/types";
+import { allergenLabel, bestBefore, containsText } from "@/lib/allergens";
+import { must, useAsync } from "@/hooks/useAsync";
 
 const KIND_ICON: Record<PrintKind, typeof IdCard> = { tarjeta: IdCard, etiqueta: Tag, sticker: Sticker, qr: QrCode };
 const SHAPE_ICON: Record<Shape, typeof IdCard> = { rectangulo: Square, cuadrado: Square, redondo: Circle, galleta: Cookie };
@@ -90,6 +92,10 @@ export default function PrintDesignerPage() {
   const d = designs[kind];
   const set = (patch: Partial<PrintDesign>) => setDesigns((x) => ({ ...x, [kind]: { ...x[kind], ...patch } }));
   const url = storeUrl(profile.store_slug);
+  const dessertsQ = useAsync(async () =>
+    must(await sb.from("desserts").select("id, name, allergens, may_contain, ingredients_label, shelf_life_days, storage_note").eq("active", true).order("name")) as Dessert[],
+  );
+  const fichaDessert = kind === "etiqueta" ? (dessertsQ.data ?? []).find((x) => x.id === d.dessertId) : undefined;
 
   useEffect(() => {
     const css = getComputedStyle(document.documentElement);
@@ -116,11 +122,26 @@ export default function PrintDesignerPage() {
     instagram: profile.instagram ?? "",
     facebook: profile.facebook ?? "",
     fonts,
+    label: fichaDessert
+      ? {
+          name: fichaDessert.name,
+          ingredients: fichaDessert.ingredients_label ?? "",
+          contains: containsText(fichaDessert.allergens ?? []),
+          mayContain: (fichaDessert.may_contain ?? []).map((x) => allergenLabel(x).toLowerCase()).join(", "),
+          bestBefore:
+            fichaDessert.shelf_life_days != null
+              ? d.madeOn
+                ? bestBefore(d.madeOn, fichaDessert.shelf_life_days)
+                : "____ / ____ / ______"
+              : "",
+          storage: fichaDessert.storage_note ?? "",
+        }
+      : null,
   };
 
   const size = sizeOf(kind, d);
   const fit = fitOnPaper(size.w, size.h, paper);
-  const piece = useMemo(() => (qr ? renderItem(kind, d, data) : ""), [kind, d, qr, fonts, profile]); // eslint-disable-line react-hooks/exhaustive-deps
+  const piece = useMemo(() => (qr ? renderItem(kind, d, data) : ""), [kind, d, qr, fonts, profile, fichaDessert]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // La vista previa se ajusta midiendo; la hoja y la impresión usan esa misma pieza ya ajustada
   useFit(previewRef, piece, (min, el) => {
@@ -312,6 +333,36 @@ export default function PrintDesignerPage() {
               </Select>
             </div>
           </Card>
+
+          {/* Ficha del postre (etiquetas) */}
+          {kind === "etiqueta" && (
+            <Card className="p-5 sm:p-6">
+              <h3 className="text-lg font-semibold">Ficha del postre</h3>
+              <p className="text-sm text-cocoa-400">Agrega ingredientes, alérgenos y fecha de consumo a tu etiqueta. Los datos salen de la “Ficha del postre” en cada receta.</p>
+              <div className="mt-4 grid gap-4 sm:grid-cols-2">
+                <Select label="Postre" value={d.dessertId} onChange={(e) => set({ dessertId: e.target.value })}>
+                  <option value="">Sin ficha (solo tu marca)</option>
+                  {(dessertsQ.data ?? []).map((x) => (
+                    <option key={x.id} value={x.id}>{x.name}</option>
+                  ))}
+                </Select>
+                <Input label="Fecha de elaboración" type="date" value={d.madeOn} onChange={(e) => set({ madeOn: e.target.value })} hint="Vacía = deja un espacio para escribirla a mano" />
+              </div>
+              {fichaDessert && (
+                <>
+                  <div className="mt-4 grid gap-3 sm:grid-cols-3">
+                    <Toggle checked={d.showIngredients} onChange={(v) => set({ showIngredients: v })} label="Ingredientes" />
+                    <Toggle checked={d.showAllergens} onChange={(v) => set({ showAllergens: v })} label="Alérgenos" />
+                    <Toggle checked={d.showBestBefore} onChange={(v) => set({ showBestBefore: v })} label="Consumir antes de" />
+                  </div>
+                  {!fichaDessert.ingredients_label && !(fichaDessert.allergens ?? []).length && fichaDessert.shelf_life_days == null && (
+                    <p className="mt-3 rounded-2xl bg-amber-50 px-4 py-3 text-xs text-amber-800">Este postre aún no tiene ficha. Ábrelo en Postres y llena “Ficha del postre”.</p>
+                  )}
+                  <p className="mt-3 text-xs text-cocoa-400">Tip: usa el tamaño “Ficha 10 × 7 cm” para que se lea cómodo.</p>
+                </>
+              )}
+            </Card>
+          )}
 
           {/* Textos */}
           <Card className="p-5 sm:p-6">

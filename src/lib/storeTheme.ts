@@ -1,6 +1,6 @@
 /** Personalización de la minitienda: colores, tipografía, acomodo y orden de secciones. */
 
-export type SectionId = "anuncio" | "destacados" | "catalogo" | "nosotros" | "horario" | "contacto";
+export type SectionId = "anuncio" | "destacados" | "catalogo" | "pastel" | "resenas" | "nosotros" | "horario" | "contacto";
 export type StoreTheme = {
   preset: string;
   primary: string;
@@ -20,6 +20,8 @@ export const SECTION_LABELS: Record<SectionId, { label: string; hint: string }> 
   anuncio: { label: "Barra de aviso", hint: "Mensaje corto arriba de todo (promos, días de anticipación)" },
   destacados: { label: "Destacados", hint: "Los postres que marques con ★" },
   catalogo: { label: "Catálogo", hint: "Todos tus postres por categoría" },
+  pastel: { label: "Pastel personalizado", hint: "Botón para que te pidan cotización de un pastel a su gusto" },
+  resenas: { label: "Reseñas", hint: "Lo que dicen tus clientas (las que tú apruebes)" },
   nosotros: { label: "Sobre nosotros", hint: "Tu historia y lo que te hace especial" },
   horario: { label: "Horario y entregas", hint: "Días, horarios y zonas de entrega" },
   contacto: { label: "Contacto y redes", hint: "WhatsApp, Instagram, Facebook, ubicación" },
@@ -29,6 +31,8 @@ const DEFAULT_SECTIONS: StoreTheme["sections"] = [
   { id: "anuncio", visible: true },
   { id: "destacados", visible: true },
   { id: "catalogo", visible: true },
+  { id: "pastel", visible: true },
+  { id: "resenas", visible: true },
   { id: "nosotros", visible: true },
   { id: "horario", visible: true },
   { id: "contacto", visible: true },
@@ -71,7 +75,14 @@ export function normalizeTheme(raw: unknown): StoreTheme {
       sections.push({ id: s.id, visible: s.visible !== false });
     }
   }
-  for (const d of DEFAULT_SECTIONS) if (!seen.has(d.id)) sections.push(d);
+  // Secciones nuevas (de versiones recientes): se acomodan después de la que les sigue por defecto
+  DEFAULT_SECTIONS.forEach((d, i) => {
+    if (seen.has(d.id)) return;
+    const prev = DEFAULT_SECTIONS.slice(0, i).reverse().find((x) => sections.some((y) => y.id === x.id));
+    const at = prev ? sections.findIndex((y) => y.id === prev.id) + 1 : 0;
+    sections.splice(at, 0, d);
+    seen.add(d.id);
+  });
   return {
     preset: typeof t.preset === "string" ? t.preset.slice(0, 20) : "personalizado",
     primary: color("primary"),

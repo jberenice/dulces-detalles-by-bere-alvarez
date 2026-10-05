@@ -2,7 +2,7 @@
 import { createClient } from "./supabase/client";
 
 /** Reduce la imagen (máx. `max` px) y la convierte a JPEG antes de subirla. */
-async function compress(file: File, max = 1400, quality = 0.85, type = "image/jpeg"): Promise<Blob> {
+export async function compress(file: File, max = 1400, quality = 0.85, type = "image/jpeg"): Promise<Blob> {
   if (!file.type.startsWith("image/") || file.type === "image/gif" || file.type === "image/svg+xml") return file;
   const bitmap = await createImageBitmap(file);
   const scale = Math.min(1, max / Math.max(bitmap.width, bitmap.height));

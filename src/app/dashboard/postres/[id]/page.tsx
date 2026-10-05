@@ -13,6 +13,7 @@ import { Input, Select, Textarea, Toggle } from "@/components/ui/Field";
 import { Combobox } from "@/components/ui/Combobox";
 import { ImagePicker } from "@/components/ui/ImagePicker";
 import { StoreOptionsEditor, cleanVariants } from "@/components/dashboard/StoreOptionsEditor";
+import { DessertLabelEditor } from "@/components/dashboard/DessertLabelEditor";
 import { Modal } from "@/components/ui/Modal";
 import { CATEGORIES, UNITS } from "@/lib/constants";
 import { computeCost, marginPct, roundPrice } from "@/lib/costing";
@@ -63,6 +64,12 @@ export default function DessertEditorPage({ params }: { params: Promise<{ id: st
         variants: [],
         gallery: [],
         min_notice_days: null,
+        allergens: [],
+        may_contain: [],
+        ingredients_label: null,
+        shelf_life_days: null,
+        storage_note: null,
+        season_id: null,
       });
       setRows([{ key: newKey(), ingredient_id: "", section: "Ingredientes", quantity: "" }]);
       return;
@@ -409,6 +416,19 @@ export default function DessertEditorPage({ params }: { params: Promise<{ id: st
             gallery={form.gallery ?? []}
             minNotice={form.min_notice_days ?? null}
             storeMinNotice={profile.store_min_notice_days}
+            onChange={(patch) => setForm({ ...form, ...patch })}
+          />
+
+          {/* Ficha: alérgenos, ingredientes, caducidad y temporada */}
+          <DessertLabelEditor
+            value={form}
+            recipe={rows
+              .filter((r) => r.ingredient_id && Number(r.quantity) > 0)
+              .map((r) => {
+                const ing = ingredientsById.get(r.ingredient_id);
+                return { name: ing?.name ?? "", quantity: Number(r.quantity), unit: ing?.unit ?? "g" };
+              })
+              .filter((r) => r.name)}
             onChange={(patch) => setForm({ ...form, ...patch })}
           />
         </div>

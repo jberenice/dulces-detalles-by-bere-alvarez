@@ -39,6 +39,7 @@ import { ROOT_DOMAIN, slugProblem, storeUrl } from "@/lib/domains";
 import { salesLink } from "@/lib/legal";
 import { useAsync } from "@/hooks/useAsync";
 import { StoreQrCard } from "@/components/dashboard/StoreQrCard";
+import { CustomCakeSettingsCard, cleanCake } from "@/components/dashboard/CustomCakeSettings";
 import { PRESETS, SECTION_LABELS, normalizeTheme, type StoreTheme } from "@/lib/storeTheme";
 import { cn } from "@/lib/cn";
 import type { DeliveryZone, Dessert, Profile } from "@/lib/types";
@@ -105,6 +106,7 @@ export default function StoreSettingsPage() {
         zones: zones.filter((z) => z.name.trim()).map((z) => ({ name: z.name.trim(), fee: Number(z.fee) || 0 })),
         today: todayIso,
         unavailable_dates: upcomingBlocked,
+        custom_cake: p.custom_cake?.enabled ? p.custom_cake : null,
       },
       products: visible.map((d) => ({
         id: d.id,
@@ -151,6 +153,8 @@ export default function StoreSettingsPage() {
           .map((z) => ({ name: z.name.trim().slice(0, 60), fee: Math.max(0, Number(z.fee) || 0) }))
           .filter((z, i, all) => z.name && all.findIndex((x) => x.name.toLowerCase() === z.name.toLowerCase()) === i)
           .slice(0, 30),
+        // Solo si ya existe la columna (migración 0014)
+        ...(p.custom_cake !== undefined ? { custom_cake: cleanCake(p.custom_cake) } : {}),
       })
       .eq("id", profile.id)
       .select()
@@ -530,6 +534,7 @@ export default function StoreSettingsPage() {
                 )}
                 {!p.whatsapp && <p className="mt-4 rounded-2xl bg-amber-50 p-3 text-sm text-amber-700">Agrega tu WhatsApp en Ajustes para recibir los pedidos de la tienda.</p>}
               </Card>
+              {p.custom_cake !== undefined && <CustomCakeSettingsCard value={p.custom_cake} onChange={(v) => setP({ ...p, custom_cake: v })} />}
               <Card className="p-5 sm:p-6">
                 <h3 className="flex items-center gap-2 text-lg font-semibold"><CalendarOff className="h-5 w-5 text-rose-400" /> Fechas y cupo</h3>
                 <p className="text-sm text-cocoa-400">Evita que te pidan más de lo que puedes hornear: los días llenos se ven tachados en el calendario de tu tienda.</p>

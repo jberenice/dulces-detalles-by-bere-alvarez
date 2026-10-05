@@ -11,6 +11,8 @@ const STORE_PASSTHROUGH = [
   /^\/tienda\//,
   /^\/c\//,
   /^\/api\/push\/pedido$/,
+  /^\/api\/(errores|tienda\/foto)$/,
+  /^\/r\//,
   /^\/(aviso-de-privacidad|terminos-y-condiciones|politica-de-cookies)$/,
   /^\/(sw\.js|manifest\.webmanifest|robots\.txt|icon\.png|apple-icon\.png|logo\.png|logo-transparent\.png)$/,
   /^\/icons\//,

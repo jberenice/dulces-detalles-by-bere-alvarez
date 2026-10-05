@@ -11,6 +11,7 @@ import { useConfirm } from "@/components/ui/Confirm";
 import { Badge, Card, Skeleton } from "@/components/ui/Card";
 import { Button, ButtonLink } from "@/components/ui/Button";
 import { SendDialog } from "@/components/dashboard/SendDialog";
+import { CustomRequestCard } from "@/components/dashboard/CustomRequestCard";
 import { Toggle } from "@/components/ui/Field";
 import { QUOTE_STATUS } from "@/lib/constants";
 import { getTemplate, renderTemplate } from "@/lib/templates";
@@ -163,6 +164,8 @@ export default function QuoteDetailPage({ params }: { params: Promise<{ id: stri
           <Button onClick={() => { setSendTab("whatsapp"); setSending(true); }}><Send className="h-4 w-4" /> Enviar</Button>
         </div>
       </div>
+
+      {q.source === "tienda" && q.request && <CustomRequestCard q={q} />}
 
       <div className="grid items-start gap-6 xl:grid-cols-[1fr_320px]">
         {/* Vista previa estilo documento */}

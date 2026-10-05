@@ -1,6 +1,6 @@
 "use client";
 import { Fragment, useEffect, useMemo, useState } from "react";
-import { CakeSlice, CalendarDays, Check, ChevronLeft, ChevronRight, Clock, Facebook, Gift, Instagram, Loader2, MapPin, Megaphone, MessageCircle, Minus, Plus, ShoppingBag, Sparkles, Star, Truck, X } from "lucide-react";
+import { CakeSlice, CalendarDays, Check, ChevronLeft, ChevronRight, Clock, Facebook, Gift, Instagram, Loader2, ShieldAlert, Ticket, Wand2, Quote as QuoteIcon, MapPin, Megaphone, MessageCircle, Minus, Plus, ShoppingBag, Sparkles, Star, Truck, X } from "lucide-react";
 import { toast } from "sonner";
 import { createClient } from "@/lib/supabase/client";
 import { SiteFooter } from "@/components/legal/SiteFooter";
@@ -10,7 +10,10 @@ import { Modal } from "@/components/ui/Modal";
 import { dateLong, facebookLabel, facebookUrl, folio, money, toISODate, waLink } from "@/lib/format";
 import { normalizeTheme, themeVars, type StoreTheme } from "@/lib/storeTheme";
 import { cn } from "@/lib/cn";
-import type { DeliveryZone, VariantGroup } from "@/lib/types";
+import type { CustomCakeSettings, DeliveryZone, VariantGroup } from "@/lib/types";
+import { CustomCakeForm } from "./CustomCakeForm";
+import { reviewPhotoUrl } from "@/lib/public-photos";
+import { allergenLabel, containsText } from "@/lib/allergens";
 
 export type StoreProduct = {
   id: string;
@@ -24,7 +27,15 @@ export type StoreProduct = {
   variants?: VariantGroup[];
   gallery?: string[];
   min_notice_days?: number | null;
+  season_id?: string | null;
+  allergens?: string[];
+  may_contain?: string[];
+  shelf_life_days?: number | null;
+  storage_note?: string | null;
+  ingredients_label?: string | null;
 };
+export type StoreSeason = { id: string; name: string; emoji: string | null; banner: string | null; end_date: string };
+export type StoreReview = { id: string; name: string | null; rating: number; comment: string | null; photo_path: string | null; date: string };
 export type StorePackage = {
   id: string;
   name: string;
@@ -60,9 +71,14 @@ export type StoreData = {
     zones?: DeliveryZone[];
     today?: string;
     unavailable_dates?: string[];
+    custom_cake?: CustomCakeSettings | null;
+    has_coupons?: boolean;
   };
   products: StoreProduct[];
   packages?: StorePackage[];
+  seasons?: StoreSeason[];
+  reviews?: StoreReview[];
+  rating?: { avg: number | null; count: number } | null;
 };
 
 type Choice = { group: string; option: string };
@@ -103,6 +119,13 @@ const price = (n: number) => money(n).replace(".00", "");
 export function Storefront({ data, slug, preview = false }: { data: StoreData; slug: string; preview?: boolean }) {
   const { store, products } = data;
   const packages = useMemo(() => (data.packages ?? []).filter((k) => k.options?.length), [data.packages]);
+  const seasons = data.seasons ?? [];
+  const seasonById = useMemo(() => new Map((data.seasons ?? []).map((x) => [x.id, x])), [data.seasons]);
+  const reviews = data.reviews ?? [];
+  const [cakeOpen, setCakeOpen] = useState(false);
+  const [coupon, setCoupon] = useState<{ code: string; discount: number; label: string } | null>(null);
+  const [couponInput, setCouponInput] = useState("");
+  const [checkingCoupon, setCheckingCoupon] = useState(false);
   const theme: StoreTheme = useMemo(() => normalizeTheme(store.theme), [store.theme]);
   const vars = useMemo(() => themeVars(theme), [theme]);
   const storageKey = `dd-cart-${slug}`;
@@ -165,6 +188,7 @@ export function Storefront({ data, slug, preview = false }: { data: StoreData; s
 
   const categories = useMemo(() => ["Todo", ...new Set(products.map((p) => p.category))], [products]);
   const featured = products.filter((p) => p.featured);
+  const seasonal = products.filter((p) => p.season_id && seasonById.has(p.season_id));
   const list = products.filter((p) => cat === "Todo" || p.category === cat);
   const byId = useMemo(() => new Map(products.map((p) => [p.id, p])), [products]);
   const lines = Object.entries(cart)
@@ -200,6 +224,8 @@ export function Storefront({ data, slug, preview = false }: { data: StoreData; s
     .filter(Boolean) as { key: string; k: StorePackage; qty: number; choices: BoxChoice[]; unit: number; label: string }[];
   const count = lines.reduce((a, l) => a + l.qty, 0) + packLines.reduce((a, l) => a + l.qty, 0);
   const subtotal = lines.reduce((a, l) => a + l.qty * l.unit, 0) + packLines.reduce((a, l) => a + l.qty * l.unit, 0);
+  // El cupón se recalcula si cambia el carrito (el servidor vuelve a validar al enviar)
+  const discount = coupon ? Math.min(coupon.discount, subtotal) : 0;
   const zone = zones.find((z) => z.name === f.zone);
   const shipping = f.type === "envio" ? (zones.length ? Number(zone?.fee ?? 0) : Number(store.shipping_fee)) : 0;
   const minNotice = Math.max(store.min_notice_days, ...lines.map((l) => Number(l.p.min_notice_days ?? 0)), ...packLines.map((l) => Number(l.k.min_notice_days ?? 0)));
@@ -260,6 +286,27 @@ export function Storefront({ data, slug, preview = false }: { data: StoreData; s
   const detailUnit = detail ? Number(detail.price) + optionPrice(detail, detailChoices) : 0;
   const missing = detail ? (detail.variants ?? []).find((g) => isRequired(g) && g.options?.length && !sel[g.name]) : undefined;
 
+  async function applyCoupon(code: string, quiet = false) {
+    const c = code.trim().toUpperCase();
+    if (!c) return;
+    setCheckingCoupon(true);
+    const { data: r, error } = await createClient().rpc("check_store_coupon", { p_slug: slug, p_code: c, p_subtotal: subtotal });
+    setCheckingCoupon(false);
+    if (error) return quiet ? setCoupon(null) : toast.error(error.message);
+    if (!r?.ok) {
+      setCoupon(null);
+      if (!quiet) toast.error(r?.message ?? "Cupón no válido");
+      return;
+    }
+    setCoupon({ code: r.code, discount: Number(r.discount), label: r.label });
+    if (!quiet) toast.success(`Cupón aplicado: ${r.label} 🎉`);
+  }
+  // Si cambia el carrito, se vuelve a calcular el descuento del cupón
+  useEffect(() => {
+    if (coupon && !preview) applyCoupon(coupon.code, true);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [subtotal]);
+
   async function checkout(e: React.FormEvent) {
     e.preventDefault();
     if (!lines.length && !packLines.length) return;
@@ -284,6 +331,7 @@ export function Storefront({ data, slug, preview = false }: { data: StoreData; s
         ...packLines.map((l) => ({ package_id: l.k.id, quantity: l.qty, choices: l.choices })),
       ],
       p_zone: f.type === "envio" && zone ? zone.name : null,
+      ...(coupon ? { p_coupon: coupon.code } : {}),
     });
     setSending(false);
     if (error) {
@@ -296,7 +344,7 @@ export function Storefront({ data, slug, preview = false }: { data: StoreData; s
         ...lines.map((l) => `• ${l.qty} × ${l.p.name}${l.label ? ` (${l.label})` : ""} — ${money(l.qty * l.unit)}`),
         ...packLines.map((l) => `• ${l.qty} × 🎁 ${l.k.name} (${l.label}) — ${money(l.qty * l.unit)}`),
       ].join("\n") +
-      `\n\n${shipping ? `Envío: ${money(shipping)}\n` : ""}*Total: ${money(res.total)}*\n\n` +
+      `\n\n${res.discount ? `Cupón ${res.coupon}: -${money(res.discount)}\n` : ""}${shipping ? `Envío: ${money(shipping)}\n` : ""}*Total: ${money(res.total)}*\n\n` +
       `📅 ${f.date ? dateLong(f.date) : "Fecha por confirmar"}${f.time ? ` a las ${f.time}` : ""}\n` +
       `${f.type === "envio" ? `🚚 Envío${zone ? ` (${zone.name})` : ""} a: ${f.address}` : "🏠 Paso a recoger"}\n` +
       `👤 ${f.name} · ${f.phone}` +
@@ -307,6 +355,8 @@ export function Storefront({ data, slug, preview = false }: { data: StoreData; s
     fetch("/api/push/pedido", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ order_id: res.order_id }) }).catch(() => {});
     setCart({});
     setPackCart({});
+    setCoupon(null);
+    setCouponInput("");
     if (popup && !popup.closed) popup.location.href = wa;
   }
 
@@ -472,6 +522,35 @@ export function Storefront({ data, slug, preview = false }: { data: StoreData; s
     ) : null,
     catalogo: (
       <section key="catalogo" className="pt-8">
+        {seasonal.length > 0 && (
+          <div className="mb-8">
+            <div className="mb-3 flex items-center gap-2 px-4">
+              <span className="text-2xl">{seasonById.get(seasonal[0].season_id!)?.emoji || "✨"}</span>
+              <h2 className="text-2xl font-semibold">{seasons.length === 1 ? `Especial de ${seasons[0].name}` : "De temporada"}</h2>
+            </div>
+            <div className="flex snap-x gap-3 overflow-x-auto px-4 pb-2 scrollbar-none">
+              {seasonal.map((p) => (
+                <div key={p.id} className="w-[46%] shrink-0 snap-start @xl:w-[31%] @4xl:w-[23%]">
+                  <article className={cn(card, "group flex h-full flex-col")}>
+                    <button onClick={() => openDetail(p)} className="relative aspect-[4/5] overflow-hidden">
+                      {productImg(p)}
+                      <span className="absolute top-2 left-2 rounded-full bg-[var(--st-accent)] px-2 py-0.5 text-[10px] font-bold text-[var(--st-on-accent)]">
+                        {seasonById.get(p.season_id!)?.emoji} Solo por temporada
+                      </span>
+                    </button>
+                    <div className="flex flex-1 items-end justify-between gap-2 p-3">
+                      <div className="min-w-0">
+                        <h3 className="truncate text-base font-semibold">{p.name}</h3>
+                        <p className="font-bold text-[var(--st-primary)]">{priceLabel(p)}</p>
+                      </div>
+                      {qtyControl(p, "sm")}
+                    </div>
+                  </article>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
         {packages.length > 0 && (
           <div className="mb-8 px-4">
             <div className="mb-3 flex items-center gap-2">
@@ -572,6 +651,57 @@ export function Storefront({ data, slug, preview = false }: { data: StoreData; s
         </div>
       </section>
     ),
+    pastel: store.custom_cake?.enabled ? (
+      <section key="pastel" className="px-4 pt-10">
+        <div className={cn(card, "sprinkles relative overflow-hidden p-6 text-center @2xl:p-10")}>
+          <p className="text-4xl">🎂</p>
+          <h2 className="mt-2 text-2xl font-semibold @2xl:text-3xl">¿Buscas un pastel personalizado?</h2>
+          <p className="mx-auto mt-2 max-w-lg text-[15px] text-[var(--st-muted)]">
+            Cuéntanos tu idea (personas, sabor, decoración y fotos de referencia) y te mandamos la cotización por WhatsApp.
+          </p>
+          <button onClick={() => (preview ? toast.info("Vista previa: aquí tus clientas piden su pastel") : setCakeOpen(true))} className={cn("mt-5 inline-flex items-center gap-2 rounded-full px-6 py-3 font-bold shadow-md", btnPrimary)}>
+            <Wand2 className="h-4 w-4" /> Cotizar mi pastel
+          </button>
+        </div>
+      </section>
+    ) : null,
+    resenas: reviews.length ? (
+      <section key="resenas" className="pt-10">
+        <div className="mb-3 flex flex-wrap items-end justify-between gap-2 px-4">
+          <h2 className="text-2xl font-semibold">Lo que dicen nuestras clientas</h2>
+          {data.rating && data.rating.count >= 3 && data.rating.avg != null && (
+            <p className="flex items-center gap-1.5 text-sm font-semibold text-[var(--st-muted)]">
+              <Star className="h-4 w-4 fill-[var(--st-accent)] text-[var(--st-accent)]" /> {Number(data.rating.avg).toFixed(1)} · {data.rating.count} reseñas
+            </p>
+          )}
+        </div>
+        <div className="flex snap-x gap-3 overflow-x-auto px-4 pb-2 scrollbar-none">
+          {reviews.map((r) => {
+            const photo = reviewPhotoUrl(r.photo_path);
+            return (
+              <article key={r.id} className={cn(card, "flex w-[80%] shrink-0 snap-start flex-col @xl:w-[45%] @4xl:w-[31%]")}>
+                {photo && (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img src={photo} alt="" className="aspect-[4/3] w-full object-cover" loading="lazy" />
+                )}
+                <div className="flex flex-1 flex-col p-4">
+                  <p className="flex gap-0.5" aria-label={`${r.rating} de 5 estrellas`}>
+                    {[1, 2, 3, 4, 5].map((n) => <Star key={n} className={cn("h-4 w-4", n <= r.rating ? "fill-[var(--st-accent)] text-[var(--st-accent)]" : "text-[var(--st-line)]")} />)}
+                  </p>
+                  {r.comment && (
+                    <p className="mt-2 flex-1 text-[15px] leading-relaxed text-[var(--st-text)]">
+                      <QuoteIcon className="mr-1 inline h-3.5 w-3.5 -translate-y-0.5 text-[var(--st-primary)] opacity-60" />
+                      {r.comment}
+                    </p>
+                  )}
+                  <p className="mt-3 text-sm font-semibold text-[var(--st-muted)]">— {r.name || "Clienta"}</p>
+                </div>
+              </article>
+            );
+          })}
+        </div>
+      </section>
+    ) : null,
     nosotros: store.about ? (
       <section key="nosotros" className="px-4 pt-10">
         <div className={cn(card, "p-6 @2xl:p-8")}>
@@ -700,6 +830,12 @@ export function Storefront({ data, slug, preview = false }: { data: StoreData; s
           <Megaphone className="h-4 w-4 shrink-0" /> {store.announcement}
         </div>
       )}
+      {seasons.filter((x) => x.banner || x.name).slice(0, 2).map((x) => (
+        <div key={x.id} className="flex items-center justify-center gap-2 bg-[var(--st-accent)] px-4 py-2 text-center text-[13px] font-semibold text-[var(--st-on-accent)]">
+          <span>{x.emoji || "✨"}</span>
+          <span>{x.banner || `Temporada de ${x.name}`} · hasta el {dateLong(x.end_date).replace(/^[a-záéíóúñ]+, /i, "")}</span>
+        </div>
+      ))}
       {hero}
 
       <main className="mx-auto max-w-6xl pb-32">
@@ -785,6 +921,20 @@ export function Storefront({ data, slug, preview = false }: { data: StoreData; s
                   <p className="mt-3 inline-flex items-center gap-1.5 rounded-full bg-cream-200 px-3 py-1 text-xs font-semibold text-cocoa-500">
                     <CalendarDays className="h-3.5 w-3.5" /> Pídelo con {detail.min_notice_days} días de anticipación
                   </p>
+                )}
+                {((detail.allergens?.length ?? 0) > 0 || (detail.may_contain?.length ?? 0) > 0 || detail.shelf_life_days != null || detail.storage_note || detail.ingredients_label) && (
+                  <details className="mt-4 rounded-2xl bg-cream-100 px-4 py-3 text-sm text-cocoa-600">
+                    <summary className="flex cursor-pointer items-center gap-2 font-bold text-cocoa-700">
+                      <ShieldAlert className="h-4 w-4 text-[var(--st-primary)]" /> Ingredientes y alérgenos
+                    </summary>
+                    <div className="mt-2 space-y-1.5">
+                      {(detail.allergens?.length ?? 0) > 0 && <p><b>Contiene:</b> {containsText(detail.allergens!)}.</p>}
+                      {(detail.may_contain?.length ?? 0) > 0 && <p><b>Puede contener:</b> {detail.may_contain!.map((x) => allergenLabel(x).toLowerCase()).join(", ")}.</p>}
+                      {detail.ingredients_label && <p><b>Ingredientes:</b> {detail.ingredients_label}</p>}
+                      {detail.shelf_life_days != null && <p><b>Consumir en:</b> {detail.shelf_life_days === 0 ? "el mismo día" : `${detail.shelf_life_days} ${detail.shelf_life_days === 1 ? "día" : "días"}`}{detail.storage_note ? ` · ${detail.storage_note}` : ""}</p>}
+                      {detail.shelf_life_days == null && detail.storage_note && <p>{detail.storage_note}</p>}
+                    </div>
+                  </details>
                 )}
                 {(detail.variants ?? []).filter((g) => g.options?.length).map((g) => (
                   <fieldset key={g.name} className="mt-5">
@@ -895,6 +1045,21 @@ export function Storefront({ data, slug, preview = false }: { data: StoreData; s
             )}
           </Modal>
 
+          {/* Pastel personalizado */}
+          {store.custom_cake?.enabled && (
+            <Modal open={cakeOpen} onClose={() => setCakeOpen(false)} title="Cotiza tu pastel personalizado" size="lg">
+              <CustomCakeForm
+                slug={slug}
+                cfg={store.custom_cake}
+                store={store}
+                today={today}
+                unavailable={unavailable}
+                btnPrimary={btnPrimary}
+                onDone={() => setCakeOpen(false)}
+              />
+            </Modal>
+          )}
+
           {/* Checkout */}
           <Modal open={open} onClose={() => { setOpen(false); setDone(null); }} title={done ? "¡Pedido enviado!" : "Tu pedido"} size="lg">
             {done ? (
@@ -971,12 +1136,28 @@ export function Storefront({ data, slug, preview = false }: { data: StoreData; s
                   {f.type === "envio" && <Input className="sm:col-span-2" label="Dirección de entrega" required maxLength={300} value={f.address} onChange={(e) => setF({ ...f, address: e.target.value })} />}
                   <Textarea className="sm:col-span-2" label="Notas (opcional)" rows={2} maxLength={1000} value={f.notes} onChange={(e) => setF({ ...f, notes: e.target.value })} placeholder="Mensaje para el pastel, alergias, colores…" />
                 </div>
+                {store.has_coupons && (
+                  coupon ? (
+                    <div className="flex items-center justify-between gap-3 rounded-2xl bg-mint-50 px-4 py-3 text-sm ring-1 ring-mint-200">
+                      <span className="flex items-center gap-2 font-semibold text-mint-700"><Ticket className="h-4 w-4" /> {coupon.code} · {coupon.label}</span>
+                      <button type="button" onClick={() => { setCoupon(null); setCouponInput(""); }} className="text-xs font-bold text-cocoa-400 hover:underline">Quitar</button>
+                    </div>
+                  ) : (
+                    <div className="flex gap-2">
+                      <input className="field flex-1 uppercase" placeholder="¿Tienes un cupón?" maxLength={30} value={couponInput} onChange={(e) => setCouponInput(e.target.value.toUpperCase().replace(/\s/g, ""))} onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); applyCoupon(couponInput); } }} />
+                      <button type="button" onClick={() => applyCoupon(couponInput)} disabled={!couponInput || checkingCoupon} className={cn("rounded-2xl px-4 text-sm font-bold disabled:opacity-50", btnPrimary)}>
+                        {checkingCoupon ? <Loader2 className="h-4 w-4 animate-spin" /> : "Aplicar"}
+                      </button>
+                    </div>
+                  )
+                )}
                 <div className="rounded-3xl bg-cocoa-800 p-5 text-cream-100">
                   <div className="flex justify-between text-sm"><span>Subtotal</span><span className="tabular-nums">{money(subtotal)}</span></div>
+                  {discount > 0 && <div className="mt-1 flex justify-between text-sm text-mint-300"><span>Cupón {coupon?.code}</span><span className="tabular-nums">-{money(discount)}</span></div>}
                   {f.type === "envio" && (shipping > 0 || zone) && <div className="mt-1 flex justify-between text-sm"><span>Envío{zone ? ` · ${zone.name}` : ""}</span><span className="tabular-nums">{shipping ? money(shipping) : "Gratis"}</span></div>}
                   <div className="mt-2 flex items-end justify-between border-t border-white/10 pt-3">
                     <span className="font-bold">Total</span>
-                    <span className="font-display text-3xl font-semibold text-white tabular-nums">{money(subtotal + shipping)}</span>
+                    <span className="font-display text-3xl font-semibold text-white tabular-nums">{money(subtotal - discount + shipping)}</span>
                   </div>
                 </div>
                 <button type="submit" disabled={sending} className="flex h-13 w-full items-center justify-center gap-2 rounded-2xl bg-mint-500 font-bold text-white transition hover:bg-mint-600 disabled:opacity-60">

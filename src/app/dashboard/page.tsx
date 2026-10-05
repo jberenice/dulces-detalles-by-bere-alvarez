@@ -1,7 +1,7 @@
 "use client";
 import { useMemo } from "react";
 import Link from "next/link";
-import { AlertTriangle, ArrowRight, BellRing, CalendarClock, CakeSlice, FileText, HandCoins, Plus, ShoppingBag, Sparkles, Store, TrendingUp, Wallet, Wheat } from "lucide-react";
+import { AlertTriangle, ArrowRight, BellRing, Cake, CalendarClock, CakeSlice, FileText, Gift, HandCoins, MessageCircle, Plus, ShoppingBag, Sparkles, Star, Store, TrendingUp, Wallet, Wheat } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { must, useAsync } from "@/hooks/useAsync";
 import { useBusiness } from "@/components/layout/BusinessProvider";
@@ -15,6 +15,11 @@ import type { Ingredient, Order, Quote } from "@/lib/types";
 import { fmtQty } from "@/lib/production";
 import { OnboardingChecklist } from "@/components/dashboard/OnboardingChecklist";
 import { planAllows } from "@/lib/plans";
+import { birthdayWhen, nextBirthday } from "@/lib/birthdays";
+import { getTemplate, renderTemplate } from "@/lib/templates";
+import { storeUrl } from "@/lib/domains";
+import { waLink } from "@/lib/format";
+import type { Client } from "@/lib/types";
 
 export default function DashboardHome() {
   const { profile, plan } = useBusiness();
@@ -46,6 +51,17 @@ export default function DashboardHome() {
     const sent = must(await sb.from("quotes").select("sent_at, followed_up_at, created_at, valid_until").eq("status", "enviada")) as Pick<Quote, "sent_at" | "followed_up_at" | "created_at" | "valid_until">[];
     const limit = Date.now() - (profile.followup_days ?? 3) * 86_400_000;
     const followUps = sent.filter((q) => (!q.valid_until || q.valid_until >= today) && new Date(q.followed_up_at ?? q.sent_at ?? q.created_at).getTime() <= limit).length;
+    // Crecimiento (si ya se ejecutó la migración 0014; si no, simplemente no se muestran)
+    const [reqs, revs, bdays] = await Promise.all([
+      sb.from("quotes").select("id", { count: "exact", head: true }).eq("source", "tienda").eq("status", "borrador").eq("total", 0),
+      sb.from("reviews").select("id", { count: "exact", head: true }).not("submitted_at", "is", null).is("moderated_at", null),
+      sb.from("clients").select("id, name, phone, birthday").not("birthday", "is", null),
+    ]);
+    const birthdays = ((bdays.data ?? []) as Pick<Client, "id" | "name" | "phone" | "birthday">[])
+      .map((c) => ({ ...c, next: nextBirthday(c.birthday!, today) }))
+      .filter((c) => c.next.days <= 14)
+      .sort((a, b) => a.next.days - b.next.days)
+      .slice(0, 6);
     const soonDue = active.filter((o) => Number(o.total) - Number(o.deposit) > 0.009 && o.delivery_date && o.delivery_date <= toISODate(addDays(now, 2))).length;
     return {
       sales30,
@@ -58,6 +74,9 @@ export default function DashboardHome() {
       lowStock,
       followUps,
       soonDue,
+      requests: reqs.error ? 0 : reqs.count ?? 0,
+      newReviews: revs.error ? 0 : revs.count ?? 0,
+      birthdays,
     };
   });
 
@@ -144,6 +163,58 @@ export default function DashboardHome() {
             </Link>
           )}
         </div>
+      )}
+
+      {data && (data.requests > 0 || data.newReviews > 0) && (
+        <div className="mb-6 grid gap-3 sm:grid-cols-2">
+          {data.requests > 0 && (
+            <Link href="/dashboard/cotizaciones?tab=borrador" className="flex items-center gap-3 rounded-3xl bg-rose-50 p-4 ring-1 ring-rose-200/70 transition hover:bg-rose-100/70">
+              <span className="grid h-10 w-10 shrink-0 place-items-center rounded-2xl bg-white text-rose-500"><Cake className="h-5 w-5" /></span>
+              <div className="min-w-0 flex-1">
+                <p className="font-semibold text-rose-700">{data.requests} pastel{data.requests === 1 ? "" : "es"} personalizado{data.requests === 1 ? "" : "s"} por cotizar</p>
+                <p className="text-sm text-rose-700/80">Te los pidieron desde tu tienda: ponles precio y envíalos</p>
+              </div>
+              <ArrowRight className="h-4 w-4 shrink-0 text-rose-500" />
+            </Link>
+          )}
+          {data.newReviews > 0 && (
+            <Link href="/dashboard/resenas" className="flex items-center gap-3 rounded-3xl bg-amber-50 p-4 ring-1 ring-amber-200/70 transition hover:bg-amber-100/70">
+              <span className="grid h-10 w-10 shrink-0 place-items-center rounded-2xl bg-white text-amber-500"><Star className="h-5 w-5" /></span>
+              <div className="min-w-0 flex-1">
+                <p className="font-semibold text-amber-800">{data.newReviews} reseña{data.newReviews === 1 ? "" : "s"} nueva{data.newReviews === 1 ? "" : "s"}</p>
+                <p className="text-sm text-amber-800/80">Revísalas y elige cuáles mostrar en tu tienda</p>
+              </div>
+              <ArrowRight className="h-4 w-4 shrink-0 text-amber-600" />
+            </Link>
+          )}
+        </div>
+      )}
+
+      {data && data.birthdays.length > 0 && (
+        <Card className="mb-6 overflow-hidden">
+          <CardHeader title="Cumpleaños de tus clientas" subtitle="En los próximos 14 días. Felicítalas: un mensaje a tiempo trae pedidos." icon={<Gift className="h-5 w-5" />} />
+          <ul className="divide-y divide-cocoa-800/5">
+            {data.birthdays.map((c) => (
+              <li key={c.id} className="flex items-center gap-3 px-5 py-3">
+                <span className={`grid h-10 w-10 shrink-0 place-items-center rounded-2xl text-lg ${c.next.days === 0 ? "bg-rose-100" : "bg-cream-100"}`}>🎂</span>
+                <div className="min-w-0 flex-1">
+                  <p className="truncate font-semibold text-cocoa-700">{c.name}{c.next.age ? <span className="font-normal text-cocoa-400"> · cumple {c.next.age}</span> : null}</p>
+                  <p className={`text-xs ${c.next.days === 0 ? "font-bold text-rose-500" : "text-cocoa-400"}`}>{birthdayWhen(c.next.days)} · {date(c.next.date, { day: "numeric", month: "long" })}</p>
+                </div>
+                {c.phone && (
+                  <a
+                    href={waLink(c.phone, renderTemplate(getTemplate(profile, "cumpleanos"), { cliente: c.name.split(" ")[0], negocio: profile.business_name, tienda: profile.store_enabled && profile.store_slug ? storeUrl(profile.store_slug) : "" }))}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex shrink-0 items-center gap-1.5 rounded-xl bg-mint-50 px-3 py-2 text-sm font-bold text-mint-700 hover:bg-mint-100"
+                  >
+                    <MessageCircle className="h-4 w-4" /> Felicitar
+                  </a>
+                )}
+              </li>
+            ))}
+          </ul>
+        </Card>
       )}
 
       {data && data.lowStock.length > 0 && (

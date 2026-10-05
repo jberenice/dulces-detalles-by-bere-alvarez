@@ -1,7 +1,17 @@
 /** Plantillas de mensajes de WhatsApp / correo editables por cada usuaria. */
 import type { Profile } from "./types";
 
-export type TemplateKey = "cotizacion_whatsapp" | "cotizacion_correo" | "pedido_confirmado" | "pedido_listo" | "recordatorio_pago" | "agradecimiento" | "seguimiento_cotizacion";
+export type TemplateKey =
+  | "cotizacion_whatsapp"
+  | "cotizacion_correo"
+  | "pedido_confirmado"
+  | "pedido_listo"
+  | "recordatorio_pago"
+  | "agradecimiento"
+  | "seguimiento_cotizacion"
+  | "pedir_resena"
+  | "cumpleanos"
+  | "sellos";
 
 export const TEMPLATE_VARS: { key: string; label: string; example: string }[] = [
   { key: "cliente", label: "Nombre del cliente", example: "Laura" },
@@ -19,6 +29,10 @@ export const TEMPLATE_VARS: { key: string; label: string; example: string }[] = 
   { key: "datos_pago", label: "Datos bancarios", example: "BBVA · CLABE 0123…" },
   { key: "negocio", label: "Nombre de tu negocio", example: "Dulces Detalles" },
   { key: "tu_nombre", label: "Tu nombre", example: "Bere" },
+  { key: "enlace_resena", label: "Enlace para dejar reseña", example: "https://…/r/…" },
+  { key: "tienda", label: "Enlace de tu tienda", example: "https://tutienda.dulcesdetallesbyberealvarez.com" },
+  { key: "sellos", label: "Sellos (tarjeta)", example: "7 de 10" },
+  { key: "premio", label: "Premio de la tarjeta de sellos", example: "1 caja de cupcakes gratis" },
 ];
 
 export const TEMPLATE_META: Record<TemplateKey, { title: string; description: string; channel: "WhatsApp" | "Correo" }> = {
@@ -29,6 +43,9 @@ export const TEMPLATE_META: Record<TemplateKey, { title: string; description: st
   recordatorio_pago: { title: "Recordatorio de pago", description: "Para cobrar el saldo pendiente con amabilidad", channel: "WhatsApp" },
   agradecimiento: { title: "Agradecimiento", description: "Después de entregar, para pedir su opinión", channel: "WhatsApp" },
   seguimiento_cotizacion: { title: "Seguimiento de cotización", description: "Cuando una cotización lleva días sin respuesta", channel: "WhatsApp" },
+  pedir_resena: { title: "Pedir reseña", description: "Después de entregar, con el enlace para calificar y subir foto", channel: "WhatsApp" },
+  cumpleanos: { title: "Felicitación de cumpleaños", description: "Para felicitar a tus clientas en su cumpleaños", channel: "WhatsApp" },
+  sellos: { title: "Tarjeta de sellos", description: "Para contarle cuántos sellos lleva", channel: "WhatsApp" },
 };
 
 export const DEFAULT_TEMPLATES: Record<TemplateKey, string> = {
@@ -44,6 +61,11 @@ export const DEFAULT_TEMPLATES: Record<TemplateKey, string> = {
   seguimiento_cotizacion:
     "¡Hola {cliente}! 😊 Solo paso a saludarte y saber si pudiste revisar la cotización {folio}{titulo} por {total}.\n\nSi quieres ajustar sabores, cantidades o la fecha, con gusto lo vemos. Te dejo el enlace: {enlace}\n\nRecuerda que es válida hasta el {vigencia} 💕\n{negocio}",
   agradecimiento: "¡Hola {cliente}! Muchas gracias por tu pedido 💕 Nos encantaría saber qué te pareció. ¡Te esperamos pronto! — {negocio}",
+  pedir_resena:
+    "¡Hola {cliente}! 💕 Gracias por tu pedido {folio}. ¿Nos regalas un minuto para contarnos qué te pareció? Puedes calificarnos y subir una foto aquí:\n{enlace_resena}\n\n¡Tu opinión nos ayuda muchísimo! — {negocio}",
+  cumpleanos:
+    "¡Feliz cumpleaños, {cliente}! 🎂🎉 En {negocio} te deseamos un día lleno de dulzura. Si quieres celebrarlo con un postre, aquí estamos 💕\n{tienda}",
+  sellos: "¡Hola {cliente}! 🧁 Ya llevas {sellos} sellos en tu tarjeta de {negocio}. Al completarla te llevas {premio}. ¡Gracias por tu preferencia! 💕",
 };
 
 export function getTemplate(profile: Pick<Profile, "message_templates">, key: TemplateKey) {
@@ -52,7 +74,7 @@ export function getTemplate(profile: Pick<Profile, "message_templates">, key: Te
 }
 
 /** Variables que, si vienen vacías, eliminan todo su renglón (p. ej. sin anticipo o sin vigencia) */
-const LINE_VARS = ["vigencia", "anticipo", "saldo", "enlace", "datos_pago"];
+const LINE_VARS = ["vigencia", "anticipo", "saldo", "enlace", "datos_pago", "tienda", "enlace_resena"];
 
 /** Reemplaza {variables}; quita los renglones cuyas variables opcionales quedaron vacías */
 export function renderTemplate(template: string, vars: Record<string, string | null | undefined>) {

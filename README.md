@@ -42,6 +42,7 @@ Al activar la licencia se puede **precargar el recetario** con tus datos reales:
    - `supabase/migrations/0011_domains.sql` (subdominios y dominios propios de tiendas)
    - `supabase/migrations/0012_print_designs.sql` (diseños de tarjetas/etiquetas/stickers y 3 leches con media crema; vuelve a correr antes `0002_seed_function.sql`)
    - `supabase/migrations/0013_packages.sql` (paquetes y cajas: contenido fijo o "arma tu caja" con sabores a elegir, en cotizaciones, pedidos, producción, inventario y tienda)
+   - `supabase/migrations/0014_growth.sql` (pastel personalizado desde la tienda, temporadas y cupones, reseñas con foto, tarjeta de sellos, alérgenos y caducidad, registro de errores; crea los buckets `solicitudes`, `resenas` y `respaldos`)
    - `supabase/cron_setup.sql` (recordatorios cada hora; reemplaza tu dominio y tu CRON_SECRET antes de ejecutarlo)
    - `supabase/admin_setup.sql` → el resultado te muestra **tu código de licencia de administradora** (aleatorio)
 3. **Authentication → URL Configuration**
@@ -184,3 +185,9 @@ src/
 supabase/
   migrations/                Esquema, RLS, RPCs y datos iniciales
 ```
+
+
+## 🛟 Errores y respaldos
+
+- **Errores**: lo que falla en el navegador de tus clientas o en el servidor se guarda en *Administración → Errores y respaldos* (se agrupan los iguales). Si además quieres usar Sentry, crea un proyecto y pon su DSN en la variable `SENTRY_DSN` de Vercel (opcional).
+- **Respaldo diario**: `/api/cron/respaldo` guarda todas las tablas en Supabase Storage (bucket privado `respaldos`, últimos 14 días) y te manda un resumen por correo con los errores del día. Prográmalo ejecutando de nuevo `supabase/cron_setup.sql` (incluye el trabajo `dd-respaldo`). Los descargas desde el mismo panel.

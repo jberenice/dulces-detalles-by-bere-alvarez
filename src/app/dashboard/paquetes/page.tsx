@@ -36,6 +36,7 @@ const blank = (): Draft => ({
   active: true,
   position: 0,
   min_notice_days: null,
+  season_id: null,
 });
 
 /** Precio total a partir de lo capturado (total de la caja o precio por pieza) */
@@ -51,6 +52,7 @@ export default function PackagesPage() {
   const catalog = useCatalog();
   const { data, costs, ingredientsById } = catalog;
   const packsQ = useAsync(async () => must(await sb.from("packages").select("*").order("position").order("name")) as Package[]);
+  const seasonsQ = useAsync(async () => ((await sb.from("seasons").select("id, name, emoji").order("start_date")).data ?? []) as { id: string; name: string; emoji: string | null }[]);
   const [form, setForm] = useState<Draft | null>(null);
   const [saving, setSaving] = useState(false);
   const [q, setQ] = useState("");
@@ -89,6 +91,7 @@ export default function PackagesPage() {
       store_visible: form.store_visible,
       active: form.active,
       min_notice_days: form.min_notice_days === null || (form.min_notice_days as unknown) === "" ? null : Number(form.min_notice_days),
+      ...(form.season_id !== undefined ? { season_id: form.season_id || null } : {}),
     };
     setSaving(true);
     const { error } = form.id ? await sb.from("packages").update(payload).eq("id", form.id) : await sb.from("packages").insert({ ...payload, position: packsQ.data?.length ?? 0 });
@@ -218,6 +221,7 @@ export default function PackagesPage() {
             desserts={desserts}
             costs={costs}
             boxes={boxes}
+            seasons={seasonsQ.data ?? []}
             stats={stats(form)}
           />
         )}
@@ -243,6 +247,7 @@ function PackageEditor({
   desserts,
   costs,
   boxes,
+  seasons,
   stats,
 }: {
   form: Draft;
@@ -251,6 +256,7 @@ function PackageEditor({
   costs: ReturnType<typeof useCatalog>["costs"];
   boxes: NonNullable<ReturnType<typeof useCatalog>["data"]>["ingredients"];
   stats: PackageStats;
+  seasons: { id: string; name: string; emoji: string | null }[];
 }) {
   const set = (patch: Partial<Draft>) => setForm((f) => (f ? { ...f, ...patch } : f));
   const categories = useMemo(() => [...new Set(desserts.map((d) => d.category))], [desserts]);
@@ -365,6 +371,12 @@ function PackageEditor({
           <Toggle checked={form.active} onChange={(v) => set({ active: v })} label="Activo" />
           <Input label="Días de anticipación" type="number" min={0} max={90} placeholder="Los de tu tienda" value={form.min_notice_days ?? ""} onChange={(e) => set({ min_notice_days: (e.target.value === "" ? null : e.target.value) as unknown as number })} />
         </div>
+        {seasons.length > 0 && (
+          <Select label="Temporada" value={form.season_id ?? ""} onChange={(e) => set({ season_id: e.target.value || null })} hint="Si la eliges, el paquete solo aparece en tu tienda durante esas fechas.">
+            <option value="">Todo el año</option>
+            {seasons.map((x) => <option key={x.id} value={x.id}>{x.emoji ? `${x.emoji} ` : ""}{x.name}</option>)}
+          </Select>
+        )}
       </div>
 
       <Summary stats={stats} mode={form.mode} />
