@@ -1,7 +1,7 @@
 "use client";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import QRCode from "qrcode";
-import { Circle, IdCard, Palette, Printer, Save, Square, Sticker, Tag, QrCode, RotateCcw } from "lucide-react";
+import { AlertTriangle, CakeSlice, Circle, Cookie, IdCard, Palette, Printer, Save, Square, Sticker, Tag, QrCode, RotateCcw, Sparkles } from "lucide-react";
 import { toast } from "sonner";
 import { createClient } from "@/lib/supabase/client";
 import { useBusiness } from "@/components/layout/BusinessProvider";
@@ -14,23 +14,52 @@ import { storeUrl } from "@/lib/domains";
 import { markOnboarding } from "@/lib/onboarding";
 import { cn } from "@/lib/cn";
 import {
+  DECORS,
+  FONTS,
   KINDS,
   LAYOUTS,
   PALETTES,
   PAPERS,
+  SHAPE_LABEL,
+  THEMES,
   buildSheetHtml,
+  decorPreview,
   fitOnPaper,
+  fitPieces,
   normalizeDesign,
   renderItem,
   sizeOf,
   type PrintData,
   type PrintDesign,
   type PrintKind,
+  type Shape,
 } from "@/lib/printDesigns";
 import type { Profile } from "@/lib/types";
 
 const KIND_ICON: Record<PrintKind, typeof IdCard> = { tarjeta: IdCard, etiqueta: Tag, sticker: Sticker, qr: QrCode };
+const SHAPE_ICON: Record<Shape, typeof IdCard> = { rectangulo: Square, cuadrado: Square, redondo: Circle, galleta: Cookie };
 const CM = 37.8; // px por cm en pantalla
+/** Debajo de este tamaño base (cm) la letra chica queda difícil de leer impresa */
+const SMALL_TEXT = 0.24;
+
+/** Ajusta los textos de un contenedor cuando cambia el diseño y otra vez cuando cargan las letras */
+function useFit(ref: React.RefObject<HTMLElement | null>, html: string, onFit?: (smallest: number, el: HTMLElement) => void) {
+  useLayoutEffect(() => {
+    if (!ref.current || !html) return;
+    let alive = true;
+    const run = () => {
+      if (!alive || !ref.current) return;
+      const min = fitPieces(ref.current);
+      onFit?.(min, ref.current);
+    };
+    run();
+    document.fonts?.ready.then(run);
+    return () => {
+      alive = false;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [html]);
+}
 
 export default function PrintDesignerPage() {
   const { profile, setProfile } = useBusiness();
@@ -47,8 +76,17 @@ export default function PrintDesignerPage() {
   }));
   const [paper, setPaper] = useState("carta");
   const [qr, setQr] = useState("");
-  const [fonts, setFonts] = useState<PrintData["fonts"]>({ elegante: "Georgia, serif", romantica: "cursive", moderna: "system-ui, sans-serif" });
+  const [fonts, setFonts] = useState<PrintData["fonts"]>({
+    elegante: "Georgia, serif",
+    romantica: "cursive",
+    moderna: "system-ui, sans-serif",
+    divertida: "cursive",
+    redondita: "system-ui, sans-serif",
+  });
   const [saving, setSaving] = useState(false);
+  const [fitted, setFitted] = useState("");
+  const [smallest, setSmallest] = useState(1);
+  const previewRef = useRef<HTMLDivElement>(null);
   const d = designs[kind];
   const set = (patch: Partial<PrintDesign>) => setDesigns((x) => ({ ...x, [kind]: { ...x[kind], ...patch } }));
   const url = storeUrl(profile.store_slug);
@@ -56,7 +94,13 @@ export default function PrintDesignerPage() {
   useEffect(() => {
     const css = getComputedStyle(document.documentElement);
     const v = (n: string, f: string) => css.getPropertyValue(n).trim() || f;
-    setFonts({ elegante: v("--font-display-serif", "Georgia, serif"), romantica: v("--font-dancing", "cursive"), moderna: v("--font-body", "system-ui, sans-serif") });
+    setFonts({
+      elegante: v("--font-display-serif", "Georgia, serif"),
+      romantica: v("--font-dancing", "cursive"),
+      moderna: v("--font-body", "system-ui, sans-serif"),
+      divertida: v("--font-pacifico", "cursive"),
+      redondita: v("--font-fredoka", "system-ui, sans-serif"),
+    });
   }, []);
 
   useEffect(() => {
@@ -68,14 +112,21 @@ export default function PrintDesignerPage() {
     logo: profile.logo_url || (typeof window !== "undefined" ? `${window.location.origin}/logo-transparent.png` : null),
     qr,
     url,
-    whatsapp: profile.whatsapp ? `WhatsApp ${profile.whatsapp}` : "",
-    instagram: profile.instagram ? `@${profile.instagram.replace(/^@/, "")}` : "",
+    whatsapp: profile.whatsapp ?? "",
+    instagram: profile.instagram ?? "",
+    facebook: profile.facebook ?? "",
     fonts,
   };
 
   const size = sizeOf(kind, d);
   const fit = fitOnPaper(size.w, size.h, paper);
   const piece = useMemo(() => (qr ? renderItem(kind, d, data) : ""), [kind, d, qr, fonts, profile]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // La vista previa se ajusta midiendo; la hoja y la impresión usan esa misma pieza ya ajustada
+  useFit(previewRef, piece, (min, el) => {
+    setSmallest(min);
+    setFitted(el.innerHTML);
+  });
 
   async function save() {
     setSaving(true);
@@ -87,12 +138,12 @@ export default function PrintDesignerPage() {
   }
 
   function print() {
-    if (!qr) return;
+    if (!qr || !fitted) return;
     if (fit.total === 0) return toast.error("Esta pieza no cabe en esa hoja, elige una hoja más grande");
     const links = [...document.querySelectorAll<HTMLLinkElement>('link[rel="stylesheet"]')].map((l) => l.href);
     const w = window.open("", "_blank", "width=1000,height=1200");
     if (!w) return toast.error("Permite las ventanas emergentes para imprimir");
-    w.document.write(buildSheetHtml(kind, d, data, paper, links));
+    w.document.write(buildSheetHtml(kind, d, fitted, data.business, paper, links));
     w.document.close();
     markOnboarding(profile, "shared", setProfile);
   }
@@ -100,17 +151,18 @@ export default function PrintDesignerPage() {
   // Escala de la vista previa para que quepa en pantalla
   const previewScale = Math.min(1.6, 320 / (size.w * CM), 300 / (size.h * CM));
   const sheetScale = Math.min(300 / (fit.pageW * CM), 420 / (fit.pageH * CM));
+  const roundish = d.shape === "redondo" || d.shape === "galleta";
 
   return (
     <>
       <PageHeader
         eyebrow="Tu marca en todos lados"
         title="Tarjetas, etiquetas y stickers"
-        subtitle="Diseña tus impresos con el QR de tu tienda: elige tamaño, acomodo, colores y textos. Mira cómo quedan y cuántos caben por hoja."
+        subtitle="Diseña tus impresos con el QR de tu tienda: elige un diseño de repostería, tamaño, acomodo, colores y textos. Mira cómo quedan y cuántos caben por hoja."
         actions={
           <>
             <Button variant="outline" onClick={save} loading={saving}><Save className="h-4 w-4" /> Guardar diseños</Button>
-            <Button onClick={print} disabled={!qr}><Printer className="h-4 w-4" /> Imprimir hoja</Button>
+            <Button onClick={print} disabled={!fitted}><Printer className="h-4 w-4" /> Imprimir hoja</Button>
           </>
         }
       />
@@ -134,26 +186,67 @@ export default function PrintDesignerPage() {
             <div className="mt-4 grid grid-cols-2 gap-2 sm:grid-cols-4">
               {KINDS[kind].sizes.map((s) => (
                 <Opt key={s.id} active={d.size === s.id} onClick={() => set({ size: s.id, shape: s.shapes.includes(d.shape) ? d.shape : s.shapes[0] })}>
-                  <span className="mx-auto mb-2 block border-2 border-cocoa-400" style={{ width: Math.min(60, s.w * 7), height: Math.min(60, s.h * 7), borderRadius: d.shape === "redondo" && s.shapes.includes("redondo") ? "50%" : 4 }} />
+                  <span
+                    className="mx-auto mb-2 block border-2 border-cocoa-400"
+                    style={{ width: Math.min(60, s.w * 7), height: Math.min(60, s.h * 7), borderRadius: roundish && s.shapes.includes(d.shape) ? "50%" : 4 }}
+                  />
                   <span className="block text-center text-xs font-bold text-cocoa-600">{s.label}</span>
                 </Opt>
               ))}
             </div>
             {size.shapes.length > 1 && (
-              <div className="mt-4 flex gap-2">
-                {size.shapes.map((sh) => (
-                  <Opt key={sh} active={d.shape === sh} onClick={() => set({ shape: sh })} className="flex flex-1 items-center justify-center gap-2 py-2.5 text-sm font-bold text-cocoa-600">
-                    {sh === "redondo" ? <Circle className="h-4 w-4" /> : <Square className="h-4 w-4" />} {sh === "redondo" ? "Redondo" : "Cuadrado"}
-                  </Opt>
-                ))}
+              <div className="mt-4 grid grid-cols-3 gap-2">
+                {size.shapes.map((sh) => {
+                  const Icon = SHAPE_ICON[sh];
+                  return (
+                    <Opt key={sh} active={d.shape === sh} onClick={() => set({ shape: sh })} className="flex items-center justify-center gap-2 py-2.5 text-sm font-bold text-cocoa-600">
+                      <Icon className="h-4 w-4" /> {SHAPE_LABEL[sh]}
+                    </Opt>
+                  );
+                })}
               </div>
             )}
-            {d.shape !== "redondo" && (
+            {!roundish && (
               <label className="mt-4 block">
                 <span className="label">Esquinas redondeadas</span>
                 <input type="range" min={0} max={1.5} step={0.1} value={d.radius} onChange={(e) => set({ radius: Number(e.target.value) })} className="w-full accent-rose-500" />
               </label>
             )}
+          </Card>
+
+          {/* Diseños listos */}
+          <Card className="p-5 sm:p-6">
+            <h3 className="flex items-center gap-2 text-lg font-semibold"><CakeSlice className="h-5 w-5 text-rose-400" /> Diseños de repostería</h3>
+            <p className="text-sm text-cocoa-400">Toca uno para usarlo y luego ajusta colores, acomodo o textos a tu gusto.</p>
+            {qr && (
+              <div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-3 2xl:grid-cols-4">
+                {THEMES.map((t) => {
+                  const td = { ...d, ...t.patch };
+                  const active = (Object.keys(t.patch) as (keyof PrintDesign)[]).every((k) => d[k] === td[k]);
+                  return (
+                    <Opt key={t.id} active={active} onClick={() => set(t.patch)} className="p-2">
+                      <Thumb html={renderItem(kind, td, data)} w={size.w} h={size.h} />
+                      <span className="mt-2 block text-center text-xs font-bold text-cocoa-700">{t.name}</span>
+                    </Opt>
+                  );
+                })}
+              </div>
+            )}
+          </Card>
+
+          {/* Decoración */}
+          <Card className="p-5 sm:p-6">
+            <h3 className="flex items-center gap-2 text-lg font-semibold"><Sparkles className="h-5 w-5 text-rose-400" /> Decoración</h3>
+            <p className="text-sm text-cocoa-400">Usa el color de “Acento”.</p>
+            <div className="mt-4 grid grid-cols-2 gap-2 sm:grid-cols-4">
+              {DECORS.map((x) => (
+                <Opt key={x.id} active={d.decor === x.id} onClick={() => set({ decor: x.id })} className="p-2">
+                  <span className="block h-14 overflow-hidden rounded-lg ring-1 ring-cocoa-800/8" dangerouslySetInnerHTML={{ __html: decorPreview(x.id, d.primary, d.bg, d.text) }} />
+                  <span className="mt-2 block text-xs font-bold text-cocoa-700">{x.label}</span>
+                  <span className="block text-[11px] leading-tight text-cocoa-400">{x.hint}</span>
+                </Opt>
+              ))}
+            </div>
           </Card>
 
           {/* Acomodo */}
@@ -168,7 +261,7 @@ export default function PrintDesignerPage() {
                 </Opt>
               ))}
             </div>
-            {d.shape === "redondo" && <p className="mt-3 text-xs text-cocoa-400">En piezas redondas el contenido siempre va centrado.</p>}
+            {roundish && <p className="mt-3 text-xs text-cocoa-400">En piezas redondas, Clásico pone el QR arriba e Invertido lo pone abajo.</p>}
           </Card>
 
           {/* Colores y estilo */}
@@ -199,9 +292,9 @@ export default function PrintDesignerPage() {
             </div>
             <div className="mt-5 grid gap-4 sm:grid-cols-3">
               <Select label="Letra del nombre" value={d.font} onChange={(e) => set({ font: e.target.value as PrintDesign["font"] })}>
-                <option value="elegante">Elegante</option>
-                <option value="romantica">Romántica</option>
-                <option value="moderna">Moderna</option>
+                {FONTS.map((f) => (
+                  <option key={f.id} value={f.id}>{f.label}</option>
+                ))}
               </Select>
               <Select label="Fondo decorado" value={d.pattern} onChange={(e) => set({ pattern: e.target.value as PrintDesign["pattern"] })}>
                 <option value="liso">Liso</option>
@@ -209,6 +302,7 @@ export default function PrintDesignerPage() {
                 <option value="puntos">Puntitos</option>
                 <option value="rayas">Rayas</option>
                 <option value="ondas">Ondas</option>
+                <option value="waffle">Cuadritos de waffle</option>
               </Select>
               <Select label="Borde" value={d.border} onChange={(e) => set({ border: e.target.value as PrintDesign["border"] })}>
                 <option value="ninguno">Sin borde</option>
@@ -222,17 +316,19 @@ export default function PrintDesignerPage() {
           {/* Textos */}
           <Card className="p-5 sm:p-6">
             <h3 className="text-lg font-semibold">Información</h3>
-            <p className="text-sm text-cocoa-400">Déjalo vacío para usar los datos de tu negocio.</p>
+            <p className="text-sm text-cocoa-400">Déjalo vacío para usar los datos de tu negocio. Prende o apaga cada dato con su interruptor.</p>
             <div className="mt-4 grid gap-4 sm:grid-cols-2">
               <Input label="Nombre" maxLength={60} placeholder={data.business} value={d.title} onChange={(e) => set({ title: e.target.value })} />
               <Input label="Frase" maxLength={80} value={d.subtitle} onChange={(e) => set({ subtitle: e.target.value })} placeholder="Escanea y haz tu pedido" />
-              <Input label="Línea 1" maxLength={60} placeholder={data.whatsapp || "WhatsApp 998 123 4567"} value={d.line1} onChange={(e) => set({ line1: e.target.value })} />
-              <Input label="Línea 2" maxLength={60} placeholder={data.instagram || "@tutienda"} value={d.line2} onChange={(e) => set({ line2: e.target.value })} />
+            </div>
+            <div className="mt-4 grid gap-4 sm:grid-cols-3">
+              <InfoField label="Contacto (WhatsApp o teléfono)" placeholder={data.whatsapp || "998 123 4567"} value={d.contact} onChange={(v) => set({ contact: v })} on={d.showContact} onToggle={(v) => set({ showContact: v })} />
+              <InfoField label="Instagram" placeholder={data.instagram ? `@${data.instagram.replace(/^@/, "")}` : "@tutienda"} value={d.instagram} onChange={(v) => set({ instagram: v })} on={d.showInstagram} onToggle={(v) => set({ showInstagram: v })} />
+              <InfoField label="Facebook" placeholder={data.facebook || "tutienda"} value={d.facebook} onChange={(v) => set({ facebook: v })} on={d.showFacebook} onToggle={(v) => set({ showFacebook: v })} />
             </div>
             <div className="mt-4 grid gap-3 sm:grid-cols-3">
               <Toggle checked={d.showLogo} onChange={(v) => set({ showLogo: v })} label="Mostrar logo" />
               <Toggle checked={d.showQr} onChange={(v) => set({ showQr: v })} label="Mostrar QR" />
-              <Toggle checked={d.showLines} onChange={(v) => set({ showLines: v })} label="Mostrar WhatsApp e Instagram" />
               <Toggle checked={d.showUrl} onChange={(v) => set({ showUrl: v })} label="Mostrar dirección web" />
             </div>
             <Button variant="ghost" size="sm" className="mt-4" onClick={() => set(normalizeDesign(kind, null, base))}>
@@ -244,13 +340,24 @@ export default function PrintDesignerPage() {
         {/* Vista previa */}
         <div className="space-y-4 xl:sticky xl:top-6">
           <Card className="overflow-hidden">
-            <CardHeader title="Vista previa" subtitle={`${size.label}${d.shape === "redondo" ? " · redondo" : ""}`} />
+            <CardHeader title="Vista previa" subtitle={`${size.label}${roundish ? ` · ${SHAPE_LABEL[d.shape].toLowerCase()}` : ""}`} />
             <div className="sprinkles grid place-items-center bg-cream-200/60 p-6">
               <div style={{ width: size.w * CM * previewScale, height: size.h * CM * previewScale }}>
-                <div id="dd-piece-preview" style={{ transform: `scale(${previewScale})`, transformOrigin: "top left", width: size.w * CM, height: size.h * CM, filter: "drop-shadow(0 8px 18px rgb(63 37 13 / .18))" }} dangerouslySetInnerHTML={{ __html: piece }} />
+                <div
+                  ref={previewRef}
+                  style={{ transform: `scale(${previewScale})`, transformOrigin: "top left", width: size.w * CM, height: size.h * CM, filter: "drop-shadow(0 8px 18px rgb(63 37 13 / .18))" }}
+                  dangerouslySetInnerHTML={{ __html: piece }}
+                />
               </div>
             </div>
-            <p className="px-4 py-3 text-xs text-cocoa-400">Así se verá impresa. Los tamaños son reales en centímetros.</p>
+            {smallest < SMALL_TEXT ? (
+              <p className="flex gap-2 bg-amber-50 px-4 py-3 text-xs text-amber-800">
+                <AlertTriangle className="h-4 w-4 shrink-0" />
+                Hay mucha información para este tamaño y la letra queda muy chiquita. Apaga algún dato (por ejemplo Facebook o la dirección web) o elige un tamaño más grande.
+              </p>
+            ) : (
+              <p className="px-4 py-3 text-xs text-cocoa-400">Así se verá impresa. Los tamaños son reales en centímetros y los textos se acomodan solos para que nada se corte.</p>
+            )}
           </Card>
 
           <Card className="overflow-hidden">
@@ -276,19 +383,42 @@ export default function PrintDesignerPage() {
                   >
                     {Array.from({ length: fit.total }, (_, i) => (
                       <div key={i} style={{ width: size.w * CM * sheetScale, height: size.h * CM * sheetScale, overflow: "hidden" }}>
-                        <div style={{ transform: `scale(${sheetScale})`, transformOrigin: "top left", width: size.w * CM, height: size.h * CM }} dangerouslySetInnerHTML={{ __html: piece }} />
+                        <div style={{ transform: `scale(${sheetScale})`, transformOrigin: "top left", width: size.w * CM, height: size.h * CM }} dangerouslySetInnerHTML={{ __html: fitted }} />
                       </div>
                     ))}
                   </div>
                 </div>
               </div>
-              <Button className="mt-4 w-full" onClick={print} disabled={!qr || !fit.total}><Printer className="h-4 w-4" /> Imprimir {fit.total} {kind === "tarjeta" ? "tarjetas" : kind === "etiqueta" ? "etiquetas" : kind === "sticker" ? "stickers" : "QR"}</Button>
+              <Button className="mt-4 w-full" onClick={print} disabled={!fitted || !fit.total}><Printer className="h-4 w-4" /> Imprimir {fit.total} {kind === "tarjeta" ? "tarjetas" : kind === "etiqueta" ? "etiquetas" : kind === "sticker" ? "stickers" : "QR"}</Button>
               <p className="mt-2 text-center text-xs text-cocoa-400">Imprime al 100 % (escala real). Para guardar como PDF, elige “Guardar como PDF” en la impresora.</p>
             </div>
           </Card>
         </div>
       </div>
     </>
+  );
+}
+
+/** Miniatura real de un diseño (se ajusta igual que la vista previa) */
+function Thumb({ html, w, h }: { html: string; w: number; h: number }) {
+  const ref = useRef<HTMLDivElement>(null);
+  useFit(ref, html);
+  const scale = Math.min(150 / (w * CM), 110 / (h * CM));
+  return (
+    <span className="grid h-[120px] place-items-center overflow-hidden rounded-xl bg-cream-100/70">
+      <span style={{ width: w * CM * scale, height: h * CM * scale, display: "block" }}>
+        <div ref={ref} style={{ transform: `scale(${scale})`, transformOrigin: "top left", width: w * CM, height: h * CM, filter: "drop-shadow(0 3px 6px rgb(63 37 13 / .15))" }} dangerouslySetInnerHTML={{ __html: html }} />
+      </span>
+    </span>
+  );
+}
+
+function InfoField({ label, placeholder, value, onChange, on, onToggle }: { label: string; placeholder: string; value: string; onChange: (v: string) => void; on: boolean; onToggle: (v: boolean) => void }) {
+  return (
+    <div className={cn("rounded-2xl border border-cocoa-800/8 p-3 transition", !on && "opacity-60")}>
+      <Input label={label} maxLength={80} placeholder={placeholder} value={value} onChange={(e) => onChange(e.target.value)} />
+      <Toggle className="mt-2" checked={on} onChange={onToggle} label="Mostrar" />
+    </div>
   );
 }
 

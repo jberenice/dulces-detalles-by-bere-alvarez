@@ -1,5 +1,5 @@
 import type { Metadata, Viewport } from "next";
-import { Playfair_Display, Nunito_Sans, Dancing_Script } from "next/font/google";
+import { Playfair_Display, Nunito_Sans, Dancing_Script, Pacifico, Fredoka } from "next/font/google";
 import { Toaster } from "sonner";
 import { CookieNotice } from "@/components/legal/CookieNotice";
 import "./globals.css";
@@ -7,6 +7,9 @@ import "./globals.css";
 const display = Playfair_Display({ subsets: ["latin"], variable: "--font-display-serif", display: "swap" });
 const body = Nunito_Sans({ subsets: ["latin"], variable: "--font-body", display: "swap" });
 const script = Dancing_Script({ subsets: ["latin"], variable: "--font-dancing", display: "swap", weight: ["500", "700"] });
+// Letras extra para tarjetas y stickers (solo se descargan cuando se usan)
+const playful = Pacifico({ subsets: ["latin"], variable: "--font-pacifico", display: "swap", weight: "400", preload: false });
+const rounded = Fredoka({ subsets: ["latin"], variable: "--font-fredoka", display: "swap", weight: ["500", "600"], preload: false });
 
 export const metadata: Metadata = {
   metadataBase: new URL(process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000"),
@@ -35,7 +38,7 @@ export const viewport: Viewport = {
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="es-MX" className={`${display.variable} ${body.variable} ${script.variable}`}>
+    <html lang="es-MX" className={`${display.variable} ${body.variable} ${script.variable} ${playful.variable} ${rounded.variable}`}>
       <body className="min-h-dvh font-sans">
         {children}
         <CookieNotice />
