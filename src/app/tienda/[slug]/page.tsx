@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { Storefront, type StoreData } from "@/components/store/Storefront";
+import { storeUrl } from "@/lib/domains";
 
 async function getStore(slug: string) {
   const supabase = await createClient();
@@ -18,8 +19,8 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
   return {
     title: { absolute: data.store.title },
     description,
-    alternates: { canonical: `/tienda/${slug}` },
-    openGraph: { title: data.store.title, description, url: `/tienda/${slug}`, siteName: data.store.business_name, type: "website", locale: "es_MX" },
+    alternates: { canonical: storeUrl(slug) },
+    openGraph: { title: data.store.title, description, url: storeUrl(slug), siteName: data.store.business_name, type: "website", locale: "es_MX" },
     twitter: { card: "summary_large_image", title: data.store.title, description },
   };
 }

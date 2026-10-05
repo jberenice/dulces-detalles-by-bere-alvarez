@@ -1,4 +1,5 @@
 "use client";
+import { storeUrl } from "./domains";
 import { createClient } from "./supabase/client";
 
 /** Descarga todas las filas de una tabla (de 1000 en 1000) — RLS garantiza que solo son de la usuaria */
@@ -203,7 +204,7 @@ export async function exportExcel() {
   const p = d.profile ?? {};
   [
     ["Negocio", p.business_name], ["Responsable", p.owner_name], ["Correo", p.email], ["WhatsApp", p.whatsapp], ["Dirección", p.address],
-    ["Instagram", p.instagram], ["Facebook", p.facebook], ["Tienda", p.store_slug ? `/tienda/${p.store_slug}` : ""], ["Zona horaria", p.timezone],
+    ["Instagram", p.instagram], ["Facebook", p.facebook], ["Tienda", p.store_slug ? storeUrl(p.store_slug as string) : ""], ["Zona horaria", p.timezone],
     ["% Ganancia por defecto", p.default_profit_pct], ["% Desgaste por defecto", p.default_wear_pct], ["% IVA", p.iva_pct], ["% Comisión tarjeta", p.card_fee_pct],
     ["Días de trabajo al mes", p.days_per_month], ["Horas por día", p.hours_per_day], ["Respaldo generado", new Date().toLocaleString("es-MX")],
   ].forEach(([k, v]) => {

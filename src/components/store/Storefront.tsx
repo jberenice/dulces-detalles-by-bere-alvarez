@@ -561,7 +561,7 @@ export function Storefront({ data, slug, preview = false }: { data: StoreData; s
 
       {/* Barra de carrito */}
       {count > 0 && (
-        <div className={cn("inset-x-0 bottom-0 z-40 p-4 pb-safe", preview ? "sticky" : "fixed")}>
+        <div className={cn("inset-x-0 bottom-0 z-40 px-4 pt-4 pb-[max(1rem,env(safe-area-inset-bottom))]", preview ? "sticky" : "fixed")}>
           <button
             onClick={() => (preview ? toast.info("Vista previa: así verán tus clientes el carrito") : setOpen(true))}
             className="mx-auto flex w-full max-w-md items-center justify-between gap-3 rounded-full bg-[var(--st-text)] py-3 pr-3 pl-6 text-[var(--st-bg)] shadow-lift animate-fade-up"

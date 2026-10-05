@@ -1,4 +1,5 @@
 "use client";
+import { storeUrl } from "@/lib/domains";
 import { useState } from "react";
 import { CalendarHeart, Check, Download, MessageCircle, Store } from "lucide-react";
 import { toast } from "sonner";
@@ -143,7 +144,7 @@ export function PublicQuote({ data, token }: { data: PublicQuoteData; token: str
       <div className="mt-8 text-center">
         <p className="font-script text-2xl text-rose-400">Hechos con amor de hogar</p>
         {b.store_slug && (
-          <a href={`/tienda/${b.store_slug}`} className="mt-2 inline-flex items-center gap-1.5 text-sm font-bold text-cocoa-500 hover:text-rose-500"><Store className="h-4 w-4" /> Visita nuestra tienda</a>
+          <a href={storeUrl(b.store_slug)} className="mt-2 inline-flex items-center gap-1.5 text-sm font-bold text-cocoa-500 hover:text-rose-500"><Store className="h-4 w-4" /> Visita nuestra tienda</a>
         )}
         <SiteFooter compact social={false} />
       </div>

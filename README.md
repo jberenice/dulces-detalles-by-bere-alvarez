@@ -39,6 +39,7 @@ Al activar la licencia se puede **precargar el recetario** con tus datos reales:
    - `supabase/migrations/0008_demo.sql` (cuenta demo de 48 horas)
    - `supabase/migrations/0009_anonymous_hardening.sql` (límites para usuarios anónimos de la demo)
    - `supabase/migrations/0010_premium.sql` (planes, pagos parciales, variantes, zonas, cupo diario, métricas)
+   - `supabase/migrations/0011_domains.sql` (subdominios y dominios propios de tiendas)
    - `supabase/cron_setup.sql` (recordatorios cada hora; reemplaza tu dominio y tu CRON_SECRET antes de ejecutarlo)
    - `supabase/admin_setup.sql` → el resultado te muestra **tu código de licencia de administradora** (aleatorio)
 3. **Authentication → URL Configuration**
@@ -71,13 +72,20 @@ npm run dev        # http://localhost:3000
 2. En SQL Editor: `update public.profiles set role = 'admin' where email = 'tu-correo@ejemplo.com';`
 3. En el menú aparece **Administración → Licencias** para generar códigos para tus clientas.
 
-### 5. Deploy en Vercel
+### 5. Deploy en Vercel (plan Pro para uso comercial)
 1. Sube el proyecto a GitHub.
 2. En Vercel → *New Project* → importa el repo (Framework: Next.js).
-3. Agrega las mismas variables de entorno y despliega.
-4. Actualiza la *Site URL* de Supabase con tu dominio final.
+3. Agrega las variables de entorno de `.env.example` y despliega.
+4. Dominio y subdominios de tiendas: ver la sección **🌐 Dominio y tiendas**.
 
 ---
+
+## 🌐 Dominio y tiendas
+- Dominio principal: `dulcesdetallesbyberealvarez.com` (landing, panel, cotizaciones).
+- Cada tienda: `https://<tienda>.dulcesdetallesbyberealvarez.com` (la "dirección de tu tienda" es el subdominio). La ruta `/tienda/<tienda>` sigue funcionando.
+- Dominio propio de una clienta: **Administración → Dominios** → *Conectar dominio* y sigue la guía (agregarlo en Vercel + registros A/CNAME en su proveedor).
+- Variables: `NEXT_PUBLIC_SITE_URL`, `NEXT_PUBLIC_ROOT_DOMAIN`. Migración: `0011_domains.sql`.
+- En Vercel se agregan `dulcesdetallesbyberealvarez.com`, `www.` y `*.dulcesdetallesbyberealvarez.com`; el comodín requiere los nameservers de Vercel (ns1/ns2.vercel-dns.com).
 
 ## ⚖️ Documentos legales
 Están en `/aviso-de-privacidad`, `/terminos-y-condiciones` y `/politica-de-cookies`, enlazados en el pie de página. **Completa tu domicilio** en `src/lib/legal.ts` (la ley pide que el aviso de privacidad lo incluya) y pide a un abogado que los revise antes de vender licencias.

@@ -1,8 +1,9 @@
 "use client";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useMemo, useRef, useState } from "react";
 import { ChevronDown, Plus } from "lucide-react";
 import { cn } from "@/lib/cn";
 import { matches } from "./SearchInput";
+import { FloatingPanel } from "./Floating";
 
 export type ComboOption = { value: string; label: string; hint?: string };
 
@@ -30,10 +31,9 @@ export function Combobox({
   const selected = options.find((o) => o.value === value);
   const filtered = useMemo(() => options.filter((o) => matches(q, o.label)).slice(0, 60), [options, q]);
 
-  useEffect(() => {
-    const onDoc = (e: MouseEvent) => !ref.current?.contains(e.target as Node) && setOpen(false);
-    document.addEventListener("mousedown", onDoc);
-    return () => document.removeEventListener("mousedown", onDoc);
+  const close = useCallback(() => {
+    setOpen(false);
+    setQ("");
   }, []);
 
   function pick(v: string) {
@@ -77,8 +77,7 @@ export function Combobox({
         />
         <ChevronDown className="pointer-events-none absolute top-1/2 right-3 h-4 w-4 -translate-y-1/2 text-cocoa-300" />
       </div>
-      {open && (
-        <div className="absolute z-50 mt-1.5 max-h-72 w-full min-w-[240px] overflow-y-auto rounded-2xl border border-cocoa-800/8 bg-white p-1.5 shadow-lift">
+      <FloatingPanel anchor={ref} open={open} onClose={close} align="start" matchWidth width={240} maxHeight={288}>
           {filtered.map((o, i) => (
             <button
               key={o.value}
@@ -104,8 +103,7 @@ export function Combobox({
               <Plus className="h-4 w-4" /> {createLabel} «{q.trim()}»
             </button>
           )}
-        </div>
-      )}
+      </FloatingPanel>
     </div>
   );
 }

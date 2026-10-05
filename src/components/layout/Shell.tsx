@@ -30,6 +30,7 @@ import {
   TrendingDown,
   Lock,
   Gauge,
+  Globe,
 } from "lucide-react";
 import { cn } from "@/lib/cn";
 import { signOutDevice } from "@/lib/session";
@@ -140,6 +141,7 @@ export function Shell({ children }: { children: React.ReactNode }) {
     ? [...NAV, { group: "Administración", items: [
         { href: "/dashboard/admin", label: "Métricas", icon: Gauge, exact: true },
         { href: "/dashboard/admin/licencias", label: "Licencias", icon: KeyRound },
+        { href: "/dashboard/admin/dominios", label: "Dominios", icon: Globe },
       ] }]
     : NAV;
 

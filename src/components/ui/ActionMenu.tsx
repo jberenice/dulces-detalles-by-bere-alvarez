@@ -1,30 +1,21 @@
 "use client";
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useRef, useState } from "react";
 import { MoreVertical } from "lucide-react";
 import { cn } from "@/lib/cn";
+import { FloatingPanel } from "./Floating";
 
 export type Action = { label: string; icon?: React.ReactNode; onClick: () => void; danger?: boolean; hidden?: boolean };
 
-/** Menú de acciones por fila (ver, editar, enviar, compartir, eliminar…) */
+/** Menú de acciones por fila (ver, editar, enviar, compartir, eliminar…) — se dibuja encima de todo */
 export function ActionMenu({ actions, label = "Acciones" }: { actions: Action[]; label?: string }) {
   const [open, setOpen] = useState(false);
-  const ref = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    if (!open) return;
-    const close = (e: MouseEvent) => !ref.current?.contains(e.target as Node) && setOpen(false);
-    const esc = (e: KeyboardEvent) => e.key === "Escape" && setOpen(false);
-    document.addEventListener("mousedown", close);
-    document.addEventListener("keydown", esc);
-    return () => {
-      document.removeEventListener("mousedown", close);
-      document.removeEventListener("keydown", esc);
-    };
-  }, [open]);
+  const ref = useRef<HTMLButtonElement>(null);
+  const close = useCallback(() => setOpen(false), []);
 
   return (
-    <div ref={ref} className="relative">
+    <>
       <button
+        ref={ref}
         type="button"
         aria-label={label}
         aria-haspopup="menu"
@@ -34,12 +25,15 @@ export function ActionMenu({ actions, label = "Acciones" }: { actions: Action[];
           e.stopPropagation();
           setOpen((v) => !v);
         }}
-        className="grid h-10 w-10 place-items-center rounded-xl text-cocoa-400 transition hover:bg-cream-200 hover:text-cocoa-700"
+        className={cn(
+          "grid h-10 w-10 shrink-0 place-items-center rounded-xl text-cocoa-400 transition hover:bg-cream-200 hover:text-cocoa-700",
+          open && "bg-cream-200 text-cocoa-700",
+        )}
       >
         <MoreVertical className="h-5 w-5" />
       </button>
-      {open && (
-        <div role="menu" className="absolute top-11 right-0 z-50 w-56 overflow-hidden rounded-2xl border border-cocoa-800/8 bg-white p-1.5 shadow-lift animate-fade-up">
+      <FloatingPanel anchor={ref} open={open} onClose={close} width={232}>
+        <div role="menu">
           {actions
             .filter((a) => !a.hidden)
             .map((a) => (
@@ -63,7 +57,7 @@ export function ActionMenu({ actions, label = "Acciones" }: { actions: Action[];
               </button>
             ))}
         </div>
-      )}
-    </div>
+      </FloatingPanel>
+    </>
   );
 }

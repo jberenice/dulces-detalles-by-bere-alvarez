@@ -1,0 +1,8 @@
+# Netlify detecta Next.js y lo publica con su adaptador oficial (no hace falta plugin).
+[build]
+  command = "npm run build"
+  publish = ".next"
+
+[build.environment]
+  NODE_VERSION = "22"
+  NEXT_TELEMETRY_DISABLED = "1"

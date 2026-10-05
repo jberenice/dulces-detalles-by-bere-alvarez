@@ -4,6 +4,7 @@ import {
   ArrowDown,
   ArrowUp,
   CalendarOff,
+  Globe,
   MapPin,
   Plus,
   X,
@@ -33,7 +34,10 @@ import { Tabs } from "@/components/ui/Tabs";
 import { Modal } from "@/components/ui/Modal";
 import { priceFor } from "@/components/dashboard/LineItemsEditor";
 import { Storefront, type StoreData } from "@/components/store/Storefront";
-import { date, money, siteUrl, slugify, toISODate } from "@/lib/format";
+import { date, money, slugify, toISODate } from "@/lib/format";
+import { ROOT_DOMAIN, slugProblem, storeUrl } from "@/lib/domains";
+import { salesLink } from "@/lib/legal";
+import { useAsync } from "@/hooks/useAsync";
 import { StoreQrCard } from "@/components/dashboard/StoreQrCard";
 import { PRESETS, SECTION_LABELS, normalizeTheme, type StoreTheme } from "@/lib/storeTheme";
 import { cn } from "@/lib/cn";
@@ -55,6 +59,12 @@ export default function StoreSettingsPage() {
   const [zones, setZones] = useState<DeliveryZone[]>(() => profile.store_zones ?? []);
   const [blocked, setBlocked] = useState<string[]>(() => profile.store_blocked_dates ?? []);
   const [newBlocked, setNewBlocked] = useState("");
+  // Dominios propios conectados por la administradora (servicio extra)
+  const domainsQ = useAsync(async () => {
+    const { data } = await sb.from("store_domains").select("domain").eq("user_id", profile.id).eq("active", true).order("created_at");
+    return ((data ?? []) as { domain: string }[]).map((d) => d.domain);
+  });
+  const domains = domainsQ.data ?? [];
   const todayIso = toISODate(new Date());
   const upcomingBlocked = useMemo(() => blocked.filter((d) => d >= todayIso).sort(), [blocked, todayIso]);
 
@@ -116,6 +126,8 @@ export default function StoreSettingsPage() {
   async function save() {
     const slug = slugify(p.store_slug ?? "");
     if (!slug) return toast.error("Escribe la dirección de tu tienda");
+    const problem = slugProblem(slug);
+    if (problem) return toast.error(`Dirección de tu tienda: ${problem}`);
     setSaving(true);
     const { data, error } = await sb
       .from("profiles")
@@ -216,7 +228,7 @@ export default function StoreSettingsPage() {
         actions={
           <>
             <Button variant="outline" className="xl:hidden" onClick={() => setBigPreview(true)}><Eye className="h-4 w-4" /> Vista previa</Button>
-            {profile.store_enabled && profile.store_slug && <ButtonLink variant="outline" href={`${siteUrl()}/tienda/${profile.store_slug}`}><ExternalLink className="h-4 w-4" /> Ver tienda</ButtonLink>}
+            {profile.store_enabled && profile.store_slug && <ButtonLink variant="outline" href={storeUrl(profile.store_slug, domains[0])}><ExternalLink className="h-4 w-4" /> Ver tienda</ButtonLink>}
             <Button onClick={save} loading={saving}><Save className="h-4 w-4" /> Guardar</Button>
           </>
         }
@@ -446,9 +458,40 @@ export default function StoreSettingsPage() {
                   <div className="sm:col-span-2">
                     <label className="label">Dirección de tu tienda</label>
                     <div className="flex items-center overflow-hidden rounded-2xl border border-cocoa-800/10 bg-cream-50 focus-within:border-rose-300 focus-within:ring-4 focus-within:ring-rose-100">
-                      <span className="pl-4 text-sm whitespace-nowrap text-cocoa-400 max-sm:hidden">{siteUrl().replace(/^https?:\/\//, "")}/tienda/</span>
-                      <input className="w-full bg-transparent px-4 py-2.5 outline-none sm:pl-0.5" value={p.store_slug ?? ""} onChange={(e) => setP({ ...p, store_slug: e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, "") })} />
+                      <span className="pl-4 text-sm whitespace-nowrap text-cocoa-400">https://</span>
+                      <input
+                        className="w-full min-w-0 bg-transparent py-2.5 pl-0.5 font-semibold text-cocoa-700 outline-none"
+                        maxLength={63}
+                        value={p.store_slug ?? ""}
+                        onChange={(e) => setP({ ...p, store_slug: e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, "") })}
+                      />
+                      <span className="pr-4 text-sm whitespace-nowrap text-cocoa-400 max-sm:max-w-[45%] max-sm:truncate">
+                        {ROOT_DOMAIN ? `.${ROOT_DOMAIN}` : ""}
+                      </span>
                     </div>
+                    {p.store_slug && slugProblem(p.store_slug) ? (
+                      <p className="mt-1 text-xs text-rose-600">{slugProblem(p.store_slug)}</p>
+                    ) : (
+                      <p className="mt-1 text-xs break-all text-cocoa-400">Tus clientes entrarán en {storeUrl(p.store_slug)}</p>
+                    )}
+                    {domains.length > 0 && (
+                      <p className="mt-2 flex flex-wrap items-center gap-1.5 text-xs text-cocoa-500">
+                        <Globe className="h-3.5 w-3.5 text-mint-500" /> También con tu dominio:
+                        {domains.map((d) => (
+                          <a key={d} href={`https://${d}`} target="_blank" rel="noopener noreferrer" className="font-bold text-mint-600 hover:underline">{d}</a>
+                        ))}
+                      </p>
+                    )}
+                    {domains.length === 0 && (
+                      <a
+                        href={salesLink(`¡Hola! Quiero conectar mi propio dominio a mi tienda de Dulces Detalles (${profile.store_slug ?? ""}) 🌐`)}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="mt-2 inline-flex items-center gap-1.5 text-xs font-bold text-rose-500 hover:underline"
+                      >
+                        <Globe className="h-3.5 w-3.5" /> ¿Quieres tu propio dominio (tutienda.com)? Pídelo aquí
+                      </a>
+                    )}
                   </div>
                   <Input label="Título" value={p.store_title ?? ""} onChange={(e) => setP({ ...p, store_title: e.target.value })} placeholder={p.business_name} />
                   <Input label="Días mínimos de anticipación" type="number" min={0} value={p.store_min_notice_days} onChange={(e) => setP({ ...p, store_min_notice_days: e.target.value as unknown as number })} />
@@ -533,7 +576,7 @@ export default function StoreSettingsPage() {
                 )}
               </Card>
               {profile.store_slug ? (
-                <StoreQrCard url={`${siteUrl()}/tienda/${profile.store_slug}`} enabled={profile.store_enabled} slug={profile.store_slug} />
+                <StoreQrCard url={storeUrl(profile.store_slug, domains[0])} enabled={profile.store_enabled} slug={profile.store_slug} />
               ) : (
                 <p className="rounded-2xl bg-cream-200 p-4 text-sm text-cocoa-500">Guarda la dirección de tu tienda para generar tu código QR.</p>
               )}
