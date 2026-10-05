@@ -1,9 +1,15 @@
 "use client";
 import { createBrowserClient } from "@supabase/ssr";
+import type { Db } from "./db";
 
-let client: ReturnType<typeof createBrowserClient> | null = null;
+/**
+ * No usamos tipos generados de la base de datos: cada consulta tipa sus filas con `as Tipo`
+ * (ver src/lib/types.ts). Si generas tipos con `supabase gen types`, cámbialo por SupabaseClient<Database>.
+ */
 
-export function createClient() {
+let client: Db | null = null;
+
+export function createClient(): Db {
   if (!client) {
     client = createBrowserClient(
       process.env.NEXT_PUBLIC_SUPABASE_URL!,

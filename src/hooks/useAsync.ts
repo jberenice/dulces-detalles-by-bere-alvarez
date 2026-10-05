@@ -31,7 +31,8 @@ export function useAsync<T>(fn: () => Promise<T>, deps: unknown[] = []) {
 }
 
 /** Lanza el error de Supabase para que useAsync lo capture */
-export function must<T>(res: { data: T | null; error: { message: string } | null }): T {
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export function must<T = any>(res: { data: unknown; error: { message: string } | null }): T {
   if (res.error) throw new Error(res.error.message);
   return res.data as T;
 }
