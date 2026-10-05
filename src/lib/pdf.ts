@@ -13,6 +13,9 @@ export async function buildPdf(doc: PdfDoc): Promise<Blob> {
   return pdf(React.createElement(DocumentPDF, { doc }) as unknown as Parameters<typeof pdf>[0]).toBlob();
 }
 
+/** Código corto de verificación (no secreto) a partir del token: permite comprobar que el PDF es auténtico */
+export const verifyCode = (token?: string | null) => (token ? token.replace(/-/g, "").slice(0, 8).toUpperCase().replace(/(.{4})(.{4})/, "$1-$2") : null);
+
 type BusinessLike = Pick<Profile, "business_name" | "owner_name" | "whatsapp" | "phone" | "email" | "address" | "instagram" | "bank_info" | "logo_url">;
 
 function businessOf(p: BusinessLike) {
@@ -36,6 +39,7 @@ export function quoteToPdf(q: Quote, p: BusinessLike): PdfDoc {
   return {
     kind: "cotizacion",
     folio: fmtFolio("C", q.folio),
+    verify: verifyCode(q.public_token),
     issuedAt: dateLong(q.created_at),
     title: q.title,
     business: businessOf(p),
@@ -51,7 +55,7 @@ export function quoteToPdf(q: Quote, p: BusinessLike): PdfDoc {
     total: Number(q.total),
     notes: q.notes,
     terms: q.terms,
-    link: `${siteUrl()}/c/${q.public_token}`,
+    link: q.share_enabled === false ? null : `${siteUrl()}/c/${q.public_token}`,
   };
 }
 
@@ -64,6 +68,7 @@ export function orderToPdf(o: Order, p: BusinessLike): PdfDoc {
   return {
     kind: "pedido",
     folio: fmtFolio("P", o.folio),
+    verify: verifyCode(o.public_token),
     issuedAt: dateLong(o.created_at),
     business: businessOf(p),
     client: client ? { ...client, address: o.delivery_type === "envio" ? o.delivery_address ?? client.address : client.address } : null,

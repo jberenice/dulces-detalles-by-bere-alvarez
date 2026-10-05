@@ -119,6 +119,7 @@ export type Quote = {
   iva: number;
   total: number;
   public_token: string;
+  share_enabled?: boolean;
   sent_at: string | null;
   accepted_at: string | null;
   created_at: string;
@@ -152,6 +153,7 @@ export type Order = {
   deposit: number;
   payment_status: PaymentStatus;
   payment_method: string | null;
+  public_token?: string;
   created_at: string;
   clients?: Pick<Client, "id" | "name" | "phone" | "email" | "address"> | null;
   order_items?: LineItem[];

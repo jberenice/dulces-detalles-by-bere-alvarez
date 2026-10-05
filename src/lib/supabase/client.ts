@@ -1,6 +1,7 @@
 "use client";
 import { createBrowserClient } from "@supabase/ssr";
 import type { Db } from "./db";
+import { SUPABASE_ANON_KEY, SUPABASE_URL } from "./env";
 
 /**
  * No usamos tipos generados de la base de datos: cada consulta tipa sus filas con `as Tipo`
@@ -12,8 +13,8 @@ let client: Db | null = null;
 export function createClient(): Db {
   if (!client) {
     client = createBrowserClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+      SUPABASE_URL,
+      SUPABASE_ANON_KEY,
     );
   }
   return client;

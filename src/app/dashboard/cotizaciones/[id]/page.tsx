@@ -1,8 +1,8 @@
 "use client";
-import { use, useState } from "react";
+import { use, useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { ArrowLeft, CalendarHeart, Check, Copy, Download, ExternalLink, Pencil, Send, ShoppingBag, Trash2, X } from "lucide-react";
+import { ArrowLeft, CalendarHeart, Check, Copy, Download, ExternalLink, Pencil, RefreshCw, Send, ShieldCheck, ShoppingBag, Trash2, X } from "lucide-react";
 import { toast } from "sonner";
 import { createClient } from "@/lib/supabase/client";
 import { must, useAsync } from "@/hooks/useAsync";
@@ -11,8 +11,9 @@ import { useConfirm } from "@/components/ui/Confirm";
 import { Badge, Card, Skeleton } from "@/components/ui/Card";
 import { Button, ButtonLink } from "@/components/ui/Button";
 import { SendDialog } from "@/components/dashboard/SendDialog";
+import { Toggle } from "@/components/ui/Field";
 import { QUOTE_STATUS } from "@/lib/constants";
-import { buildPdf, downloadBlob, quoteToPdf } from "@/lib/pdf";
+import { buildPdf, downloadBlob, quoteToPdf, verifyCode } from "@/lib/pdf";
 import { date, dateLong, folio, money, num, siteUrl } from "@/lib/format";
 import type { Quote, QuoteStatus } from "@/lib/types";
 
@@ -23,11 +24,23 @@ export default function QuoteDetailPage({ params }: { params: Promise<{ id: stri
   const confirm = useConfirm();
   const { profile } = useBusiness();
   const [sending, setSending] = useState(false);
+  const [sendTab, setSendTab] = useState<"whatsapp" | "email">("whatsapp");
   const [busy, setBusy] = useState(false);
   const { data: q, loading, setData } = useAsync(
     async () => must(await sb.from("quotes").select("*, clients(id, name, phone, email, address), quote_items(*)").eq("id", id).single()) as Quote,
     [id],
   );
+
+  // Abre el diálogo de envío si se llegó desde el menú de acciones (?enviar=whatsapp|correo)
+  useEffect(() => {
+    if (!q) return;
+    const v = new URLSearchParams(window.location.search).get("enviar");
+    if (v === "whatsapp" || v === "correo") {
+      setSendTab(v === "correo" ? "email" : "whatsapp");
+      setSending(true);
+      window.history.replaceState(null, "", window.location.pathname);
+    }
+  }, [q]);
 
   if (loading || !q) return <Skeleton className="h-[640px]" />;
 
@@ -92,6 +105,21 @@ export default function QuoteDetailPage({ params }: { params: Promise<{ id: stri
     }
   }
 
+  async function toggleShare(enabled: boolean) {
+    const { error } = await sb.from("quotes").update({ share_enabled: enabled }).eq("id", id);
+    if (error) return toast.error(error.message);
+    setData({ ...q!, share_enabled: enabled });
+    toast.success(enabled ? "Enlace público activado" : "Enlace desactivado: nadie podrá abrirlo");
+  }
+
+  async function regenerate() {
+    if (!(await confirm({ title: "¿Generar un enlace nuevo?", message: "El enlace anterior dejará de funcionar de inmediato. Úsalo si se compartió por error.", confirmText: "Generar nuevo" }))) return;
+    const { data: token, error } = await sb.rpc("regenerate_quote_token", { p_id: id });
+    if (error) return toast.error(error.message);
+    setData({ ...q!, public_token: token as string, share_enabled: true });
+    toast.success("Enlace nuevo generado");
+  }
+
   async function remove() {
     if (!(await confirm({ title: "¿Eliminar cotización?", confirmText: "Eliminar", danger: true }))) return;
     const { error } = await sb.from("quotes").delete().eq("id", id);
@@ -100,8 +128,9 @@ export default function QuoteDetailPage({ params }: { params: Promise<{ id: stri
   }
 
   const st = QUOTE_STATUS[q.status];
-  const waText = `¡Hola ${firstName}! 🧁 Te comparto la cotización ${code}${q.title ? ` de "${q.title}"` : ""} por un total de ${money(q.total)}.\n\nPuedes verla y aceptarla aquí: ${link}\n\nCualquier duda estoy para ayudarte 💕\n${profile.business_name}`;
-  const emailText = `Hola ${firstName},\n\nMuchas gracias por tu interés. Te comparto la cotización ${code}${q.title ? ` para "${q.title}"` : ""} por un total de ${money(q.total)}.${q.valid_until ? `\n\nEsta cotización es válida hasta el ${dateLong(q.valid_until)}.` : ""}\n\nPuedes verla y aceptarla en línea aquí: ${link}\n\nCon cariño,\n${profile.owner_name ?? profile.business_name}`;
+  const linkLine = q.share_enabled !== false ? `\n\nPuedes verla y aceptarla aquí: ${link}` : "";
+  const waText = `¡Hola ${firstName}! 🧁 Te comparto la cotización ${code}${q.title ? ` de "${q.title}"` : ""} por un total de ${money(q.total)}.${linkLine}\n\nCualquier duda estoy para ayudarte 💕\n${profile.business_name}`;
+  const emailText = `Hola ${firstName},\n\nMuchas gracias por tu interés. Te comparto la cotización ${code}${q.title ? ` para "${q.title}"` : ""} por un total de ${money(q.total)}.${q.valid_until ? `\n\nEsta cotización es válida hasta el ${dateLong(q.valid_until)}.` : ""}${linkLine}\n\nCon cariño,\n${profile.owner_name ?? profile.business_name}`;
 
   return (
     <>
@@ -115,7 +144,7 @@ export default function QuoteDetailPage({ params }: { params: Promise<{ id: stri
           <Button variant="outline" onClick={async () => { setBusy(true); const p = await getPdf(); downloadBlob(p.blob, p.filename); setBusy(false); }} loading={busy}>
             <Download className="h-4 w-4" /> PDF
           </Button>
-          <Button onClick={() => setSending(true)}><Send className="h-4 w-4" /> Enviar</Button>
+          <Button onClick={() => { setSendTab("whatsapp"); setSending(true); }}><Send className="h-4 w-4" /> Enviar</Button>
         </div>
       </div>
 
@@ -215,12 +244,23 @@ export default function QuoteDetailPage({ params }: { params: Promise<{ id: stri
             <p className="mt-2 text-center text-xs text-cocoa-400">Crea el pedido con los mismos postres y fecha.</p>
           </Card>
           <Card className="p-5">
-            <p className="text-[11px] font-bold tracking-wider text-cocoa-300 uppercase">Enlace para tu cliente</p>
-            <p className="mt-1 text-sm text-cocoa-500">Puede ver, descargar y aceptar la cotización en línea.</p>
-            <div className="mt-3 flex gap-2">
-              <Button size="sm" variant="secondary" className="flex-1" onClick={() => navigator.clipboard.writeText(link).then(() => toast.success("Enlace copiado"))}><Copy className="h-4 w-4" /> Copiar</Button>
-              <ButtonLink size="sm" variant="secondary" href={link}><ExternalLink className="h-4 w-4" /> Ver</ButtonLink>
+            <div className="flex items-center justify-between gap-2">
+              <p className="flex items-center gap-1.5 text-[11px] font-bold tracking-wider text-cocoa-300 uppercase"><ShieldCheck className="h-3.5 w-3.5 text-mint-500" /> Enlace privado</p>
+              <Toggle checked={q.share_enabled !== false} onChange={toggleShare} />
             </div>
+            <p className="mt-1 text-sm text-cocoa-500">
+              {q.share_enabled !== false
+                ? "Solo quien tenga este enlace secreto puede ver, descargar y aceptar la cotización."
+                : "Desactivado: el enlace no abre para nadie."}
+            </p>
+            {q.share_enabled !== false && (
+              <div className="mt-3 flex gap-2">
+                <Button size="sm" variant="secondary" className="flex-1" onClick={() => navigator.clipboard.writeText(link).then(() => toast.success("Enlace copiado"))}><Copy className="h-4 w-4" /> Copiar</Button>
+                <ButtonLink size="sm" variant="secondary" href={link}><ExternalLink className="h-4 w-4" /> Ver</ButtonLink>
+              </div>
+            )}
+            <button onClick={regenerate} className="mt-3 flex items-center gap-1.5 text-xs font-bold text-cocoa-400 hover:text-rose-500"><RefreshCw className="h-3.5 w-3.5" /> Generar enlace nuevo</button>
+            <p className="mt-2 text-[11px] text-cocoa-300">Código de verificación del PDF: <span className="font-mono font-semibold text-cocoa-500">{verifyCode(q.public_token)}</span></p>
           </Card>
           {cost > 0 && (
             <Card className="p-5">
@@ -243,7 +283,8 @@ export default function QuoteDetailPage({ params }: { params: Promise<{ id: stri
         whatsappText={waText}
         emailSubject={`Cotización ${code} · ${profile.business_name}`}
         emailText={emailText}
-        link={link}
+        link={q.share_enabled !== false ? link : undefined}
+        initialTab={sendTab}
         onSent={() => q.status === "borrador" && setStatus("enviada", { sent_at: new Date().toISOString() })}
       />
     </>

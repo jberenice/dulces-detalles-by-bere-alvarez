@@ -6,6 +6,7 @@ import { Mail, Lock } from "lucide-react";
 import { toast } from "sonner";
 import { createClient } from "@/lib/supabase/client";
 import { claimDevice } from "@/lib/session";
+import { safeNext } from "@/lib/safe-redirect";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Field";
 
@@ -28,7 +29,7 @@ function LoginForm() {
     }
     await claimDevice();
     const next = params.get("next");
-    router.replace(next && next.startsWith("/") ? next : "/dashboard");
+    router.replace(safeNext(next));
     router.refresh();
   }
 

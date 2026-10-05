@@ -31,7 +31,8 @@ Al activar la licencia se puede **precargar el recetario** con tus datos reales:
 2. En **SQL Editor** ejecuta, en orden:
    - `supabase/migrations/0001_schema.sql`
    - `supabase/migrations/0002_seed_function.sql`
-   - `supabase/admin_setup.sql` (crea tu primera licencia `DD-ADMIN-0000-0001`)
+   - `supabase/migrations/0003_security.sql` (límites de intentos, aislamiento entre cuentas, licencias aleatorias)
+   - `supabase/admin_setup.sql` → el resultado te muestra **tu código de licencia de administradora** (aleatorio)
 3. **Authentication → URL Configuration**
    - *Site URL*: `https://TU-APP.vercel.app`
    - *Redirect URLs*: `https://TU-APP.vercel.app/auth/callback` y `http://localhost:3000/auth/callback`
@@ -41,7 +42,7 @@ Al activar la licencia se puede **precargar el recetario** con tus datos reales:
 Copia `.env.example` a `.env.local` y llénalo (Supabase → Project Settings → API):
 
 ```
-NEXT_PUBLIC_SUPABASE_URL=...
+NEXT_PUBLIC_SUPABASE_URL=https://TU-REF.supabase.co   # solo el dominio, sin /rest/v1 ni nada más
 NEXT_PUBLIC_SUPABASE_ANON_KEY=...
 NEXT_PUBLIC_SITE_URL=https://TU-APP.vercel.app
 RESEND_API_KEY=...            # opcional: envío automático de correos con PDF
@@ -56,7 +57,7 @@ npm run dev        # http://localhost:3000
 ```
 
 ### 4. Hazte administradora
-1. Entra a `/registro` con el código `DD-ADMIN-0000-0001`.
+1. Entra a `/registro` con el código que te dio `admin_setup.sql`.
 2. En SQL Editor: `update public.profiles set role = 'admin' where email = 'tu-correo@ejemplo.com';`
 3. En el menú aparece **Administración → Licencias** para generar códigos para tus clientas.
 
@@ -87,7 +88,15 @@ Precio por pieza  = (Subtotal + IVA + comisión) ÷ rendimiento
 ---
 
 ## 🔐 Seguridad
-- **Row Level Security** en todas las tablas: cada usuaria solo ve sus propios datos.
+- **Sin inyección SQL:** todas las consultas pasan por la API de Supabase con parámetros; las funciones SQL no arman consultas con texto del usuario.
+- **Row Level Security** en todas las tablas: cada usuaria solo ve sus propios datos, y los triggers impiden ligar registros a datos de otra cuenta o cambiar el dueño de un registro.
+- **Licencias aleatorias** de 16 caracteres (~80 bits, sin consecutivos) con límite de 10 intentos por IP cada 15 min.
+- **Enlaces de cotización** con token secreto aleatorio (UUID v4, 122 bits). El folio (C-0001) nunca da acceso; se puede desactivar o regenerar el enlace. Cada PDF lleva folio + código de verificación.
+- **Límites anti-spam:** pedidos de la tienda (6 por IP cada 10 min), aceptación de cotizaciones, correos (40 por hora por usuaria).
+- **Cabeceras de seguridad:** CSP, HSTS, X-Frame-Options, nosniff, Referrer-Policy, Permissions-Policy; páginas privadas sin caché ni indexación.
+- **APIs:** verificación de sesión, de origen (anti-CSRF), validación de correo/asunto/adjunto y redirecciones solo internas.
+- **Storage:** solo imágenes de hasta 5 MB, cada usuaria escribe únicamente en su carpeta.
+- Recomendado en Supabase → Authentication: activar *Leaked password protection* y *CAPTCHA* (Turnstile) para el registro.
 - Las páginas públicas (tienda y cotización compartida) usan funciones `security definer` que exponen solo lo necesario; los precios de la tienda se calculan en el servidor.
 - Un usuario no puede cambiar su propio rol ni su licencia.
 - La sesión del dispositivo se guarda en una cookie `httpOnly` y se valida en el middleware y cada minuto en el panel.

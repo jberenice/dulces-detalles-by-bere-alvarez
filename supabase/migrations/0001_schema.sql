@@ -434,7 +434,7 @@ $$;
 -- Admin: genera códigos de licencia
 create or replace function public.admin_generate_licenses(p_count int, p_notes text default null, p_expires timestamptz default null)
 returns setof public.licenses
-language plpgsql security definer set search_path = public as $$
+language plpgsql security definer set search_path = public, extensions as $$
 declare i int; v_code text; alphabet text := 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
 begin
   if not public.is_admin() then raise exception 'Solo administradores'; end if;

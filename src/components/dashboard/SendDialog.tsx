@@ -1,6 +1,6 @@
 "use client";
 import { useEffect, useState } from "react";
-import { Download, Mail, MessageCircle, Link2 } from "lucide-react";
+import { Download, Mail, MessageCircle, Link2, Share2 } from "lucide-react";
 import { toast } from "sonner";
 import { Modal } from "@/components/ui/Modal";
 import { Button } from "@/components/ui/Button";
@@ -19,6 +19,7 @@ export function SendDialog({
   emailText,
   link,
   onSent,
+  initialTab = "whatsapp",
 }: {
   open: boolean;
   onClose: () => void;
@@ -30,6 +31,7 @@ export function SendDialog({
   emailText: string;
   link?: string;
   onSent?: (via: "whatsapp" | "email") => void;
+  initialTab?: "whatsapp" | "email";
 }) {
   const [tab, setTab] = useState<"whatsapp" | "email">("whatsapp");
   const [to, setTo] = useState(email ?? "");
@@ -41,13 +43,14 @@ export function SendDialog({
 
   useEffect(() => {
     if (open) {
+      setTab(initialTab);
       setTo(email ?? "");
       setWa(phone ?? "");
       setWaText(whatsappText);
       setSubject(emailSubject);
       setMsg(emailText);
     }
-  }, [open, email, phone, whatsappText, emailSubject, emailText]);
+  }, [open, email, phone, whatsappText, emailSubject, emailText, initialTab]);
 
   async function sendWhatsApp() {
     setBusy(true);
@@ -97,6 +100,28 @@ export function SendDialog({
     }
   }
 
+  /** Menú nativo de compartir (celular): adjunta el PDF; si no está disponible, copia el enlace o descarga */
+  async function share() {
+    setBusy(true);
+    try {
+      const { blob, filename } = await getPdf();
+      const file = new File([blob], filename, { type: "application/pdf" });
+      const nav = navigator as Navigator & { canShare?: (d: ShareData) => boolean };
+      if (nav.canShare?.({ files: [file] })) {
+        await navigator.share({ files: [file], title: emailSubject, text: link ?? undefined }).catch(() => {});
+      } else if (link && navigator.share) {
+        await navigator.share({ title: emailSubject, url: link }).catch(() => {});
+      } else if (link) {
+        await navigator.clipboard.writeText(link);
+        toast.success("Enlace copiado para compartir");
+      } else {
+        downloadBlob(blob, filename);
+      }
+    } finally {
+      setBusy(false);
+    }
+  }
+
   async function download() {
     setBusy(true);
     try {
@@ -115,9 +140,14 @@ export function SendDialog({
       description="El PDF se genera con tu logo y colores."
       footer={
         <>
-          <Button variant="ghost" className="sm:mr-auto" onClick={download} disabled={busy}>
-            <Download className="h-4 w-4" /> Solo descargar
-          </Button>
+          <div className="flex gap-1 sm:mr-auto">
+            <Button variant="ghost" onClick={download} disabled={busy}>
+              <Download className="h-4 w-4" /> Descargar
+            </Button>
+            <Button variant="ghost" onClick={share} disabled={busy}>
+              <Share2 className="h-4 w-4" /> Compartir
+            </Button>
+          </div>
           {tab === "whatsapp" ? (
             <Button variant="mint" onClick={sendWhatsApp} loading={busy}>
               <MessageCircle className="h-4 w-4" /> Enviar por WhatsApp

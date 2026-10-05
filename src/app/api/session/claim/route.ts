@@ -1,9 +1,12 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
+import { rejectCrossSite } from "@/lib/same-origin";
 import { SESSION_COOKIE } from "@/lib/supabase/middleware";
 
 /** Registra este navegador como el único dispositivo activo de la licencia. */
 export async function POST(request: Request) {
+  const blocked = rejectCrossSite(request);
+  if (blocked) return blocked;
   const supabase = await createClient();
   const {
     data: { user },

@@ -1,7 +1,13 @@
 "use client";
 import { useMemo, useState } from "react";
 import Link from "next/link";
-import { CalendarDays, List, Plus, ShoppingBag, Store, Truck } from "lucide-react";
+import { useRouter } from "next/navigation";
+import { CalendarDays, Download, Eye, List, Mail, MessageCircle, Pencil, Plus, Share2, ShoppingBag, Store, Trash2, Truck } from "lucide-react";
+import { toast } from "sonner";
+import { useBusiness } from "@/components/layout/BusinessProvider";
+import { useConfirm } from "@/components/ui/Confirm";
+import { ActionMenu } from "@/components/ui/ActionMenu";
+import { downloadOrderPdf, shareOrderPdf } from "@/lib/documents";
 import { createClient } from "@/lib/supabase/client";
 import { must, useAsync } from "@/hooks/useAsync";
 import { Badge, Card, EmptyState, PageHeader, Skeleton } from "@/components/ui/Card";
@@ -21,7 +27,10 @@ export default function OrdersPage() {
   const [tab, setTab] = useState<Filter>("activos");
   const [view, setView] = useState<"agenda" | "lista">("agenda");
   const [q, setQ] = useState("");
-  const { data, loading } = useAsync(
+  const router = useRouter();
+  const confirm = useConfirm();
+  const { profile } = useBusiness();
+  const { data, loading, setData } = useAsync(
     async () =>
       must(
         await sb
@@ -52,6 +61,23 @@ export default function OrdersPage() {
   }, [list]);
 
   const todayIso = toISODate(new Date());
+
+  async function run(fn: () => Promise<unknown>, ok?: string) {
+    try {
+      await fn();
+      if (ok) toast.success(ok);
+    } catch (e) {
+      toast.error((e as Error).message);
+    }
+  }
+
+  async function remove(o: Order) {
+    if (!(await confirm({ title: `¿Eliminar el pedido ${folio("P", o.folio)}?`, message: "Se quitará también de tus reportes de ventas.", confirmText: "Eliminar", danger: true }))) return;
+    const { error } = await sb.from("orders").delete().eq("id", o.id);
+    if (error) return toast.error(error.message);
+    setData((d) => (d ?? []).filter((x) => x.id !== o.id));
+    toast.success("Pedido eliminado");
+  }
   const count = (f: Filter) => (data ?? []).filter((o) => (f === "activos" ? ACTIVE.includes(o.status) : f === "todos" || o.status === f)).length;
 
   const Row = ({ o }: { o: Order }) => {
@@ -59,7 +85,8 @@ export default function OrdersPage() {
     const pay = PAYMENT_STATUS[o.payment_status];
     const late = o.delivery_date && o.delivery_date < todayIso && ACTIVE.includes(o.status);
     return (
-      <Link href={`/dashboard/pedidos/${o.id}`} className="flex items-center gap-4 px-4 py-4 transition hover:bg-cream-100/70 sm:px-6">
+      <div className="flex items-center gap-2 pr-2 transition hover:bg-cream-100/70 sm:pr-4">
+      <Link href={`/dashboard/pedidos/${o.id}`} className="flex min-w-0 flex-1 items-center gap-4 py-4 pl-4 sm:pl-6">
         <div className={cn("hidden w-14 shrink-0 flex-col items-center rounded-2xl py-1.5 sm:flex", late ? "bg-rose-50 text-rose-600" : "bg-cream-200 text-cocoa-600")}>
           <span className="text-[10px] font-bold uppercase">{o.delivery_date ? date(o.delivery_date, { month: "short" }) : "—"}</span>
           <span className="font-display text-xl leading-none font-semibold">{o.delivery_date ? parseDate(o.delivery_date)!.getDate() : "?"}</span>
@@ -83,6 +110,18 @@ export default function OrdersPage() {
           {o.deposit > 0 && o.payment_status !== "pagado" && <p className="text-[11px] text-cocoa-400">Resta {money(o.total - o.deposit)}</p>}
         </div>
       </Link>
+      <ActionMenu
+        actions={[
+          { label: "Ver", icon: <Eye />, onClick: () => router.push(`/dashboard/pedidos/${o.id}`) },
+          { label: "Modificar", icon: <Pencil />, onClick: () => router.push(`/dashboard/pedidos/${o.id}/editar`) },
+          { label: "Descargar nota PDF", icon: <Download />, onClick: () => run(() => downloadOrderPdf(o.id, profile), "PDF descargado") },
+          { label: "Enviar por WhatsApp", icon: <MessageCircle />, onClick: () => router.push(`/dashboard/pedidos/${o.id}?enviar=whatsapp`) },
+          { label: "Enviar por correo", icon: <Mail />, onClick: () => router.push(`/dashboard/pedidos/${o.id}?enviar=correo`) },
+          { label: "Compartir PDF", icon: <Share2 />, onClick: () => run(() => shareOrderPdf(o.id, profile)) },
+          { label: "Eliminar", icon: <Trash2 />, danger: true, onClick: () => remove(o) },
+        ]}
+      />
+      </div>
     );
   };
 

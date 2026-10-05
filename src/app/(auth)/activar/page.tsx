@@ -60,7 +60,7 @@ export default function ActivatePage() {
           required
           value={code}
           onChange={(e) => setCode(e.target.value.toUpperCase())}
-          placeholder="DD-XXXX-XXXX-XXXX"
+          placeholder="DD-XXXX-XXXX-XXXX-XXXX"
           className="[&_input]:font-mono [&_input]:tracking-wider"
         />
         <Toggle checked={seed} onChange={setSeed} label="Precargar recetario de ejemplo" className="rounded-2xl bg-cream-200/60 p-4" />

@@ -1,7 +1,13 @@
 "use client";
 import { useState } from "react";
 import Link from "next/link";
-import { FileText, Plus, CalendarHeart } from "lucide-react";
+import { useRouter } from "next/navigation";
+import { CalendarHeart, Download, Eye, FileText, Mail, MessageCircle, Pencil, Plus, Share2, Trash2 } from "lucide-react";
+import { toast } from "sonner";
+import { useBusiness } from "@/components/layout/BusinessProvider";
+import { useConfirm } from "@/components/ui/Confirm";
+import { ActionMenu } from "@/components/ui/ActionMenu";
+import { downloadQuotePdf, shareLink } from "@/lib/documents";
 import { createClient } from "@/lib/supabase/client";
 import { must, useAsync } from "@/hooks/useAsync";
 import { Badge, Card, EmptyState, PageHeader, Skeleton } from "@/components/ui/Card";
@@ -9,16 +15,36 @@ import { ButtonLink } from "@/components/ui/Button";
 import { Tabs } from "@/components/ui/Tabs";
 import { SearchInput, matches } from "@/components/ui/SearchInput";
 import { QUOTE_STATUS } from "@/lib/constants";
-import { date, folio, money, parseDate } from "@/lib/format";
+import { date, folio, money, parseDate, siteUrl } from "@/lib/format";
 import type { Quote, QuoteStatus } from "@/lib/types";
 
 export default function QuotesPage() {
   const sb = createClient();
   const [tab, setTab] = useState<"todas" | QuoteStatus>("todas");
   const [q, setQ] = useState("");
-  const { data, loading } = useAsync(
+  const router = useRouter();
+  const confirm = useConfirm();
+  const { profile } = useBusiness();
+  const { data, loading, setData } = useAsync(
     async () => must(await sb.from("quotes").select("*, clients(id, name, phone, email, address)").order("created_at", { ascending: false })) as Quote[],
   );
+
+  async function run(fn: () => Promise<unknown>, ok?: string) {
+    try {
+      await fn();
+      if (ok) toast.success(ok);
+    } catch (e) {
+      toast.error((e as Error).message);
+    }
+  }
+
+  async function remove(x: Quote) {
+    if (!(await confirm({ title: `¿Eliminar la cotización ${folio("C", x.folio)}?`, message: "El enlace público dejará de funcionar.", confirmText: "Eliminar", danger: true }))) return;
+    const { error } = await sb.from("quotes").delete().eq("id", x.id);
+    if (error) return toast.error(error.message);
+    setData((d) => (d ?? []).filter((q) => q.id !== x.id));
+    toast.success("Cotización eliminada");
+  }
 
   const today = new Date();
   today.setHours(0, 0, 0, 0);
@@ -60,9 +86,10 @@ export default function QuotesPage() {
           <ul className="divide-y divide-cocoa-800/5">
             {list.map((x) => {
               const st = QUOTE_STATUS[effective(x)];
+              const link = `${siteUrl()}/c/${x.public_token}`;
               return (
-                <li key={x.id}>
-                  <Link href={`/dashboard/cotizaciones/${x.id}`} className="flex items-center gap-4 px-4 py-4 transition hover:bg-cream-100/70 sm:px-6">
+                <li key={x.id} className="flex items-center gap-2 pr-2 transition hover:bg-cream-100/70 sm:pr-4">
+                  <Link href={`/dashboard/cotizaciones/${x.id}`} className="flex min-w-0 flex-1 items-center gap-4 py-4 pl-4 sm:pl-6">
                     <span className="hidden h-11 w-11 shrink-0 place-items-center rounded-2xl bg-rose-50 text-rose-500 sm:grid">
                       <FileText className="h-5 w-5" />
                     </span>
@@ -78,6 +105,17 @@ export default function QuotesPage() {
                     </div>
                     <p className="font-display text-lg font-semibold text-cocoa-700 tabular-nums">{money(x.total)}</p>
                   </Link>
+                  <ActionMenu
+                    actions={[
+                      { label: "Ver", icon: <Eye />, onClick: () => router.push(`/dashboard/cotizaciones/${x.id}`) },
+                      { label: "Modificar", icon: <Pencil />, onClick: () => router.push(`/dashboard/cotizaciones/${x.id}/editar`) },
+                      { label: "Descargar PDF", icon: <Download />, onClick: () => run(() => downloadQuotePdf(x.id, profile), "PDF descargado") },
+                      { label: "Enviar por WhatsApp", icon: <MessageCircle />, onClick: () => router.push(`/dashboard/cotizaciones/${x.id}?enviar=whatsapp`) },
+                      { label: "Enviar por correo", icon: <Mail />, onClick: () => router.push(`/dashboard/cotizaciones/${x.id}?enviar=correo`) },
+                      { label: "Compartir enlace", icon: <Share2 />, hidden: x.share_enabled === false, onClick: () => run(async () => { if ((await shareLink(link, `Cotización ${folio("C", x.folio)}`)) === "copied") toast.success("Enlace copiado"); }) },
+                      { label: "Eliminar", icon: <Trash2 />, danger: true, onClick: () => remove(x) },
+                    ]}
+                  />
                 </li>
               );
             })}

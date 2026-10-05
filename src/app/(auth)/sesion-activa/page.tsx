@@ -3,6 +3,7 @@ import { Suspense, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { MonitorSmartphone } from "lucide-react";
 import { claimDevice, signOutDevice } from "@/lib/session";
+import { safeNext } from "@/lib/safe-redirect";
 import { Button } from "@/components/ui/Button";
 
 function Content() {
@@ -14,7 +15,7 @@ function Content() {
     setLoading(true);
     await claimDevice();
     const next = params.get("next");
-    router.replace(next && next.startsWith("/") ? next : "/dashboard");
+    router.replace(safeNext(next));
     router.refresh();
   }
 

@@ -1,8 +1,8 @@
 "use client";
-import { use, useState } from "react";
+import { use, useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { ArrowLeft, Ban, Check, ChefHat, Clock, Download, FileText, MapPin, MessageCircle, Package, Pencil, PartyPopper, Phone, Send, Store, Trash2, Truck, Wallet } from "lucide-react";
+import { ArrowLeft, Ban, Check, ChefHat, Clock, Download, FileText, MapPin, MessageCircle, Package, Pencil, PartyPopper, Phone, Send, Share2, Store, Trash2, Truck, Wallet } from "lucide-react";
 import { toast } from "sonner";
 import { createClient } from "@/lib/supabase/client";
 import { must, useAsync } from "@/hooks/useAsync";
@@ -15,6 +15,7 @@ import { Modal } from "@/components/ui/Modal";
 import { SendDialog } from "@/components/dashboard/SendDialog";
 import { ORDER_STATUS, PAYMENT_STATUS } from "@/lib/constants";
 import { buildPdf, downloadBlob, orderToPdf } from "@/lib/pdf";
+import { sharePdf } from "@/lib/documents";
 import { date, dateLong, folio, money, num, waLink } from "@/lib/format";
 import { cn } from "@/lib/cn";
 import type { Order, OrderStatus } from "@/lib/types";
@@ -34,6 +35,7 @@ export default function OrderDetailPage({ params }: { params: Promise<{ id: stri
   const confirm = useConfirm();
   const { profile } = useBusiness();
   const [sending, setSending] = useState(false);
+  const [sendTab, setSendTab] = useState<"whatsapp" | "email">("whatsapp");
   const [payOpen, setPayOpen] = useState(false);
   const [payAmount, setPayAmount] = useState<string>("");
   const [busy, setBusy] = useState(false);
@@ -41,6 +43,16 @@ export default function OrderDetailPage({ params }: { params: Promise<{ id: stri
     async () => must(await sb.from("orders").select("*, clients(id, name, phone, email, address), order_items(*)").eq("id", id).single()) as Order,
     [id],
   );
+
+  useEffect(() => {
+    if (!o) return;
+    const v = new URLSearchParams(window.location.search).get("enviar");
+    if (v === "whatsapp" || v === "correo") {
+      setSendTab(v === "correo" ? "email" : "whatsapp");
+      setSending(true);
+      window.history.replaceState(null, "", window.location.pathname);
+    }
+  }, [o]);
 
   if (loading || !o) return <Skeleton className="h-[640px]" />;
 
@@ -98,7 +110,10 @@ export default function OrderDetailPage({ params }: { params: Promise<{ id: stri
           <Button variant="outline" loading={busy} onClick={async () => { setBusy(true); const p = await getPdf(); downloadBlob(p.blob, p.filename); setBusy(false); }}>
             <Download className="h-4 w-4" /> Nota PDF
           </Button>
-          <Button onClick={() => setSending(true)}><Send className="h-4 w-4" /> Enviar</Button>
+          <Button variant="outline" onClick={async () => { const p = await getPdf(); await sharePdf(p.blob, p.filename, `Pedido ${code}`); }}>
+            <Share2 className="h-4 w-4" /> <span className="hidden sm:inline">Compartir</span>
+          </Button>
+          <Button onClick={() => { setSendTab("whatsapp"); setSending(true); }}><Send className="h-4 w-4" /> Enviar</Button>
         </div>
       </div>
 
@@ -268,6 +283,7 @@ export default function OrderDetailPage({ params }: { params: Promise<{ id: stri
         phone={phone}
         email={email}
         whatsappText={quick[0].text}
+        initialTab={sendTab}
         emailSubject={`Tu pedido ${code} · ${profile.business_name}`}
         emailText={`Hola ${first},\n\n¡Gracias por tu pedido! Te comparto la nota con el detalle.\n\nEntrega: ${o.delivery_date ? dateLong(o.delivery_date) : "por confirmar"}${o.delivery_time ? ` a las ${o.delivery_time}` : ""}\nTotal: ${money(o.total)}${balance > 0 ? `\nSaldo pendiente: ${money(balance)}` : ""}\n\nCon cariño,\n${profile.owner_name ?? profile.business_name}`}
       />

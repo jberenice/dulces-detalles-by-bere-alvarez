@@ -4,6 +4,8 @@ import { Document, Image, Page, StyleSheet, Text, View } from "@react-pdf/render
 export type PdfDoc = {
   kind: "cotizacion" | "pedido";
   folio: string;
+  /** Código de verificación derivado del token secreto del documento */
+  verify?: string | null;
   issuedAt: string;
   title?: string | null;
   business: {
@@ -126,6 +128,7 @@ export function DocumentPDF({ doc }: { doc: PdfDoc }) {
             <View style={{ alignItems: "flex-end" }}>
               <Text style={s.folio}>FOLIO {doc.folio}</Text>
               <Text style={[s.folio, { fontSize: 9 }]}>{doc.issuedAt}</Text>
+              {doc.verify ? <Text style={[s.folio, { fontSize: 8 }]}>VERIFICACIÓN {doc.verify}</Text> : null}
             </View>
           </View>
 
@@ -233,7 +236,7 @@ export function DocumentPDF({ doc }: { doc: PdfDoc }) {
 
         <View style={s.footer} fixed>
           <Text style={s.footerScript}>Hechos con amor de hogar</Text>
-          <Text style={s.footerText} render={({ pageNumber, totalPages }) => `${doc.business.name} · ${pageNumber}/${totalPages}`} />
+          <Text style={s.footerText} render={({ pageNumber, totalPages }) => `${doc.folio}${doc.verify ? ` · ${doc.verify}` : ""} · ${pageNumber}/${totalPages}`} />
         </View>
       </Page>
     </Document>

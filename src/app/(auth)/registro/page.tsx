@@ -90,7 +90,7 @@ export default function RegisterPage() {
           value={form.code}
           onChange={(e) => setForm({ ...form, code: e.target.value.toUpperCase() })}
           prefix={<KeyRound className="h-4 w-4" />}
-          placeholder="DD-XXXX-XXXX-XXXX"
+          placeholder="DD-XXXX-XXXX-XXXX-XXXX"
           className="[&_input]:font-mono [&_input]:tracking-wider"
         />
         <div className="grid gap-4 sm:grid-cols-2">
