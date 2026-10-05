@@ -14,6 +14,7 @@ import { Input } from "@/components/ui/Field";
 import { Modal } from "@/components/ui/Modal";
 import { SendDialog } from "@/components/dashboard/SendDialog";
 import { ORDER_STATUS, PAYMENT_STATUS } from "@/lib/constants";
+import { getTemplate, renderTemplate } from "@/lib/templates";
 import { buildPdf, downloadBlob, orderToPdf } from "@/lib/pdf";
 import { sharePdf } from "@/lib/documents";
 import { googleCalendarUrl } from "@/lib/reminders";
@@ -92,11 +93,25 @@ export default function OrderDetailPage({ params }: { params: Promise<{ id: stri
 
   const first = name.split(" ")[0];
   const summary = items.map((i) => `• ${num(i.quantity)} × ${i.description}`).join("\n");
+  const tplVars = {
+    cliente: first,
+    folio: code,
+    total: money(o.total),
+    fecha: o.delivery_date ? dateLong(o.delivery_date) : "por confirmar",
+    hora: o.delivery_time ? `a las ${o.delivery_time}` : "",
+    postres: summary,
+    anticipo: Number(o.deposit) > 0 ? money(o.deposit) : "",
+    saldo: balance > 0 ? money(balance) : "",
+    entrega: o.delivery_type === "envio" ? "en camino a tu domicilio" : "lista para recoger",
+    datos_pago: profile.bank_info ?? "",
+    negocio: profile.business_name,
+    tu_nombre: profile.owner_name ?? profile.business_name,
+  };
   const quick = [
-    { label: "Confirmar pedido", text: `¡Hola ${first}! 💕 Tu pedido ${code} quedó confirmado para el ${dateLong(o.delivery_date)}${o.delivery_time ? ` a las ${o.delivery_time}` : ""}:\n${summary}\n\nTotal: ${money(o.total)}${o.deposit ? `\nAnticipo: ${money(o.deposit)}\nResta: ${money(balance)}` : ""}\n\n¡Gracias por tu preferencia! ${profile.business_name}` },
-    { label: "Pedido listo", text: `¡Hola ${first}! 🧁 Tu pedido ${code} ya está listo${o.delivery_type === "envio" ? " y va en camino" : " para recoger"}.${balance > 0 ? ` Recuerda que el saldo pendiente es de ${money(balance)}.` : ""} ¡Que lo disfrutes!` },
-    { label: "Recordar pago", text: `¡Hola ${first}! Te recuerdo amablemente que el saldo de tu pedido ${code} es de ${money(balance)}.${profile.bank_info ? `\n\nDatos para transferencia:\n${profile.bank_info}` : ""}\n\n¡Gracias! 💕` },
-    { label: "Gracias", text: `¡Hola ${first}! Muchas gracias por tu pedido 💕 Nos encantaría saber qué te pareció. ¡Te esperamos pronto! — ${profile.business_name}` },
+    { label: "Confirmar pedido", text: renderTemplate(getTemplate(profile, "pedido_confirmado"), tplVars) },
+    { label: "Pedido listo", text: renderTemplate(getTemplate(profile, "pedido_listo"), tplVars) },
+    { label: "Recordar pago", text: renderTemplate(getTemplate(profile, "recordatorio_pago"), tplVars) },
+    { label: "Gracias", text: renderTemplate(getTemplate(profile, "agradecimiento"), tplVars) },
   ];
 
   return (
@@ -204,7 +219,9 @@ export default function OrderDetailPage({ params }: { params: Promise<{ id: stri
 
           <Card className="p-6">
             <h3 className="flex items-center gap-2 text-lg font-semibold"><MessageCircle className="h-5 w-5 text-mint-500" /> Mensajes rápidos</h3>
-            <p className="mt-1 text-sm text-cocoa-400">Abre WhatsApp con el mensaje listo para tu cliente.</p>
+            <p className="mt-1 text-sm text-cocoa-400">
+              Abre WhatsApp con el mensaje listo para tu cliente. <Link href="/dashboard/mensajes" className="font-bold text-rose-500 hover:underline">Personalizar mensajes</Link>
+            </p>
             <div className="mt-4 flex flex-wrap gap-2">
               {quick.map((m) => (
                 <a key={m.label} href={waLink(phone, m.text)} target="_blank" rel="noreferrer" className="rounded-xl bg-mint-50 px-3.5 py-2 text-sm font-bold text-mint-700 transition hover:bg-mint-100">

@@ -35,6 +35,7 @@ Al activar la licencia se puede **precargar el recetario** con tus datos reales:
    - `supabase/migrations/0004_facebook_reminders.sql` (Facebook, recordatorios y aceptación de términos)
    - `supabase/migrations/0005_timezones.sql` (zona horaria por usuaria)
    - `supabase/migrations/0006_store_design.sql` (diseño personalizable de la minitienda)
+   - `supabase/migrations/0007_inventory_push_templates.sql` (inventario, notificaciones push y plantillas)
    - `supabase/cron_setup.sql` (recordatorios cada hora; reemplaza tu dominio y tu CRON_SECRET antes de ejecutarlo)
    - `supabase/admin_setup.sql` → el resultado te muestra **tu código de licencia de administradora** (aleatorio)
 3. **Authentication → URL Configuration**
@@ -84,6 +85,13 @@ Están en `/aviso-de-privacidad`, `/terminos-y-condiciones` y `/politica-de-cook
 - **Avisos del navegador** en el dispositivo (se activan con un clic; funcionan mientras la app está abierta).
 - **Correo diario** con el resumen, a la hora y en la zona horaria de cada usuaria (Supabase pg_cron + Resend).
 - Botón **Agregar a Google Calendar** en cada pedido, para recibir la alerta del celular aunque la app esté cerrada.
+
+## 🧁 Producción, inventario, app y respaldo
+- **Producción y compras** (`/dashboard/produccion`): con los pedidos activos del periodo calcula qué hornear por día y la lista de compras (descontando tu existencia), con paquetes y costo estimado. Se comparte por WhatsApp, se imprime o se descarga en CSV.
+- **Inventario** (Ingredientes → Control de inventario): registra compras, ajustes y mermas; al marcar un pedido como **Entregado** se descuentan solos sus ingredientes y empaques (y se devuelven si regresas el estado). Avisos de stock bajo en el inicio.
+- **App instalable + notificaciones push**: Ajustes → App y notificaciones. Avisa al instante de pedidos nuevos de la tienda y del resumen diario de entregas, aunque la app esté cerrada. Requiere `NEXT_PUBLIC_VAPID_PUBLIC_KEY`, `VAPID_PRIVATE_KEY` y `VAPID_SUBJECT` (genera las tuyas con `npx web-push generate-vapid-keys`) y `SUPABASE_SERVICE_ROLE_KEY`.
+- **Mensajes** (`/dashboard/mensajes`): plantillas de WhatsApp y correo editables con variables como `{cliente}`, `{folio}`, `{total}`, `{saldo}`.
+- **Respaldo** (`/dashboard/respaldo`): Excel completo con una hoja por tema y respaldo técnico JSON.
 
 ## 🧮 Fórmula de costeo (igual que tus hojas de Excel)
 

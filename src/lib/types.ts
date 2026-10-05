@@ -35,6 +35,8 @@ export type Profile = {
   store_pickup: boolean;
   store_shipping_fee: number;
   store_theme: unknown;
+  inventory_enabled: boolean;
+  message_templates: Record<string, string> | null;
   store_about: string | null;
   store_hours: string | null;
   store_announcement: string | null;
@@ -166,6 +168,7 @@ export type Order = {
   payment_status: PaymentStatus;
   payment_method: string | null;
   public_token?: string;
+  inventory_applied?: boolean;
   created_at: string;
   clients?: Pick<Client, "id" | "name" | "phone" | "email" | "address"> | null;
   order_items?: LineItem[];

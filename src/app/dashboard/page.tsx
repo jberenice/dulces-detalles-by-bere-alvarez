@@ -1,7 +1,7 @@
 "use client";
 import { useMemo } from "react";
 import Link from "next/link";
-import { ArrowRight, CalendarClock, CakeSlice, FileText, HandCoins, Plus, ShoppingBag, Sparkles, Store, TrendingUp, Wheat } from "lucide-react";
+import { AlertTriangle, ArrowRight, CalendarClock, CakeSlice, FileText, HandCoins, Plus, ShoppingBag, Sparkles, Store, TrendingUp, Wheat } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { must, useAsync } from "@/hooks/useAsync";
 import { useBusiness } from "@/components/layout/BusinessProvider";
@@ -11,7 +11,8 @@ import { BarList, SalesAreaChart, qtyFmt } from "@/components/dashboard/Charts";
 import { fetchSales, summarize } from "@/lib/sales";
 import { ORDER_STATUS, QUOTE_STATUS } from "@/lib/constants";
 import { addDays, date, folio, money, money0, parseDate, toISODate } from "@/lib/format";
-import type { Order, Quote } from "@/lib/types";
+import type { Ingredient, Order, Quote } from "@/lib/types";
+import { fmtQty } from "@/lib/production";
 
 export default function DashboardHome() {
   const { profile } = useBusiness();
@@ -35,6 +36,9 @@ export default function DashboardHome() {
       sb.from("quotes").select("*, clients(id, name, phone, email, address)").order("created_at", { ascending: false }).limit(5),
       sb.from("desserts").select("id", { count: "exact", head: true }),
     ]);
+    const lowStock = profile.inventory_enabled
+      ? ((must(await sb.from("ingredients").select("id, name, unit, stock, min_stock").gt("min_stock", 0)) as Ingredient[]).filter((i) => Number(i.stock) <= Number(i.min_stock)))
+      : [];
     const active = must(await sb.from("orders").select("total, deposit").in("status", ["pendiente", "confirmado", "en_preparacion", "listo"])) as Pick<Order, "total" | "deposit">[];
     return {
       sales30,
@@ -44,6 +48,7 @@ export default function DashboardHome() {
       dessertCount: counts.count ?? 0,
       receivable: active.reduce((a, o) => a + Math.max(Number(o.total) - Number(o.deposit), 0), 0),
       activeCount: active.length,
+      lowStock,
     };
   });
 
@@ -104,6 +109,17 @@ export default function DashboardHome() {
           </>
         )}
       </div>
+
+      {data && data.lowStock.length > 0 && (
+        <Link href="/dashboard/ingredientes" className="mb-6 flex items-start gap-3 rounded-3xl bg-amber-50 p-4 ring-1 ring-amber-200/70 transition hover:bg-amber-100/70">
+          <span className="grid h-10 w-10 shrink-0 place-items-center rounded-2xl bg-amber-100 text-amber-600"><AlertTriangle className="h-5 w-5" /></span>
+          <div className="min-w-0 flex-1">
+            <p className="font-semibold text-amber-800">{data.lowStock.length} insumo{data.lowStock.length === 1 ? "" : "s"} con stock bajo</p>
+            <p className="truncate text-sm text-amber-700">{data.lowStock.map((i) => `${i.name} (${fmtQty(Number(i.stock), i.unit)})`).join(" · ")}</p>
+          </div>
+          <ArrowRight className="mt-2 h-4 w-4 shrink-0 text-amber-600" />
+        </Link>
+      )}
 
       <div className="grid gap-6 xl:grid-cols-[1.6fr_1fr]">
         <Card>

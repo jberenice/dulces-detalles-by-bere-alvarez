@@ -53,6 +53,14 @@ const nextConfig: NextConfig = {
       { source: "/:path*", headers: securityHeaders },
       // Las páginas privadas y las cotizaciones compartidas no se guardan en caché ni se indexan
       { source: "/dashboard/:path*", headers: [{ key: "Cache-Control", value: "no-store" }, { key: "X-Robots-Tag", value: "noindex, nofollow" }] },
+      {
+        source: "/sw.js",
+        headers: [
+          { key: "Cache-Control", value: "no-cache, no-store, must-revalidate" },
+          { key: "Content-Type", value: "application/javascript; charset=utf-8" },
+          { key: "Service-Worker-Allowed", value: "/" },
+        ],
+      },
       { source: "/c/:path*", headers: [{ key: "Cache-Control", value: "no-store" }, { key: "X-Robots-Tag", value: "noindex, nofollow" }] },
     ];
   },

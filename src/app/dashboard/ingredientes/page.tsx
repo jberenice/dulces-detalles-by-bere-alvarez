@@ -1,19 +1,25 @@
 "use client";
 import { useMemo, useState } from "react";
-import { Package, Pencil, Plus, Trash2, Wheat, AlertTriangle } from "lucide-react";
+import { Package, Pencil, Plus, Trash2, Wheat, AlertTriangle, PackagePlus, History, Boxes } from "lucide-react";
 import { toast } from "sonner";
 import { createClient } from "@/lib/supabase/client";
 import { must, useAsync } from "@/hooks/useAsync";
 import { Badge, Card, EmptyState, PageHeader, Skeleton } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
-import { Input, Select } from "@/components/ui/Field";
+import { Input, Select, Toggle } from "@/components/ui/Field";
+import { useBusiness } from "@/components/layout/BusinessProvider";
+import { fmtQty } from "@/lib/production";
 import { Modal } from "@/components/ui/Modal";
 import { Tabs } from "@/components/ui/Tabs";
 import { SearchInput, matches } from "@/components/ui/SearchInput";
 import { useConfirm } from "@/components/ui/Confirm";
 import { UNITS } from "@/lib/constants";
 import { money, num, date } from "@/lib/format";
-import type { Ingredient, IngredientKind } from "@/lib/types";
+import type { Ingredient, IngredientKind, Profile } from "@/lib/types";
+
+type StockForm = { ingredient: Ingredient; reason: "compra" | "ajuste" | "merma"; packages: string; amount: string; price: string; note: string };
+type Movement = { id: string; quantity: number; reason: string; note: string | null; created_at: string; order_id: string | null };
+const REASON_LABEL: Record<string, string> = { compra: "Compra", ajuste: "Ajuste", merma: "Merma", pedido_entregado: "Pedido entregado", pedido_revertido: "Pedido regresado" };
 
 const empty = (kind: IngredientKind) => ({
   id: "",
@@ -45,10 +51,52 @@ export default function IngredientsPage() {
     return { ingredients: must(ings) as Ingredient[], usage };
   });
 
+  const { profile, setProfile } = useBusiness();
+  const inv = profile.inventory_enabled;
+  const [lowOnly, setLowOnly] = useState(false);
+  const [stock, setStock] = useState<StockForm | null>(null);
+  const [history, setHistory] = useState<{ ingredient: Ingredient; rows: Movement[] | null } | null>(null);
+  const isLow = (i: Ingredient) => i.min_stock > 0 && Number(i.stock) <= Number(i.min_stock);
+  const lowCount = (data?.ingredients ?? []).filter(isLow).length;
+
   const list = useMemo(
-    () => (data?.ingredients ?? []).filter((i) => i.kind === kind && matches(q, i.name, i.supplier)),
-    [data, kind, q],
+    () => (data?.ingredients ?? []).filter((i) => (lowOnly ? isLow(i) : i.kind === kind) && matches(q, i.name, i.supplier)),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [data, kind, q, lowOnly],
   );
+
+  async function toggleInventory(v: boolean) {
+    const { data: p, error } = await sb.from("profiles").update({ inventory_enabled: v }).eq("id", profile.id).select().single();
+    if (error) return toast.error(error.message);
+    setProfile(p as Profile);
+    toast.success(v ? "Inventario activado: los pedidos entregados descontarán ingredientes" : "Inventario desactivado");
+  }
+
+  async function saveStock() {
+    if (!stock) return;
+    const i = stock.ingredient;
+    const fromPackages = Number(stock.packages) * Number(i.package_qty);
+    let delta = stock.reason === "compra" ? fromPackages || Number(stock.amount) : Number(stock.amount);
+    if (!delta || !isFinite(delta)) return toast.error("Escribe una cantidad");
+    if (stock.reason === "merma") delta = -Math.abs(delta);
+    const { error } = await sb.rpc("adjust_stock", {
+      p_ingredient: i.id,
+      p_delta: delta,
+      p_reason: stock.reason,
+      p_note: stock.note || null,
+      p_package_price: stock.reason === "compra" && stock.price ? Number(stock.price) : null,
+    });
+    if (error) return toast.error(error.message);
+    toast.success(`${i.name}: ${delta > 0 ? "+" : ""}${fmtQty(delta, i.unit)}`);
+    setStock(null);
+    reload();
+  }
+
+  async function openHistory(i: Ingredient) {
+    setHistory({ ingredient: i, rows: null });
+    const { data: rows } = await sb.from("inventory_movements").select("id, quantity, reason, note, created_at, order_id").eq("ingredient_id", i.id).order("created_at", { ascending: false }).limit(50);
+    setHistory({ ingredient: i, rows: (rows ?? []) as Movement[] });
+  }
   const counts = {
     ingrediente: data?.ingredients.filter((i) => i.kind === "ingrediente").length ?? 0,
     empaque: data?.ingredients.filter((i) => i.kind === "empaque").length ?? 0,
@@ -103,6 +151,20 @@ export default function IngredientsPage() {
         }
       />
 
+      <Card className="mb-4 flex flex-col gap-3 p-4 sm:flex-row sm:items-center sm:justify-between">
+        <Toggle
+          checked={inv}
+          onChange={toggleInventory}
+          label="Control de inventario"
+          description="Lleva tus existencias: se descuentan solas al marcar un pedido como entregado."
+        />
+        {inv && lowCount > 0 && (
+          <button onClick={() => setLowOnly(!lowOnly)} className={`flex items-center gap-2 rounded-2xl px-4 py-2 text-sm font-bold ${lowOnly ? "bg-amber-500 text-white" : "bg-amber-50 text-amber-700"}`}>
+            <AlertTriangle className="h-4 w-4" /> {lowCount} con stock bajo {lowOnly ? "· ver todo" : ""}
+          </button>
+        )}
+      </Card>
+
       <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <Tabs
           value={kind}
@@ -137,7 +199,7 @@ export default function IngredientsPage() {
                     <th className="text-right">Precio</th>
                     <th className="text-right">Costo por unidad</th>
                     <th>Uso</th>
-                    <th>Actualizado</th>
+                    <th>{inv ? "Existencia" : "Actualizado"}</th>
                     <th />
                   </tr>
                 </thead>
@@ -160,9 +222,22 @@ export default function IngredientsPage() {
                           <Badge tone="warning" className="ml-1"><AlertTriangle className="h-3 w-3" /> Stock bajo</Badge>
                         )}
                       </td>
-                      <td className="text-xs text-cocoa-400">{date(i.updated_at)}</td>
+                      {inv ? (
+                        <td>
+                          <p className={`font-semibold tabular-nums ${Number(i.stock) < 0 ? "text-rose-600" : isLow(i) ? "text-amber-600" : "text-cocoa-700"}`}>{fmtQty(Number(i.stock), i.unit)}</p>
+                          {i.min_stock > 0 && <p className="text-[11px] text-cocoa-400">mín. {fmtQty(Number(i.min_stock), i.unit)}</p>}
+                        </td>
+                      ) : (
+                        <td className="text-xs text-cocoa-400">{date(i.updated_at)}</td>
+                      )}
                       <td>
                         <div className="flex justify-end gap-1">
+                          {inv && (
+                            <>
+                              <Button size="icon" variant="ghost" title="Registrar compra o ajuste" onClick={() => setStock({ ingredient: i, reason: "compra", packages: "1", amount: "", price: String(i.package_price), note: "" })} aria-label="Registrar compra"><PackagePlus className="h-4 w-4" /></Button>
+                              <Button size="icon" variant="ghost" title="Historial" onClick={() => openHistory(i)} aria-label="Historial"><History className="h-4 w-4" /></Button>
+                            </>
+                          )}
                           <Button size="icon" variant="ghost" onClick={() => setForm({ ...i, supplier: i.supplier ?? "" })} aria-label="Editar"><Pencil className="h-4 w-4" /></Button>
                           <Button size="icon" variant="ghost" onClick={() => remove(i)} aria-label="Eliminar"><Trash2 className="h-4 w-4" /></Button>
                         </div>
@@ -175,17 +250,27 @@ export default function IngredientsPage() {
             {/* Lista móvil */}
             <ul className="divide-y divide-cocoa-800/5 md:hidden">
               {list.map((i) => (
-                <li key={i.id}>
-                  <button className="flex w-full items-center justify-between gap-3 px-4 py-3.5 text-left" onClick={() => setForm({ ...i, supplier: i.supplier ?? "" })}>
+                <li key={i.id} className="flex items-center">
+                  <button className="flex min-w-0 flex-1 items-center justify-between gap-3 py-3.5 pl-4 text-left" onClick={() => setForm({ ...i, supplier: i.supplier ?? "" })}>
                     <div className="min-w-0">
                       <p className="truncate font-semibold text-cocoa-700">{i.name}</p>
                       <p className="text-xs text-cocoa-400">{num(i.package_qty)} {i.unit} · {money(i.package_price)}</p>
+                      {inv && (
+                        <p className={`text-xs font-semibold ${Number(i.stock) < 0 ? "text-rose-600" : isLow(i) ? "text-amber-600" : "text-mint-600"}`}>
+                          Existencia: {fmtQty(Number(i.stock), i.unit)}
+                        </p>
+                      )}
                     </div>
                     <div className="text-right">
                       <p className="font-semibold tabular-nums">${num(i.unit_cost, 3)}</p>
                       <p className="text-[11px] text-cocoa-400">por {i.unit}</p>
                     </div>
                   </button>
+                  {inv && (
+                    <button onClick={() => setStock({ ingredient: i, reason: "compra", packages: "1", amount: "", price: String(i.package_price), note: "" })} className="grid h-12 w-12 shrink-0 place-items-center text-mint-600" aria-label="Registrar compra">
+                      <PackagePlus className="h-5 w-5" />
+                    </button>
+                  )}
                 </li>
               ))}
             </ul>
@@ -232,6 +317,69 @@ export default function IngredientsPage() {
               <Input label="Mínimo" type="number" step="any" value={form.min_stock} onChange={(e) => setForm({ ...form, min_stock: e.target.value })} />
             </div>
           </div>
+        )}
+      </Modal>
+      {/* Compra / ajuste de existencias */}
+      <Modal
+        open={!!stock}
+        onClose={() => setStock(null)}
+        title={stock ? `Existencia · ${stock.ingredient.name}` : ""}
+        description={stock ? `Tienes ${fmtQty(Number(stock.ingredient.stock), stock.ingredient.unit)}` : ""}
+        size="sm"
+        footer={<><Button variant="ghost" onClick={() => setStock(null)}>Cancelar</Button><Button variant="mint" onClick={saveStock}>Guardar</Button></>}
+      >
+        {stock && (
+          <div className="space-y-4">
+            <Tabs
+              value={stock.reason}
+              onChange={(v) => setStock({ ...stock, reason: v })}
+              className="w-full"
+              options={[
+                { value: "compra", label: "Compra" },
+                { value: "ajuste", label: "Ajuste" },
+                { value: "merma", label: "Merma" },
+              ]}
+            />
+            {stock.reason === "compra" ? (
+              <>
+                <Input label={`Paquetes de ${fmtQty(Number(stock.ingredient.package_qty), stock.ingredient.unit)}`} type="number" min={0} step="any" value={stock.packages} onChange={(e) => setStock({ ...stock, packages: e.target.value, amount: "" })} hint={`= ${fmtQty(Number(stock.packages || 0) * Number(stock.ingredient.package_qty), stock.ingredient.unit)}`} />
+                <Input label="Precio por paquete (actualiza tus costos)" type="number" min={0} step="any" prefix="$" value={stock.price} onChange={(e) => setStock({ ...stock, price: e.target.value })} />
+              </>
+            ) : (
+              <Input
+                label={stock.reason === "merma" ? `Cantidad perdida (${stock.ingredient.unit})` : `Cantidad a sumar o restar (${stock.ingredient.unit})`}
+                type="number"
+                step="any"
+                value={stock.amount}
+                onChange={(e) => setStock({ ...stock, amount: e.target.value })}
+                hint={stock.reason === "ajuste" ? "Usa números negativos para restar. Ej. -250" : "Producto caducado, roto o que se echó a perder"}
+              />
+            )}
+            <Input label="Nota (opcional)" maxLength={300} value={stock.note} onChange={(e) => setStock({ ...stock, note: e.target.value })} placeholder="Costco, inventario físico…" />
+          </div>
+        )}
+      </Modal>
+
+      {/* Historial */}
+      <Modal open={!!history} onClose={() => setHistory(null)} title={history ? `Historial · ${history.ingredient.name}` : ""} size="md">
+        {!history?.rows ? (
+          <Skeleton className="h-40" />
+        ) : history.rows.length === 0 ? (
+          <EmptyState icon={<Boxes className="h-8 w-8" />} title="Sin movimientos" description="Aquí verás compras, ajustes y lo que se descuenta con cada pedido entregado." />
+        ) : (
+          <ul className="divide-y divide-cocoa-800/5">
+            {history.rows.map((m) => (
+              <li key={m.id} className="flex items-center justify-between gap-3 py-2.5 text-sm">
+                <div className="min-w-0">
+                  <p className="font-semibold text-cocoa-700">{REASON_LABEL[m.reason] ?? m.reason}</p>
+                  <p className="truncate text-xs text-cocoa-400">{date(m.created_at, { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" })}{m.note ? ` · ${m.note}` : ""}</p>
+                </div>
+                <span className={`font-semibold tabular-nums ${Number(m.quantity) < 0 ? "text-rose-600" : "text-mint-600"}`}>
+                  {Number(m.quantity) > 0 ? "+" : ""}{fmtQty(Number(m.quantity), history.ingredient.unit)}
+                </span>
+              </li>
+            ))}
+          </ul>
         )}
       </Modal>
     </>

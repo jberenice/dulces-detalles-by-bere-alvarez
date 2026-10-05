@@ -21,11 +21,15 @@ import {
   LogOut,
   MoreHorizontal,
   CalendarDays,
+  ChefHat,
+  MessageSquareText,
+  DatabaseBackup,
 } from "lucide-react";
 import { cn } from "@/lib/cn";
 import { signOutDevice } from "@/lib/session";
 import { createClient } from "@/lib/supabase/client";
 import { browserTimeZone } from "@/lib/timezones";
+import { registerServiceWorker } from "@/lib/push-client";
 import type { Profile } from "@/lib/types";
 import { useBusiness } from "./BusinessProvider";
 import { NotificationBell } from "./NotificationBell";
@@ -36,16 +40,19 @@ const NAV = [
     { href: "/dashboard/cotizaciones", label: "Cotizaciones", icon: FileText },
     { href: "/dashboard/pedidos", label: "Pedidos", icon: ShoppingBag },
     { href: "/dashboard/calendario", label: "Calendario", icon: CalendarDays },
+    { href: "/dashboard/produccion", label: "Producción", icon: ChefHat },
     { href: "/dashboard/clientes", label: "Clientes", icon: Users },
   ]},
   { group: "Recetario y costos", items: [
     { href: "/dashboard/postres", label: "Postres", icon: CakeSlice },
-    { href: "/dashboard/ingredientes", label: "Ingredientes", icon: Wheat },
+    { href: "/dashboard/ingredientes", label: "Ingredientes e inventario", icon: Wheat },
     { href: "/dashboard/costos-fijos", label: "Gastos fijos", icon: Receipt },
   ]},
   { group: "Negocio", items: [
     { href: "/dashboard/reportes", label: "Reportes", icon: BarChart3 },
     { href: "/dashboard/tienda", label: "Mi tienda", icon: Store },
+    { href: "/dashboard/mensajes", label: "Mensajes", icon: MessageSquareText },
+    { href: "/dashboard/respaldo", label: "Respaldo", icon: DatabaseBackup },
     { href: "/dashboard/ajustes", label: "Ajustes", icon: Settings },
   ]},
 ];
@@ -66,6 +73,11 @@ export function Shell({ children }: { children: React.ReactNode }) {
   const isActive = (href: string, exact?: boolean) => (exact ? pathname === href : pathname === href || pathname.startsWith(href + "/"));
 
   useEffect(() => setOpen(false), [pathname]);
+
+  // Service worker: app instalable y notificaciones push
+  useEffect(() => {
+    registerServiceWorker();
+  }, []);
 
   // Detecta la zona horaria del dispositivo la primera vez (luego se cambia en Ajustes)
   useEffect(() => {

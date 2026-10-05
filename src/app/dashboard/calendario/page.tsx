@@ -11,6 +11,7 @@ import { Button, ButtonLink } from "@/components/ui/Button";
 import { ORDER_STATUS } from "@/lib/constants";
 import { addDays, dateLong, folio, money, toISODate } from "@/lib/format";
 import { notificationsSupported } from "@/lib/reminders";
+import { enableNotifications } from "@/lib/push-client";
 import { hourLabel, timezoneLabel } from "@/lib/timezones";
 import { cn } from "@/lib/cn";
 import type { Order, OrderStatus } from "@/lib/types";
@@ -76,10 +77,11 @@ export default function CalendarPage() {
   const go = (delta: number) => setMonth(new Date(month.getFullYear(), month.getMonth() + delta, 1));
 
   async function enableNotifications() {
-    if (!notificationsSupported()) return toast.error("Tu navegador no permite notificaciones");
-    const r = await Notification.requestPermission();
-    setPerm(r);
-    if (r === "granted") toast.success("Te avisaremos de tus entregas en este dispositivo 🔔");
+    const r = await enableNotifications();
+    if (r === "ios-install") return toast.info("En iPhone primero agrega la app a tu pantalla de inicio (Compartir → Agregar a inicio)");
+    if (r === "unsupported") return toast.error("Tu navegador no permite notificaciones");
+    setPerm(Notification.permission);
+    if (r === "push" || r === "local") toast.success("Te avisaremos de tus entregas en este dispositivo 🔔");
   }
 
   return (

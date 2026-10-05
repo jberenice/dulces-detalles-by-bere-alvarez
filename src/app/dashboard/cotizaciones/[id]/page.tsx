@@ -13,6 +13,7 @@ import { Button, ButtonLink } from "@/components/ui/Button";
 import { SendDialog } from "@/components/dashboard/SendDialog";
 import { Toggle } from "@/components/ui/Field";
 import { QUOTE_STATUS } from "@/lib/constants";
+import { getTemplate, renderTemplate } from "@/lib/templates";
 import { buildPdf, downloadBlob, quoteToPdf, verifyCode } from "@/lib/pdf";
 import { date, dateLong, folio, money, num, siteUrl } from "@/lib/format";
 import type { Quote, QuoteStatus } from "@/lib/types";
@@ -128,9 +129,22 @@ export default function QuoteDetailPage({ params }: { params: Promise<{ id: stri
   }
 
   const st = QUOTE_STATUS[q.status];
-  const linkLine = q.share_enabled !== false ? `\n\nPuedes verla y aceptarla aquí: ${link}` : "";
-  const waText = `¡Hola ${firstName}! 🧁 Te comparto la cotización ${code}${q.title ? ` de "${q.title}"` : ""} por un total de ${money(q.total)}.${linkLine}\n\nCualquier duda estoy para ayudarte 💕\n${profile.business_name}`;
-  const emailText = `Hola ${firstName},\n\nMuchas gracias por tu interés. Te comparto la cotización ${code}${q.title ? ` para "${q.title}"` : ""} por un total de ${money(q.total)}.${q.valid_until ? `\n\nEsta cotización es válida hasta el ${dateLong(q.valid_until)}.` : ""}${linkLine}\n\nCon cariño,\n${profile.owner_name ?? profile.business_name}`;
+  const shareOn = q.share_enabled !== false;
+  const tplVars = {
+    cliente: firstName,
+    folio: code,
+    total: money(q.total),
+    titulo: q.title ? ` de "${q.title}"` : "",
+    fecha: q.event_date ? dateLong(q.event_date) : "",
+    vigencia: q.valid_until ? dateLong(q.valid_until) : "",
+    enlace: shareOn ? link : "",
+    postres: items.map((i) => `• ${num(i.quantity)} × ${i.description}`).join("\n"),
+    datos_pago: profile.bank_info ?? "",
+    negocio: profile.business_name,
+    tu_nombre: profile.owner_name ?? profile.business_name,
+  };
+  const waText = renderTemplate(getTemplate(profile, "cotizacion_whatsapp"), tplVars);
+  const emailText = renderTemplate(getTemplate(profile, "cotizacion_correo"), tplVars);
 
   return (
     <>

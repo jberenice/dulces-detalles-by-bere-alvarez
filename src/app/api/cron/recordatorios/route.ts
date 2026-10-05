@@ -3,6 +3,7 @@ import { createClient as createAdminClient } from "@supabase/supabase-js";
 import { Resend } from "resend";
 import { SUPABASE_URL } from "@/lib/supabase/env";
 import type { Db } from "@/lib/supabase/db";
+import { sendPush, type PushSub } from "@/lib/push-server";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -58,8 +59,8 @@ export async function GET(request: Request) {
     return NextResponse.json({ ok: false, error: "No autorizado" }, { status: 401 });
   }
   const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
-  if (!serviceKey || !process.env.RESEND_API_KEY) {
-    return NextResponse.json({ ok: false, error: "Faltan SUPABASE_SERVICE_ROLE_KEY o RESEND_API_KEY" }, { status: 500 });
+  if (!serviceKey) {
+    return NextResponse.json({ ok: false, error: "Falta SUPABASE_SERVICE_ROLE_KEY" }, { status: 500 });
   }
 
   const admin: Db = createAdminClient(SUPABASE_URL, serviceKey, { auth: { persistSession: false, autoRefreshToken: false } });
@@ -67,9 +68,7 @@ export async function GET(request: Request) {
 
   const { data: profiles, error: pErr } = await admin
     .from("profiles")
-    .select("id, email, business_name, owner_name, reminder_days_before, reminder_hour, reminder_last_sent, timezone")
-    .eq("reminder_email", true)
-    .not("email", "is", null);
+    .select("id, email, business_name, owner_name, reminder_days_before, reminder_hour, reminder_last_sent, timezone, reminder_email");
   if (pErr) return NextResponse.json({ ok: false, error: pErr.message }, { status: 500 });
 
   const { data: orders, error: oErr } = await admin
@@ -82,10 +81,16 @@ export async function GET(request: Request) {
     .order("delivery_time", { nullsFirst: false });
   if (oErr) return NextResponse.json({ ok: false, error: oErr.message }, { status: 500 });
 
+  // Dispositivos con notificaciones push (app instalada)
+  const { data: allSubs } = await admin.from("push_subscriptions").select("id, user_id, endpoint, p256dh, auth");
+  const subsByUser = new Map<string, PushSub[]>();
+  for (const s of (allSubs ?? []) as (PushSub & { user_id: string })[]) subsByUser.set(s.user_id, [...(subsByUser.get(s.user_id) ?? []), s]);
+  let pushed = 0;
+
   const byUser = new Map<string, Row[]>();
   for (const o of (orders ?? []) as unknown as Row[]) byUser.set(o.user_id, [...(byUser.get(o.user_id) ?? []), o]);
 
-  const resend = new Resend(process.env.RESEND_API_KEY);
+  const resend = process.env.RESEND_API_KEY ? new Resend(process.env.RESEND_API_KEY) : null;
   const site = process.env.NEXT_PUBLIC_SITE_URL ?? "";
   let sent = 0;
 
@@ -98,7 +103,11 @@ export async function GET(request: Request) {
     reminder_hour: number;
     reminder_last_sent: string | null;
     timezone: string;
+    reminder_email: boolean;
   }[]) {
+    const subs = subsByUser.get(p.id) ?? [];
+    const wantsEmail = p.reminder_email && !!p.email && !!process.env.RESEND_API_KEY;
+    if (!wantsEmail && !subs.length) continue;
     // ¿Ya es la hora elegida en SU zona horaria y aún no se envía el de hoy?
     const local = localNow(p.timezone || "America/Mexico_City");
     if (local.hour < (p.reminder_hour ?? 7) || p.reminder_last_sent === local.date) continue;
@@ -151,17 +160,38 @@ export async function GET(request: Request) {
         ? `⚠️ Tienes ${late.length} entrega${late.length > 1 ? "s" : ""} atrasada${late.length > 1 ? "s" : ""}`
         : `📅 Próximas entregas: ${next.length}`;
 
-    const { error } = await resend.emails.send({
-      from: process.env.RESEND_FROM ?? "Dulces Detalles <onboarding@resend.dev>",
-      to: p.email as string,
-      subject,
-      html,
-    });
-    if (!error) {
-      sent++;
-      await admin.from("profiles").update({ reminder_last_sent: today }).eq("id", p.id);
+    let delivered = false;
+    if (wantsEmail && resend) {
+      const { error } = await resend.emails.send({
+        from: process.env.RESEND_FROM ?? "Dulces Detalles <onboarding@resend.dev>",
+        to: p.email as string,
+        subject,
+        html,
+      });
+      if (!error) {
+        sent++;
+        delivered = true;
+      }
     }
+    if (subs.length) {
+      const first = todays[0] ?? late[0] ?? next[0];
+      const r = await sendPush(subs, {
+        title: subject,
+        body: list
+          .slice(0, 3)
+          .map((o) => `${o.delivery_date === today ? "Hoy" : o.delivery_date < today ? "Atrasado" : longDate(o.delivery_date)}: ${o.clients?.name ?? o.customer_name ?? "Cliente"}`)
+          .join(" · ") + (list.length > 3 ? ` y ${list.length - 3} más` : ""),
+        url: list.length === 1 && first ? `/dashboard/pedidos/${first.id}` : "/dashboard/calendario",
+        tag: `resumen-${today}`,
+      });
+      if (r.gone.length) await admin.from("push_subscriptions").delete().in("id", r.gone);
+      if (r.sent) {
+        pushed += r.sent;
+        delivered = true;
+      }
+    }
+    if (delivered) await admin.from("profiles").update({ reminder_last_sent: today }).eq("id", p.id);
   }
 
-  return NextResponse.json({ ok: true, sent });
+  return NextResponse.json({ ok: true, sent, pushed });
 }

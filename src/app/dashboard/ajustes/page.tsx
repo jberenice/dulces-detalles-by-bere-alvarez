@@ -9,6 +9,7 @@ import { Badge, Card, CardHeader, PageHeader } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { Input, Select, Textarea, Toggle } from "@/components/ui/Field";
 import { ImagePicker } from "@/components/ui/ImagePicker";
+import { AppInstallCard } from "@/components/dashboard/AppInstallCard";
 import { date } from "@/lib/format";
 import { MX_TIMEZONES, browserTimeZone, hourLabel, nowIn } from "@/lib/timezones";
 import type { Profile } from "@/lib/types";
@@ -110,6 +111,7 @@ export default function SettingsPage() {
               <p className="col-span-2 text-xs text-cocoa-400">Los % de ganancia y desgaste se usan al crear postres nuevos. IVA y tarjeta aplican en todo el recetario.</p>
             </div>
           </Card>
+          <AppInstallCard />
           <Card>
             <CardHeader title="Recordatorios de entrega" icon={<BellRing className="h-5 w-5" />} />
             <div className="space-y-4 p-5 sm:p-6">
@@ -137,19 +139,6 @@ export default function SettingsPage() {
                 <option value="3">3 días antes</option>
                 <option value="7">1 semana antes</option>
               </Select>
-              <Button
-                variant="secondary"
-                size="sm"
-                className="w-full"
-                onClick={async () => {
-                  if (!("Notification" in window)) return toast.error("Este navegador no permite notificaciones");
-                  const r = await Notification.requestPermission();
-                  if (r === "granted") toast.success("Avisos activados en este dispositivo 🔔");
-                  else toast.error("Los avisos están bloqueados en la configuración del navegador");
-                }}
-              >
-                <BellRing className="h-4 w-4" /> Activar avisos en este dispositivo
-              </Button>
             </div>
           </Card>
           <Card>

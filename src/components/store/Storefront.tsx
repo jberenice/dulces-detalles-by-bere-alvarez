@@ -137,6 +137,8 @@ export function Storefront({ data, slug, preview = false }: { data: StoreData; s
       (f.notes ? `\n📝 ${f.notes}` : "");
     const wa = waLink(store.whatsapp, text);
     setDone({ folio: res.folio, total: res.total, wa });
+    // Aviso push a la repostería (si tiene la app con notificaciones activas)
+    fetch("/api/push/pedido", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ order_id: res.order_id }) }).catch(() => {});
     setCart({});
     window.open(wa, "_blank");
   }

@@ -9,6 +9,8 @@ import { ORDER_STATUS } from "@/lib/constants";
 import { dateLong, folio, money, toISODate } from "@/lib/format";
 import { fetchUpcomingDeliveries, notificationsSupported, notifyOnce } from "@/lib/reminders";
 import { cn } from "@/lib/cn";
+import { toast } from "sonner";
+import { enableNotifications } from "@/lib/push-client";
 import type { Order } from "@/lib/types";
 
 /** Campana con entregas de hoy, próximas y atrasadas; dispara notificaciones del navegador. */
@@ -111,8 +113,12 @@ export function NotificationBell({ className }: { className?: string }) {
           {notificationsSupported() && Notification.permission !== "granted" && (
             <button
               onClick={async () => {
-                const r = await Notification.requestPermission();
-                if (r === "granted") load();
+                const r = await enableNotifications();
+                if (r === "push" || r === "local") {
+                  toast.success("Avisos activados en este dispositivo 🔔");
+                  load();
+                } else if (r === "ios-install") toast.info("En iPhone primero agrega la app a tu pantalla de inicio (Compartir → Agregar a inicio)");
+                else toast.error("Los avisos están bloqueados en la configuración del navegador");
               }}
               className="text-sm font-bold text-mint-600 hover:underline"
             >
