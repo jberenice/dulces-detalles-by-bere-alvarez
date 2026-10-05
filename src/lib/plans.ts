@@ -36,6 +36,7 @@ export const PLANS: {
       "Clientes",
       "Reportes de ventas y postres más vendidos",
       "Respaldo en Excel",
+      "Soporte por WhatsApp y correo",
     ],
   },
   {
@@ -54,6 +55,8 @@ export const PLANS: {
       "Saldos: quién te debe y cuánto",
       "Agenda de producción e inventario automático",
       "Plantillas de WhatsApp y notificaciones en el celular",
+      "Tarjetas, etiquetas y stickers con tu QR para imprimir",
+      "Soporte por WhatsApp y correo",
     ],
   },
   {
@@ -69,22 +72,40 @@ export const PLANS: {
       "Recordatorio automático de saldo por correo a tus clientes",
       "Resumen diario de entregas en tu correo",
       "Configuración asistida: cargamos tus recetas contigo",
-      "Soporte prioritario por WhatsApp",
+      "Soporte prioritario por WhatsApp (te respondemos primero)",
     ],
   },
 ];
 
-/** Servicio extra: conectar el dominio propio de la clienta (se muestra debajo de los planes) */
+/** IVA que se suma a los precios de los planes (los precios de arriba son SIN IVA) */
+export const IVA_PCT = 16;
+export const withIva = (n: number) => Math.round(n * (1 + IVA_PCT / 100) * 100) / 100;
+
+/**
+ * Servicio extra: dominio propio de la clienta (tutienda.com).
+ * ✏️ Actualiza los precios del dominio según tu proveedor (Hostinger, GoDaddy…): son el total que te cobran
+ *    por 1, 2 o 3 años con su promoción vigente. Se suman tal cual, sin IVA adicional.
+ */
 export const CUSTOM_DOMAIN_ADDON = {
-  setup: 400, // instalación única (MXN)
-  note: "El dominio se compra a tu nombre (aprox. $300–400 al año) y lo conectamos por ti.",
+  setup: 400, // instalación única (MXN). Incluida en Premium anual
+  renewal: 329.99, // precio normal por año después de la promoción
+  years: [
+    { years: 1, price: 180.84, promo: "Precio de 1er año con promoción" },
+    { years: 2, price: 467.68, promo: "El 1er año sale en $129.99" },
+    { years: 3, price: 671.55, promo: "¡El 1er año prácticamente gratis!" },
+  ],
+  note: "El dominio queda a tu nombre y lo conectamos por ti.",
 };
+
+/** ¿La instalación del dominio va incluida? (Premium anual) */
+export const domainSetupIncluded = (plan: PlanId, billing: Billing) => plan === "premium" && billing === "anual";
 
 export const planName = (id: PlanId | null | undefined) => PLANS.find((p) => p.id === id)?.name ?? "Básico";
 
 /** Plan mínimo por sección del panel (el resto está en todos los planes) */
 export const ROUTE_PLAN: { prefix: string; min: PlanId; feature: string }[] = [
   { prefix: "/dashboard/tienda", min: "profesional", feature: "Minitienda en línea" },
+  { prefix: "/dashboard/impresos", min: "profesional", feature: "Tarjetas, etiquetas y stickers" },
   { prefix: "/dashboard/produccion", min: "profesional", feature: "Agenda de producción" },
   { prefix: "/dashboard/seguimiento", min: "profesional", feature: "Seguimiento de cotizaciones" },
   { prefix: "/dashboard/saldos", min: "profesional", feature: "Saldos y cobranza" },

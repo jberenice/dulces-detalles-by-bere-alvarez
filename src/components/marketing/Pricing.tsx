@@ -2,9 +2,9 @@
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { Cake, CakeSlice, Check, Cookie, Crown, Globe, MessageCircle } from "lucide-react";
-import { CUSTOM_DOMAIN_ADDON, PLANS, type PlanId } from "@/lib/plans";
+import { CUSTOM_DOMAIN_ADDON, IVA_PCT, PLANS, domainSetupIncluded, withIva, type PlanId } from "@/lib/plans";
 import { salesLink } from "@/lib/legal";
-import { money0 } from "@/lib/format";
+import { money } from "@/lib/format";
 import { cn } from "@/lib/cn";
 
 /** Cada plan es un postre con su propio glaseado que se derrite */
@@ -125,10 +125,11 @@ function DessertBadge({ plan, dark }: { plan: PlanId; dark?: boolean }) {
   );
 }
 
-/** Tabla de precios mensual / anual con tarjetas en forma de postre */
+/** Tabla de precios mensual / anual (con IVA) y opción de dominio propio */
 export function Pricing() {
   const [billing, setBilling] = useState<"mensual" | "anual">("anual");
   const [shown, setShown] = useState(false);
+  const [domain, setDomain] = useState<Partial<Record<PlanId, { on: boolean; years: number }>>>({});
   const ref = useRef<HTMLDivElement>(null);
 
   // El glaseado "cae" cuando las tarjetas aparecen en pantalla
@@ -168,11 +169,27 @@ export function Pricing() {
 
       <div ref={ref} className="mt-10 grid items-stretch gap-6 lg:grid-cols-3">
         {PLANS.map((p, idx) => {
-          const price = p.prices[billing]!;
-          const perMonth = billing === "anual" ? price / 12 : price;
-          const save = billing === "anual" ? p.prices.mensual! * 12 - price : 0;
-          const text = `¡Hola! Quiero el plan ${p.name} ${billing} de Dulces Detalles (${money0(price)}) 🧁`;
+          const monthly = withIva(p.prices.mensual!);
+          const yearly = withIva(p.prices.anual!);
+          const monthlyYear = Math.round(monthly * 12 * 100) / 100;
+          const save = Math.round((monthlyYear - yearly) * 100) / 100;
+          const planPrice = billing === "anual" ? yearly : monthly;
           const dark = !!p.highlight;
+          const canDomain = p.id !== "basico";
+          const dom = domain[p.id] ?? { on: false, years: 3 };
+          const domOpt = CUSTOM_DOMAIN_ADDON.years.find((y) => y.years === dom.years) ?? CUSTOM_DOMAIN_ADDON.years[0];
+          const setupIncluded = domainSetupIncluded(p.id, billing);
+          const setup = dom.on && canDomain && !setupIncluded ? CUSTOM_DOMAIN_ADDON.setup : 0;
+          const domainCost = dom.on && canDomain ? domOpt.price : 0;
+          const total = Math.round((planPrice + domainCost + setup) * 100) / 100;
+          const text =
+            `¡Hola! Quiero el plan ${p.name} ${billing} de Dulces Detalles 🧁\n` +
+            `• Plan: ${money(planPrice)} (IVA incluido)` +
+            (dom.on && canDomain
+              ? `\n• Dominio propio por ${dom.years} año${dom.years > 1 ? "s" : ""}: ${money(domainCost)}\n• Instalación: ${setup ? money(setup) : "incluida"}`
+              : "") +
+            `\nTotal: ${money(total)}`;
+          const muted = dark ? "text-cream-200/70" : "text-cocoa-400";
           return (
             <div
               key={p.id}
@@ -190,22 +207,102 @@ export function Pricing() {
                 </span>
               )}
               <h3 className={cn("text-2xl font-semibold", dark && "!text-white")}>{p.name}</h3>
-              <p className={cn("mt-1 text-sm", dark ? "text-cream-200/75" : "text-cocoa-400")}>{p.tagline}</p>
-              <div className="mt-6 flex items-end gap-1.5">
-                <span key={billing} className={cn("animate-fade-up font-display text-5xl font-semibold tabular-nums", dark ? "text-white" : "text-cocoa-800")}>
-                  {money0(perMonth)}
+              <p className={cn("mt-1 text-sm", muted)}>{p.tagline}</p>
+
+              {/* Precio */}
+              <div className="mt-6 flex flex-wrap items-end gap-x-1.5">
+                <span key={billing} className={cn("animate-fade-up font-display text-[2.6rem] leading-none font-semibold tabular-nums", dark ? "text-white" : "text-cocoa-800")}>
+                  {money(planPrice)}
                 </span>
-                <span className={cn("pb-2 text-sm", dark ? "text-cream-200/70" : "text-cocoa-400")}>/ mes</span>
+                <span className={cn("pb-1 text-sm", muted)}>/ {billing === "anual" ? "año" : "mes"}</span>
               </div>
-              <p className={cn("mt-1 h-5 text-xs", dark ? "text-mint-300" : "text-mint-600")}>
-                {billing === "anual" ? `${money0(price)} al año · ahorras ${money0(save)}` : "Sin plazo forzoso"}
+              <p className={cn("mt-2 text-xs leading-relaxed", dark ? "text-mint-300" : "text-mint-600")}>
+                {billing === "anual" ? (
+                  <>
+                    Equivale a {money(yearly / 12)} al mes · <b>ahorras {money(save)}</b>
+                  </>
+                ) : (
+                  <>
+                    Sin plazo forzoso · mes a mes, al año son {money(monthlyYear)}
+                    <span className={cn("block", muted)}>Anual: {money(yearly)} (ahorras {money(save)})</span>
+                  </>
+                )}
               </p>
+              <p className={cn("mt-1 text-[11px]", muted)}>IVA ({IVA_PCT}%) incluido</p>
+
+              {/* Dominio propio */}
+              {canDomain && (
+                <div className={cn("mt-5 rounded-2xl p-3.5", dark ? "bg-white/8 ring-1 ring-white/10" : "bg-cream-100 ring-1 ring-cocoa-800/5")}>
+                  <label className="flex cursor-pointer items-start gap-2.5">
+                    <input
+                      type="checkbox"
+                      checked={dom.on}
+                      onChange={(e) => setDomain((x) => ({ ...x, [p.id]: { ...dom, on: e.target.checked } }))}
+                      className="mt-0.5 h-4.5 w-4.5 shrink-0 accent-rose-500"
+                    />
+                    <span className="min-w-0 flex-1">
+                      <span className={cn("flex flex-wrap items-center gap-x-2 text-sm font-bold", dark ? "text-white" : "text-cocoa-700")}>
+                        <Globe className="h-4 w-4" /> Quiero mi propio dominio
+                      </span>
+                      <span className={cn("block text-xs", muted)}>
+                        tutienda.com ·{" "}
+                        {setupIncluded ? (
+                          <b className={dark ? "text-mint-300" : "text-mint-600"}>instalación incluida</b>
+                        ) : (
+                          <>costo de instalación {money(CUSTOM_DOMAIN_ADDON.setup)}</>
+                        )}
+                      </span>
+                    </span>
+                  </label>
+                  {dom.on && (
+                    <div className="mt-3 animate-fade-up">
+                      <div className="grid grid-cols-3 gap-1.5">
+                        {CUSTOM_DOMAIN_ADDON.years.map((y) => (
+                          <button
+                            key={y.years}
+                            type="button"
+                            onClick={() => setDomain((x) => ({ ...x, [p.id]: { on: true, years: y.years } }))}
+                            className={cn(
+                              "rounded-xl px-1 py-2 text-center text-xs font-bold transition",
+                              dom.years === y.years
+                                ? "bg-rose-500 text-white shadow-rose"
+                                : dark
+                                  ? "bg-white/10 text-cream-100 hover:bg-white/15"
+                                  : "bg-white text-cocoa-600 ring-1 ring-cocoa-800/10 hover:ring-rose-300",
+                            )}
+                          >
+                            {y.years} año{y.years > 1 ? "s" : ""}
+                            <span className="block text-[11px] font-semibold opacity-90">{money(y.price)}</span>
+                          </button>
+                        ))}
+                      </div>
+                      <p className={cn("mt-2 text-[11px] leading-snug", muted)}>
+                        {domOpt.promo}. Después se renueva en {money(CUSTOM_DOMAIN_ADDON.renewal)} al año. {CUSTOM_DOMAIN_ADDON.note}
+                      </p>
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* Total cuando hay extras */}
+              {dom.on && canDomain && (
+                <div className={cn("mt-3 rounded-2xl p-3.5 text-sm animate-fade-up", dark ? "bg-black/20" : "bg-white ring-1 ring-cocoa-800/5")}>
+                  <Row label={`Plan ${billing}`} value={money(planPrice)} muted={muted} />
+                  <Row label={`Dominio ${dom.years} año${dom.years > 1 ? "s" : ""}`} value={money(domainCost)} muted={muted} />
+                  <Row label="Instalación" value={setup ? money(setup) : "Incluida"} muted={muted} />
+                  <div className={cn("mt-2 flex items-end justify-between border-t pt-2", dark ? "border-white/10" : "border-cocoa-800/8")}>
+                    <span className="font-bold">Total</span>
+                    <span key={total} className={cn("animate-fade-up font-display text-xl font-semibold tabular-nums", dark ? "text-white" : "text-cocoa-800")}>{money(total)}</span>
+                  </div>
+                </div>
+              )}
+
               <a
                 href={salesLink(text)}
                 target="_blank"
                 rel="noopener noreferrer"
                 className={cn(
-                  "mt-6 flex h-12 items-center justify-center gap-2 rounded-2xl font-bold transition active:scale-[0.98]",
+                  "mt-5 flex h-12 items-center justify-center gap-2 rounded-2xl font-bold transition active:scale-[0.98]",
                   dark ? "bg-rose-500 text-white shadow-rose hover:bg-rose-600" : "bg-cream-200 text-cocoa-700 hover:bg-cream-300",
                 )}
               >
@@ -223,29 +320,19 @@ export function Pricing() {
         })}
       </div>
 
-      <div className="mx-auto mt-10 flex max-w-3xl flex-col items-center gap-4 rounded-[28px] border border-dashed border-mint-300 bg-white/70 p-5 text-center sm:flex-row sm:text-left">
-        <span className="grid h-12 w-12 shrink-0 place-items-center rounded-2xl bg-mint-50 text-mint-600">
-          <Globe className="h-6 w-6" />
-        </span>
-        <div className="min-w-0 flex-1">
-          <p className="font-display text-lg font-semibold text-cocoa-700">¿Quieres tu propio dominio? (tutienda.com)</p>
-          <p className="text-sm text-cocoa-500">
-            Servicio extra para Profesional: instalación única de {money0(CUSTOM_DOMAIN_ADDON.setup)}. En Premium anual va incluido. {CUSTOM_DOMAIN_ADDON.note}
-          </p>
-        </div>
-        <a
-          href={salesLink("¡Hola! Me interesa conectar mi propio dominio a mi tienda de Dulces Detalles 🌐")}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="inline-flex h-11 shrink-0 items-center gap-2 rounded-2xl bg-mint-500 px-5 font-bold text-white hover:bg-mint-600"
-        >
-          <MessageCircle className="h-4 w-4" /> Preguntar
-        </a>
-      </div>
-
       <p className="mt-8 text-center text-sm text-cocoa-400">
-        Precios en pesos mexicanos. ¿Aún con dudas? <Link href="/demo" className="font-bold text-rose-500 hover:underline">Prueba la demo gratis</Link>.
+        Precios en pesos mexicanos con IVA incluido. El dominio propio solo aplica a los planes con tienda en línea. ¿Aún con dudas?{" "}
+        <Link href="/demo" className="font-bold text-rose-500 hover:underline">Prueba la demo gratis</Link>.
       </p>
+    </div>
+  );
+}
+
+function Row({ label, value, muted }: { label: string; value: string; muted: string }) {
+  return (
+    <div className="flex justify-between gap-3 py-0.5">
+      <span className={muted}>{label}</span>
+      <span className="tabular-nums">{value}</span>
     </div>
   );
 }

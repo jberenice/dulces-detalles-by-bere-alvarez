@@ -11,7 +11,7 @@ import { Input, Select } from "@/components/ui/Field";
 import { Modal } from "@/components/ui/Modal";
 import { useConfirm } from "@/components/ui/Confirm";
 import { date, money, money0 } from "@/lib/format";
-import { BILLING_LABEL, PLANS, planName, type Billing, type PlanId } from "@/lib/plans";
+import { BILLING_LABEL, PLANS, planName, withIva, type Billing, type PlanId } from "@/lib/plans";
 
 type Row = {
   id: string;
@@ -34,7 +34,11 @@ type Row = {
   paid_total: number;
 };
 
-const priceOf = (plan: PlanId, billing: Billing) => PLANS.find((p) => p.id === plan)?.prices[billing] ?? 0;
+/** Precio sugerido con IVA incluido */
+const priceOf = (plan: PlanId, billing: Billing) => {
+  const base = PLANS.find((p) => p.id === plan)?.prices[billing];
+  return base == null ? 0 : withIva(base);
+};
 
 export default function LicensesPage() {
   const { profile } = useBusiness();
@@ -310,7 +314,7 @@ export default function LicensesPage() {
                 ))}
             </Select>
             <Input label="Cantidad" type="number" min={1} max={200} value={count} onChange={(e) => setCount(Number(e.target.value))} />
-            <Input label="Precio cobrado (c/u)" type="number" min={0} prefix="$" value={price} onChange={(e) => setPrice(e.target.value)} hint="Se suma a tus ingresos. Pon 0 si es de cortesía." />
+            <Input label="Precio cobrado (c/u)" type="number" min={0} prefix="$" value={price} onChange={(e) => setPrice(e.target.value)} hint="Con IVA incluido. Si vendiste dominio o instalación, súmalo aquí. Pon 0 si es de cortesía." />
           </div>
           <p className="rounded-2xl bg-cream-100 p-3 text-xs text-cocoa-500">
             {billing === "vitalicia"

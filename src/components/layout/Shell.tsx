@@ -31,6 +31,7 @@ import {
   Lock,
   Gauge,
   Globe,
+  IdCard,
 } from "lucide-react";
 import { cn } from "@/lib/cn";
 import { signOutDevice } from "@/lib/session";
@@ -66,6 +67,7 @@ const NAV = [
   { group: "Negocio", items: [
     { href: "/dashboard/reportes", label: "Reportes", icon: BarChart3 },
     { href: "/dashboard/tienda", label: "Mi tienda", icon: Store },
+    { href: "/dashboard/impresos", label: "Tarjetas y etiquetas", icon: IdCard },
     { href: "/dashboard/mensajes", label: "Mensajes", icon: MessageSquareText },
     { href: "/dashboard/respaldo", label: "Respaldo", icon: DatabaseBackup },
     { href: "/dashboard/tutorial", label: "Tutorial", icon: GraduationCap },

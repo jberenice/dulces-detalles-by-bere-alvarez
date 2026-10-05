@@ -40,6 +40,7 @@ Al activar la licencia se puede **precargar el recetario** con tus datos reales:
    - `supabase/migrations/0009_anonymous_hardening.sql` (límites para usuarios anónimos de la demo)
    - `supabase/migrations/0010_premium.sql` (planes, pagos parciales, variantes, zonas, cupo diario, métricas)
    - `supabase/migrations/0011_domains.sql` (subdominios y dominios propios de tiendas)
+   - `supabase/migrations/0012_print_designs.sql` (diseños de tarjetas/etiquetas/stickers y 3 leches con media crema; vuelve a correr antes `0002_seed_function.sql`)
    - `supabase/cron_setup.sql` (recordatorios cada hora; reemplaza tu dominio y tu CRON_SECRET antes de ejecutarlo)
    - `supabase/admin_setup.sql` → el resultado te muestra **tu código de licencia de administradora** (aleatorio)
 3. **Authentication → URL Configuration**

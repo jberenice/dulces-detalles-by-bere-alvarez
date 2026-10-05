@@ -49,6 +49,7 @@ export type Profile = {
   store_zones?: DeliveryZone[];
   onboarding?: Record<string, boolean> | null;
   balance_reminder_email?: boolean;
+  print_designs?: Record<string, unknown> | null;
 };
 
 export type DeliveryZone = { name: string; fee: number };

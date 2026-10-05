@@ -1,7 +1,7 @@
 "use client";
 import Link from "next/link";
 import { Check, Crown, Sparkles } from "lucide-react";
-import { PLANS, planName, type PlanId } from "@/lib/plans";
+import { PLANS, planName, withIva, type PlanId } from "@/lib/plans";
 import { salesLink } from "@/lib/legal";
 import { money0 } from "@/lib/format";
 import { useBusiness } from "./BusinessProvider";
@@ -40,7 +40,7 @@ export function UpgradeCard({ min, feature }: { min: PlanId; feature: string }) 
               <Sparkles className="h-4 w-4" /> Quiero el plan {target.name}
             </a>
             <p className="text-sm text-cocoa-400">
-              Desde <b className="text-cocoa-600">{money0(target.prices.mensual)}</b> al mes · <Link href="/#precios" className="font-semibold text-rose-500 hover:underline">Comparar planes</Link>
+              Desde <b className="text-cocoa-600">{money0(withIva(target.prices.mensual ?? 0))}</b> al mes con IVA · <Link href="/#precios" className="font-semibold text-rose-500 hover:underline">Comparar planes</Link>
             </p>
           </div>
         </div>
