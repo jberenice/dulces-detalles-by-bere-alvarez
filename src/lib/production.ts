@@ -39,28 +39,36 @@ export function computeProduction(orders: Order[], desserts: Dessert[], ingredie
     ordersPerDay.set(day, (ordersPerDay.get(day) ?? 0) + 1);
     for (const it of o.order_items ?? []) {
       const qty = Number(it.quantity) || 0;
-      pieces += qty;
-      const d = it.dessert_id ? byId.get(it.dessert_id) : undefined;
-      const dayMap = days.get(day) ?? new Map();
-      const key = d?.id ?? `libre:${it.description}`;
-      const prev = dayMap.get(key) ?? { name: d?.name ?? it.description, qty: 0, unit: d?.unit_label ?? "pz" };
-      prev.qty += qty;
-      dayMap.set(key, prev);
-      days.set(day, dayMap);
+      // Las cajas se hornean por lo que traen: 2 cajas de (2 vainilla + 4 Nutella) = 4 vainilla + 8 Nutella
+      const parts = it.components?.length
+        ? it.components.map((c) => ({ dessert_id: c.dessert_id, description: c.name, qty: qty * (Number(c.qty) || 0) }))
+        : [{ dessert_id: it.dessert_id, description: it.description, qty }];
+      for (const part of parts) addPart(day, part.dessert_id, part.description, part.qty);
+    }
+  }
 
-      if (!d || !(d.dessert_items ?? []).length) {
-        noRecipe.set(it.description, (noRecipe.get(it.description) ?? 0) + qty);
-        continue;
-      }
-      const batches = qty / (Number(d.yield_units) || 1);
-      for (const di of d.dessert_items ?? []) {
-        const ing = ingredientsById.get(di.ingredient_id);
-        if (!ing) continue;
-        const n = needs.get(ing.id) ?? { ingredient: ing, need: 0, stock: 0, toBuy: 0, packages: 0, cost: 0, usedIn: new Set<string>() };
-        n.need += Number(di.quantity) * batches;
-        n.usedIn.add(d.name);
-        needs.set(ing.id, n);
-      }
+  function addPart(day: string, dessertId: string | null, description: string, qty: number) {
+    pieces += qty;
+    const d = dessertId ? byId.get(dessertId) : undefined;
+    const dayMap = days.get(day) ?? new Map();
+    const key = d?.id ?? `libre:${description}`;
+    const prev = dayMap.get(key) ?? { name: d?.name ?? description, qty: 0, unit: d?.unit_label ?? "pz" };
+    prev.qty += qty;
+    dayMap.set(key, prev);
+    days.set(day, dayMap);
+
+    if (!d || !(d.dessert_items ?? []).length) {
+      noRecipe.set(description, (noRecipe.get(description) ?? 0) + qty);
+      return;
+    }
+    const batches = qty / (Number(d.yield_units) || 1);
+    for (const di of d.dessert_items ?? []) {
+      const ing = ingredientsById.get(di.ingredient_id);
+      if (!ing) continue;
+      const n = needs.get(ing.id) ?? { ingredient: ing, need: 0, stock: 0, toBuy: 0, packages: 0, cost: 0, usedIn: new Set<string>() };
+      n.need += Number(di.quantity) * batches;
+      n.usedIn.add(d.name);
+      needs.set(ing.id, n);
     }
   }
 

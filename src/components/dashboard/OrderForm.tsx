@@ -11,7 +11,7 @@ import { Card, CardHeader, PageHeader, Skeleton } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { Input, Select, Textarea, Toggle } from "@/components/ui/Field";
 import { ClientPicker } from "./ClientPicker";
-import { LineItemsEditor, TotalsBox, lineKey, type EditableLine } from "./LineItemsEditor";
+import { LineItemsEditor, TotalsBox, isPackageLine, lineKey, lineRow, packageLinesProblem, type EditableLine } from "./LineItemsEditor";
 import { calcTotals } from "@/lib/totals";
 import { ORDER_STATUS, PAYMENT_STATUS } from "@/lib/constants";
 import { addDays, toISODate } from "@/lib/format";
@@ -74,8 +74,11 @@ export function OrderForm({ orderId }: { orderId?: string }) {
   const client = clientsQ.data?.find((c) => c.id === f.client_id);
 
   async function save() {
+    const problem = packageLinesProblem(items.filter((i) => Number(i.quantity) > 0), catalog.data?.packages ?? []);
+    if (problem) return toast.error(problem);
     const valid = items.filter((i) => i.description.trim() && Number(i.quantity) > 0);
     if (!valid.length) return toast.error("Agrega al menos un postre");
+    const withPackages = valid.some(isPackageLine);
     setSaving(true);
     try {
       const deposit = Number(f.deposit) || 0;
@@ -106,15 +109,7 @@ export function OrderForm({ orderId }: { orderId?: string }) {
       }
       must(
         await sb.from("order_items").insert(
-          valid.map((i, idx) => ({
-            order_id: id,
-            dessert_id: i.dessert_id || null,
-            description: i.description.trim(),
-            quantity: Number(i.quantity),
-            unit_price: Number(i.unit_price) || 0,
-            unit_cost: Number(i.unit_cost) || 0,
-            position: idx,
-          })),
+          valid.map((i, idx) => ({ order_id: id, ...lineRow(i, withPackages), position: idx })),
         ),
       );
       toast.success("Pedido guardado");
@@ -174,7 +169,7 @@ export function OrderForm({ orderId }: { orderId?: string }) {
           <Card>
             <CardHeader title="Postres" icon={<ShoppingBag className="h-5 w-5" />} />
             <div className="p-5 sm:p-6">
-              <LineItemsEditor items={items} setItems={setItems} desserts={catalog.data?.desserts ?? []} costs={catalog.costs} />
+              <LineItemsEditor items={items} setItems={setItems} desserts={catalog.data?.desserts ?? []} costs={catalog.costs} packages={catalog.data?.packages ?? []} ingredientsById={catalog.ingredientsById} />
             </div>
           </Card>
           <Card className="p-5 sm:p-6">

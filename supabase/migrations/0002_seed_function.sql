@@ -844,6 +844,10 @@ begin
     (p_uid, v_d, (select id from public.ingredients where user_id = p_uid and kind = 'empaque' and name = 'base 15cm' limit 1), null, 1.0, 27),
     (p_uid, v_d, (select id from public.ingredients where user_id = p_uid and kind = 'empaque' and name = 'soportes para pastel' limit 1), null, 1.0, 28);
 
+  -- Cajas de ejemplo (si ya se ejecutó 0013_packages.sql)
+  if to_regprocedure('public.seed_starter_packages(uuid)') is not null then
+    execute 'select public.seed_starter_packages($1)' using p_uid;
+  end if;
 end $$;
 
 revoke execute on function public.seed_starter_data(uuid) from anon, authenticated;

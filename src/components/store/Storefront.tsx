@@ -1,6 +1,6 @@
 "use client";
 import { Fragment, useEffect, useMemo, useState } from "react";
-import { CakeSlice, CalendarDays, Check, ChevronLeft, ChevronRight, Clock, Facebook, Instagram, Loader2, MapPin, Megaphone, MessageCircle, Minus, Plus, ShoppingBag, Sparkles, Star, Truck, X } from "lucide-react";
+import { CakeSlice, CalendarDays, Check, ChevronLeft, ChevronRight, Clock, Facebook, Gift, Instagram, Loader2, MapPin, Megaphone, MessageCircle, Minus, Plus, ShoppingBag, Sparkles, Star, Truck, X } from "lucide-react";
 import { toast } from "sonner";
 import { createClient } from "@/lib/supabase/client";
 import { SiteFooter } from "@/components/legal/SiteFooter";
@@ -24,6 +24,18 @@ export type StoreProduct = {
   variants?: VariantGroup[];
   gallery?: string[];
   min_notice_days?: number | null;
+};
+export type StorePackage = {
+  id: string;
+  name: string;
+  description: string | null;
+  image_url: string | null;
+  mode: "fijo" | "surtido";
+  pieces: number;
+  price: number;
+  min_notice_days?: number | null;
+  /** fijo: lo que trae (qty) · surtido: sabores para elegir */
+  options: { dessert_id: string; name: string; image_url: string | null; qty: number | null; price: number | null }[];
 };
 export type StoreData = {
   store: {
@@ -50,10 +62,25 @@ export type StoreData = {
     unavailable_dates?: string[];
   };
   products: StoreProduct[];
+  packages?: StorePackage[];
 };
 
 type Choice = { group: string; option: string };
 type CartLine = { id: string; qty: number; options: Choice[] };
+type BoxChoice = { dessert_id: string; qty: number };
+type PackLine = { id: string; qty: number; choices: BoxChoice[] };
+
+const packKey = (id: string, choices: BoxChoice[]) =>
+  `${id}|${[...choices].sort((a, b) => a.dessert_id.localeCompare(b.dessert_id)).map((c) => `${c.dessert_id}x${c.qty}`).join(",")}`;
+/** Lo que costarían las piezas sueltas (si se venden sueltas en la tienda) */
+function regularOf(k: StorePackage) {
+  if (k.mode === "fijo") {
+    if (k.options.some((o) => o.price == null)) return 0;
+    return k.options.reduce((a, o) => a + Number(o.qty ?? 0) * Number(o.price), 0);
+  }
+  const prices = k.options.map((o) => o.price).filter((x): x is number => x != null).map(Number);
+  return prices.length ? Math.max(...prices) * k.pieces : 0;
+}
 
 const lineKey = (id: string, options: Choice[]) => (options.length ? `${id}|${options.map((o) => `${o.group}=${o.option}`).join("|")}` : id);
 /** Igual que en la base de datos: un grupo sin "required" se considera obligatorio */
@@ -75,10 +102,14 @@ const price = (n: number) => money(n).replace(".00", "");
  */
 export function Storefront({ data, slug, preview = false }: { data: StoreData; slug: string; preview?: boolean }) {
   const { store, products } = data;
+  const packages = useMemo(() => (data.packages ?? []).filter((k) => k.options?.length), [data.packages]);
   const theme: StoreTheme = useMemo(() => normalizeTheme(store.theme), [store.theme]);
   const vars = useMemo(() => themeVars(theme), [theme]);
   const storageKey = `dd-cart-${slug}`;
   const [cart, setCart] = useState<Record<string, CartLine>>({});
+  const [packCart, setPackCart] = useState<Record<string, PackLine>>({});
+  const [box, setBox] = useState<StorePackage | null>(null);
+  const [boxChoices, setBoxChoices] = useState<Record<string, number>>({});
   const [cat, setCat] = useState("Todo");
   const [open, setOpen] = useState(false);
   const [detail, setDetail] = useState<StoreProduct | null>(null);
@@ -107,14 +138,17 @@ export function Storefront({ data, slug, preview = false }: { data: StoreData; s
         for (const [k, v] of Object.entries(parsed)) next[k] = typeof v === "number" ? { id: k, qty: v, options: [] } : v;
         setCart(next);
       }
+      const rawPacks = localStorage.getItem(`${storageKey}-cajas`);
+      if (rawPacks) setPackCart(JSON.parse(rawPacks) as Record<string, PackLine>);
     } catch {}
   }, [storageKey, preview]);
   useEffect(() => {
     if (preview) return;
     try {
       localStorage.setItem(storageKey, JSON.stringify(cart));
+      localStorage.setItem(`${storageKey}-cajas`, JSON.stringify(packCart));
     } catch {}
-  }, [cart, storageKey, preview]);
+  }, [cart, packCart, storageKey, preview]);
 
   // Los modales se abren fuera de la tienda (portal): les pasamos los colores por <body>
   useEffect(() => {
@@ -147,11 +181,28 @@ export function Storefront({ data, slug, preview = false }: { data: StoreData; s
       return { key, p, qty: l.qty, options: l.options, unit, label: l.options.map((c) => c.option).join(" · ") };
     })
     .filter(Boolean) as { key: string; p: StoreProduct; qty: number; options: Choice[]; unit: number; label: string }[];
-  const count = lines.reduce((a, l) => a + l.qty, 0);
-  const subtotal = lines.reduce((a, l) => a + l.qty * l.unit, 0);
+  const packsById = useMemo(() => new Map(packages.map((k) => [k.id, k])), [packages]);
+  const packLines = Object.entries(packCart)
+    .map(([key, l]) => {
+      const k = packsById.get(l.id);
+      if (!k || l.qty <= 0) return null;
+      // Descarta cajas cuyo contenido ya no es válido (cambió el paquete)
+      if (k.mode === "surtido") {
+        const total = l.choices.reduce((a, c) => a + c.qty, 0);
+        if (total !== k.pieces || !l.choices.every((c) => k.options.some((o) => o.dessert_id === c.dessert_id))) return null;
+      }
+      const label =
+        k.mode === "surtido"
+          ? l.choices.map((c) => `${c.qty} ${k.options.find((o) => o.dessert_id === c.dessert_id)?.name ?? ""}`).join(", ")
+          : k.options.map((o) => `${Number(o.qty)} ${o.name}`).join(", ");
+      return { key, k, qty: l.qty, choices: l.choices, unit: Number(k.price), label };
+    })
+    .filter(Boolean) as { key: string; k: StorePackage; qty: number; choices: BoxChoice[]; unit: number; label: string }[];
+  const count = lines.reduce((a, l) => a + l.qty, 0) + packLines.reduce((a, l) => a + l.qty, 0);
+  const subtotal = lines.reduce((a, l) => a + l.qty * l.unit, 0) + packLines.reduce((a, l) => a + l.qty * l.unit, 0);
   const zone = zones.find((z) => z.name === f.zone);
   const shipping = f.type === "envio" ? (zones.length ? Number(zone?.fee ?? 0) : Number(store.shipping_fee)) : 0;
-  const minNotice = Math.max(store.min_notice_days, ...lines.map((l) => Number(l.p.min_notice_days ?? 0)));
+  const minNotice = Math.max(store.min_notice_days, ...lines.map((l) => Number(l.p.min_notice_days ?? 0)), ...packLines.map((l) => Number(l.k.min_notice_days ?? 0)));
   const qtyOf = (id: string) => lines.filter((l) => l.p.id === id).reduce((a, l) => a + l.qty, 0);
 
   // Si un postre pide más anticipación, se mueve la fecha al primer día posible
@@ -170,6 +221,32 @@ export function Storefront({ data, slug, preview = false }: { data: StoreData; s
       return next;
     });
   const add = (id: string, d = 1) => addLine(id, [], d);
+  const addPack = (id: string, choices: BoxChoice[] = [], d = 1) =>
+    setPackCart((c) => {
+      const key = packKey(id, choices);
+      const n = Math.max(0, (c[key]?.qty ?? 0) + d);
+      const next = { ...c, [key]: { id, qty: n, choices } };
+      if (!n) delete next[key];
+      return next;
+    });
+
+  function openBox(k: StorePackage) {
+    if (preview) return toast.info("Vista previa: aquí tu clienta arma su caja");
+    setBox(k);
+    setBoxChoices({});
+    setDetailQty(1);
+  }
+  const boxTotal = Object.values(boxChoices).reduce((a, n) => a + n, 0);
+  const setFlavor = (id: string, d: number) =>
+    setBoxChoices((x) => {
+      if (!box) return x;
+      const total = Object.values(x).reduce((a, n) => a + n, 0);
+      if (d > 0 && total >= box.pieces) return x;
+      const n = Math.max(0, (x[id] ?? 0) + d);
+      const next = { ...x, [id]: n };
+      if (!n) delete next[id];
+      return next;
+    });
 
   function openDetail(p: StoreProduct) {
     setDetail(p);
@@ -185,7 +262,7 @@ export function Storefront({ data, slug, preview = false }: { data: StoreData; s
 
   async function checkout(e: React.FormEvent) {
     e.preventDefault();
-    if (!lines.length) return;
+    if (!lines.length && !packLines.length) return;
     if (f.type === "envio" && !f.address.trim()) return toast.error("Escribe la dirección de entrega");
     if (f.type === "envio" && zones.length && !zone) return toast.error("Elige tu zona de entrega");
     if (!f.date) return toast.error("Elige la fecha de entrega");
@@ -202,7 +279,10 @@ export function Storefront({ data, slug, preview = false }: { data: StoreData; s
       p_delivery_type: f.type,
       p_address: f.address,
       p_notes: f.notes,
-      p_items: lines.map((l) => ({ dessert_id: l.p.id, quantity: l.qty, options: l.options })),
+      p_items: [
+        ...lines.map((l) => ({ dessert_id: l.p.id, quantity: l.qty, options: l.options })),
+        ...packLines.map((l) => ({ package_id: l.k.id, quantity: l.qty, choices: l.choices })),
+      ],
       p_zone: f.type === "envio" && zone ? zone.name : null,
     });
     setSending(false);
@@ -212,7 +292,10 @@ export function Storefront({ data, slug, preview = false }: { data: StoreData; s
     }
     const text =
       `¡Hola ${store.business_name}! 🧁 Quiero hacer un pedido (${folio("P", res.folio)}):\n\n` +
-      lines.map((l) => `• ${l.qty} × ${l.p.name}${l.label ? ` (${l.label})` : ""} — ${money(l.qty * l.unit)}`).join("\n") +
+      [
+        ...lines.map((l) => `• ${l.qty} × ${l.p.name}${l.label ? ` (${l.label})` : ""} — ${money(l.qty * l.unit)}`),
+        ...packLines.map((l) => `• ${l.qty} × 🎁 ${l.k.name} (${l.label}) — ${money(l.qty * l.unit)}`),
+      ].join("\n") +
       `\n\n${shipping ? `Envío: ${money(shipping)}\n` : ""}*Total: ${money(res.total)}*\n\n` +
       `📅 ${f.date ? dateLong(f.date) : "Fecha por confirmar"}${f.time ? ` a las ${f.time}` : ""}\n` +
       `${f.type === "envio" ? `🚚 Envío${zone ? ` (${zone.name})` : ""} a: ${f.address}` : "🏠 Paso a recoger"}\n` +
@@ -223,6 +306,7 @@ export function Storefront({ data, slug, preview = false }: { data: StoreData; s
     // Aviso push a la repostería (si tiene la app con notificaciones activas)
     fetch("/api/push/pedido", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ order_id: res.order_id }) }).catch(() => {});
     setCart({});
+    setPackCart({});
     if (popup && !popup.closed) popup.location.href = wa;
   }
 
@@ -388,6 +472,74 @@ export function Storefront({ data, slug, preview = false }: { data: StoreData; s
     ) : null,
     catalogo: (
       <section key="catalogo" className="pt-8">
+        {packages.length > 0 && (
+          <div className="mb-8 px-4">
+            <div className="mb-3 flex items-center gap-2">
+              <Gift className="h-5 w-5 text-[var(--st-accent)]" />
+              <h2 className="text-2xl font-semibold">Cajas y paquetes</h2>
+            </div>
+            <div className="grid gap-3 @xl:grid-cols-2 @4xl:grid-cols-3">
+              {packages.map((k) => {
+                const regular = regularOf(k);
+                const save = regular - Number(k.price);
+                const inCart = packLines.filter((l) => l.k.id === k.id).reduce((a, l) => a + l.qty, 0);
+                return (
+                  <article key={k.id} className={cn(card, "group flex gap-3 p-2.5 @xl:p-3")}>
+                    <button onClick={() => (k.mode === "surtido" ? openBox(k) : undefined)} className="relative aspect-square w-28 shrink-0 overflow-hidden rounded-[calc(var(--st-radius)*0.7)] @xl:w-32">
+                      {k.image_url ? (
+                        // eslint-disable-next-line @next/next/no-img-element
+                        <img src={k.image_url} alt={k.name} className="h-full w-full object-cover" loading="lazy" />
+                      ) : (
+                        <div className="sprinkles grid h-full w-full place-items-center bg-[var(--st-soft)]"><Gift className="h-10 w-10 text-[var(--st-primary)] opacity-60" /></div>
+                      )}
+                      {save > 0.5 && (
+                        <span className="absolute top-1.5 left-1.5 rounded-full bg-[var(--st-accent)] px-2 py-0.5 text-[10px] font-bold whitespace-nowrap text-[var(--st-on-accent)]">Ahorra {k.mode === "surtido" ? "hasta " : ""}{price(save)}</span>
+                      )}
+                    </button>
+                    <div className="flex min-w-0 flex-1 flex-col py-1">
+                      <h3 className="text-lg leading-tight font-semibold">{k.name}</h3>
+                      <p className="mt-0.5 line-clamp-2 text-sm text-[var(--st-muted)]">
+                        {k.description || (k.mode === "surtido" ? `Elige ${k.pieces} piezas: ${k.options.map((o) => o.name).join(", ")}` : k.options.map((o) => `${Number(o.qty)} ${o.name}`).join(" + "))}
+                      </p>
+                      <div className="mt-auto flex items-end justify-between gap-2 pt-2">
+                        <p className="text-lg font-bold text-[var(--st-primary)]">
+                          {price(k.price)}
+                          <span className="block text-[11px] font-normal text-[var(--st-muted)]">
+                            {k.mode === "surtido" ? `${k.pieces} piezas · ${price(Number(k.price) / k.pieces)} c/u` : `${k.pieces} piezas`}
+                            {k.mode === "fijo" && regular > Number(k.price) + 0.5 ? <> · <s>{price(regular)}</s></> : null}
+                          </span>
+                        </p>
+                        {k.mode === "surtido" ? (
+                          <button onClick={() => openBox(k)} className={cn("relative shrink-0 rounded-full px-4 py-2 text-sm font-bold shadow-md", btnPrimary)}>
+                            Armar caja
+                            {inCart > 0 && <span className="absolute -top-1.5 -right-1.5 grid h-5 min-w-5 place-items-center rounded-full bg-[var(--st-text)] px-1 text-[10px] font-bold text-[var(--st-bg)]">{inCart}</span>}
+                          </button>
+                        ) : inCart ? (
+                          <div className="flex items-center gap-1 rounded-full bg-[var(--st-soft)] p-1">
+                            <button onClick={() => addPack(k.id, [], -1)} className="grid h-7 w-7 place-items-center rounded-full bg-[var(--st-surface)] text-[var(--st-primary)] shadow-sm" aria-label="Quitar uno"><Minus className="h-3.5 w-3.5" /></button>
+                            <span className="w-5 text-center text-sm font-bold text-[var(--st-text)]">{inCart}</span>
+                            <button onClick={() => addPack(k.id)} className={cn("grid h-7 w-7 place-items-center rounded-full", btnPrimary)} aria-label="Agregar uno"><Plus className="h-3.5 w-3.5" /></button>
+                          </div>
+                        ) : (
+                          <button
+                            onClick={() => {
+                              addPack(k.id);
+                              if (!preview) toast.success(`${k.name} agregado`, { duration: 1200 });
+                            }}
+                            className={cn("grid h-10 w-10 shrink-0 place-items-center rounded-full shadow-md", btnPrimary)}
+                            aria-label={`Agregar ${k.name}`}
+                          >
+                            <Plus className="h-5 w-5" />
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                  </article>
+                );
+              })}
+            </div>
+          </div>
+        )}
         <div className="sticky top-0 z-20 border-y border-[var(--st-line)] bg-[color-mix(in_srgb,var(--st-bg)_90%,transparent)] backdrop-blur-xl">
           <div className="flex gap-2 overflow-x-auto px-4 py-3 scrollbar-none">
             {categories.map((c) => (
@@ -405,7 +557,7 @@ export function Storefront({ data, slug, preview = false }: { data: StoreData; s
           </div>
         </div>
         <div className="px-4 pt-5">
-          {products.length === 0 ? (
+          {products.length === 0 && packages.length === 0 ? (
             <div className="py-16 text-center text-[var(--st-muted)]">
               <CakeSlice className="mx-auto mb-3 h-10 w-10 text-[var(--st-primary)] opacity-60" />
               Muy pronto verás aquí nuestros postres.
@@ -675,6 +827,74 @@ export function Storefront({ data, slug, preview = false }: { data: StoreData; s
             )}
           </Modal>
 
+          {/* Armar caja surtida */}
+          <Modal open={!!box} onClose={() => setBox(null)} title={box?.name} description={box ? `Elige ${box.pieces} piezas · ${money(box.price)} la caja` : undefined} size="md"
+            footer={box && (
+              <div className="flex w-full flex-col-reverse gap-3 sm:flex-row sm:items-center sm:justify-end">
+                <div className="flex items-center justify-center gap-1 rounded-full bg-cream-200 p-1">
+                  <button type="button" onClick={() => setDetailQty((q) => Math.max(1, q - 1))} className="grid h-9 w-9 place-items-center rounded-full bg-white text-cocoa-600 shadow-sm" aria-label="Menos cajas"><Minus className="h-4 w-4" /></button>
+                  <span className="w-8 text-center font-bold">{detailQty}</span>
+                  <button type="button" onClick={() => setDetailQty((q) => Math.min(50, q + 1))} className="grid h-9 w-9 place-items-center rounded-full bg-white text-cocoa-600 shadow-sm" aria-label="Más cajas"><Plus className="h-4 w-4" /></button>
+                </div>
+                <button
+                  className={cn("flex h-12 w-full items-center justify-center gap-2 rounded-2xl px-6 font-bold disabled:opacity-50 sm:w-auto", btnPrimary)}
+                  disabled={boxTotal !== box.pieces}
+                  onClick={() => {
+                    addPack(box.id, Object.entries(boxChoices).map(([dessert_id, qty]) => ({ dessert_id, qty })), detailQty);
+                    setBox(null);
+                    toast.success("Caja agregada a tu pedido 🎁");
+                  }}
+                >
+                  <Gift className="h-4 w-4" /> {boxTotal !== box.pieces ? (box.pieces - boxTotal === 1 ? "Falta 1 pieza" : `Faltan ${box.pieces - boxTotal} piezas`) : `Agregar · ${money(Number(box.price) * detailQty)}`}
+                </button>
+              </div>
+            )}
+          >
+            {box && (
+              <div>
+                {box.image_url && (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img src={box.image_url} alt={box.name} className="mb-4 aspect-[16/9] w-full rounded-3xl object-cover" />
+                )}
+                {box.description && <p className="mb-4 text-[15px] leading-relaxed text-cocoa-500">{box.description}</p>}
+                <div className="mb-3 flex items-center gap-3">
+                  <div className="h-2.5 flex-1 overflow-hidden rounded-full bg-cream-200">
+                    <div className="h-full rounded-full bg-[var(--st-primary)] transition-all" style={{ width: `${(boxTotal / box.pieces) * 100}%` }} />
+                  </div>
+                  <span className="text-sm font-bold text-cocoa-600 tabular-nums">{boxTotal} de {box.pieces}</span>
+                </div>
+                <ul className="space-y-2">
+                  {box.options.map((o) => {
+                    const n = boxChoices[o.dessert_id] ?? 0;
+                    return (
+                      <li key={o.dessert_id} className={cn("flex items-center gap-3 rounded-2xl p-2 ring-1 transition", n ? "bg-[var(--st-soft)] ring-[var(--st-primary)]" : "ring-cocoa-800/8")}>
+                        <span className="h-12 w-12 shrink-0 overflow-hidden rounded-xl bg-cream-200">
+                          {o.image_url ? (
+                            // eslint-disable-next-line @next/next/no-img-element
+                            <img src={o.image_url} alt="" className="h-full w-full object-cover" loading="lazy" />
+                          ) : (
+                            <span className="grid h-full w-full place-items-center"><CakeSlice className="h-5 w-5 text-[var(--st-primary)] opacity-60" /></span>
+                          )}
+                        </span>
+                        <span className="min-w-0 flex-1 font-semibold text-cocoa-700">{o.name}</span>
+                        <span className="flex items-center gap-1 rounded-full bg-white p-1 shadow-sm">
+                          <button type="button" onClick={() => setFlavor(o.dessert_id, -1)} disabled={!n} className="grid h-8 w-8 place-items-center rounded-full text-[var(--st-primary)] disabled:opacity-30" aria-label={`Quitar ${o.name}`}><Minus className="h-4 w-4" /></button>
+                          <span className="w-6 text-center font-bold tabular-nums">{n}</span>
+                          <button type="button" onClick={() => setFlavor(o.dessert_id, 1)} disabled={boxTotal >= box.pieces} className="grid h-8 w-8 place-items-center rounded-full text-[var(--st-primary)] disabled:opacity-30" aria-label={`Agregar ${o.name}`}><Plus className="h-4 w-4" /></button>
+                        </span>
+                      </li>
+                    );
+                  })}
+                </ul>
+                {Number(box.min_notice_days ?? 0) > store.min_notice_days && (
+                  <p className="mt-4 inline-flex items-center gap-1.5 rounded-full bg-cream-200 px-3 py-1 text-xs font-semibold text-cocoa-500">
+                    <CalendarDays className="h-3.5 w-3.5" /> Pídela con {box.min_notice_days} días de anticipación
+                  </p>
+                )}
+              </div>
+            )}
+          </Modal>
+
           {/* Checkout */}
           <Modal open={open} onClose={() => { setOpen(false); setDone(null); }} title={done ? "¡Pedido enviado!" : "Tu pedido"} size="lg">
             {done ? (
@@ -700,6 +920,21 @@ export function Storefront({ data, slug, preview = false }: { data: StoreData; s
                         <button type="button" onClick={() => addLine(l.p.id, l.options, -1)} className="grid h-7 w-7 place-items-center rounded-full text-[var(--st-primary)]" aria-label="Quitar uno">{l.qty === 1 ? <X className="h-3.5 w-3.5" /> : <Minus className="h-3.5 w-3.5" />}</button>
                         <span className="w-6 text-center text-sm font-bold">{l.qty}</span>
                         <button type="button" onClick={() => addLine(l.p.id, l.options)} className="grid h-7 w-7 place-items-center rounded-full text-[var(--st-primary)]" aria-label="Agregar uno"><Plus className="h-3.5 w-3.5" /></button>
+                      </div>
+                      <p className="w-20 text-right font-semibold tabular-nums">{money(l.qty * l.unit)}</p>
+                    </li>
+                  ))}
+                  {packLines.map((l) => (
+                    <li key={l.key} className="flex items-center gap-3 py-3">
+                      <div className="min-w-0 flex-1">
+                        <p className="flex items-start gap-1.5 font-semibold leading-snug text-cocoa-700"><Gift className="mt-0.5 h-4 w-4 shrink-0 text-[var(--st-primary)]" /> {l.k.name}</p>
+                        <p className="text-xs font-semibold text-[var(--st-primary)]">{l.label}</p>
+                        <p className="text-xs text-cocoa-400">{money(l.unit)} la caja</p>
+                      </div>
+                      <div className="flex items-center gap-1 rounded-full bg-white p-1 shadow-sm">
+                        <button type="button" onClick={() => addPack(l.k.id, l.choices, -1)} className="grid h-7 w-7 place-items-center rounded-full text-[var(--st-primary)]" aria-label="Quitar uno">{l.qty === 1 ? <X className="h-3.5 w-3.5" /> : <Minus className="h-3.5 w-3.5" />}</button>
+                        <span className="w-6 text-center text-sm font-bold">{l.qty}</span>
+                        <button type="button" onClick={() => addPack(l.k.id, l.choices)} className="grid h-7 w-7 place-items-center rounded-full text-[var(--st-primary)]" aria-label="Agregar uno"><Plus className="h-3.5 w-3.5" /></button>
                       </div>
                       <p className="w-20 text-right font-semibold tabular-nums">{money(l.qty * l.unit)}</p>
                     </li>

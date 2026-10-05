@@ -46,7 +46,7 @@ export default function ProductionPage() {
       must(
         await sb
           .from("orders")
-          .select("id, folio, status, delivery_date, delivery_time, customer_name, clients(name), order_items(dessert_id, description, quantity)")
+          .select("id, folio, status, delivery_date, delivery_time, customer_name, clients(name), order_items(dessert_id, description, quantity, components)")
           .in("status", ACTIVE_STATUSES)
           .gte("delivery_date", from)
           .lte("delivery_date", to)

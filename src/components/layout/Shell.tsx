@@ -32,6 +32,7 @@ import {
   Gauge,
   Globe,
   IdCard,
+  Gift,
 } from "lucide-react";
 import { cn } from "@/lib/cn";
 import { signOutDevice } from "@/lib/session";
@@ -60,6 +61,7 @@ const NAV = [
   ]},
   { group: "Recetario y costos", items: [
     { href: "/dashboard/postres", label: "Postres", icon: CakeSlice },
+    { href: "/dashboard/paquetes", label: "Paquetes y cajas", icon: Gift },
     { href: "/dashboard/ingredientes", label: "Ingredientes e inventario", icon: Wheat },
     { href: "/dashboard/costos-fijos", label: "Gastos fijos", icon: Receipt },
     { href: "/dashboard/margenes", label: "Alerta de margen", icon: TrendingDown },

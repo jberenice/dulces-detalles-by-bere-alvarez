@@ -11,7 +11,7 @@ import { Card, CardHeader, PageHeader, Skeleton } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { Input, Textarea, Toggle } from "@/components/ui/Field";
 import { ClientPicker } from "./ClientPicker";
-import { LineItemsEditor, TotalsBox, lineKey, priceFor, type EditableLine } from "./LineItemsEditor";
+import { LineItemsEditor, TotalsBox, isPackageLine, lineKey, lineRow, packageLinesProblem, priceFor, type EditableLine } from "./LineItemsEditor";
 import { calcTotals } from "@/lib/totals";
 import { addDays, toISODate } from "@/lib/format";
 import type { Client, Quote } from "@/lib/types";
@@ -67,8 +67,11 @@ export function QuoteForm({ quoteId, initialClientId, initialDessertId }: { quot
   const totals = useMemo(() => calcTotals(items, { discount, shipping, applyIva, ivaPct: profile.iva_pct }), [items, discount, shipping, applyIva, profile.iva_pct]);
 
   async function save() {
+    const problem = packageLinesProblem(items.filter((i) => Number(i.quantity) > 0), catalog.data?.packages ?? []);
+    if (problem) return toast.error(problem);
     const valid = items.filter((i) => i.description.trim() && Number(i.quantity) > 0);
     if (!valid.length) return toast.error("Agrega al menos un postre");
+    const withPackages = valid.some(isPackageLine);
     setSaving(true);
     try {
       const payload = {
@@ -95,15 +98,7 @@ export function QuoteForm({ quoteId, initialClientId, initialDessertId }: { quot
       }
       must(
         await sb.from("quote_items").insert(
-          valid.map((i, idx) => ({
-            quote_id: id,
-            dessert_id: i.dessert_id || null,
-            description: i.description.trim(),
-            quantity: Number(i.quantity),
-            unit_price: Number(i.unit_price) || 0,
-            unit_cost: Number(i.unit_cost) || 0,
-            position: idx,
-          })),
+          valid.map((i, idx) => ({ quote_id: id, ...lineRow(i, withPackages), position: idx })),
         ),
       );
       toast.success("Cotización guardada");
@@ -149,7 +144,7 @@ export function QuoteForm({ quoteId, initialClientId, initialDessertId }: { quot
           <Card>
             <CardHeader title="Postres" icon={<FileText className="h-5 w-5" />} />
             <div className="p-5 sm:p-6">
-              <LineItemsEditor items={items} setItems={setItems} desserts={catalog.data?.desserts ?? []} costs={catalog.costs} />
+              <LineItemsEditor items={items} setItems={setItems} desserts={catalog.data?.desserts ?? []} costs={catalog.costs} packages={catalog.data?.packages ?? []} ingredientsById={catalog.ingredientsById} />
             </div>
           </Card>
           <Card className="grid gap-4 p-5 sm:p-6">

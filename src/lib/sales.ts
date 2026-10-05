@@ -44,13 +44,14 @@ export function summarize(orders: SaleOrder[], categoryOf: (dessertId: string | 
       const c = q * Number(i.unit_cost);
       pieces += q;
       cost += c;
-      const key = i.dessert_id ?? `libre:${i.description}`;
-      const p = byProduct.get(key) ?? { name: i.description, qty: 0, revenue: 0, profit: 0 };
+      // Las cajas cuentan como su paquete, sin importar qué sabores llevaron
+      const key = i.package_id ? `paquete:${i.package_id}` : i.dessert_id ?? `libre:${i.description}`;
+      const p = byProduct.get(key) ?? { name: i.package_id ? i.description.split(":")[0] : i.description, qty: 0, revenue: 0, profit: 0 };
       p.qty += q;
       p.revenue += rev;
       p.profit += c > 0 ? rev - c : 0;
       byProduct.set(key, p);
-      const cat = categoryOf(i.dessert_id);
+      const cat = i.package_id ? "Paquetes y cajas" : categoryOf(i.dessert_id);
       const cc = byCategory.get(cat) ?? { qty: 0, revenue: 0 };
       cc.qty += q;
       cc.revenue += rev;

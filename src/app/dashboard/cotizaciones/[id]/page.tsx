@@ -94,6 +94,8 @@ export default function QuoteDetailPage({ params }: { params: Promise<{ id: stri
             unit_price: i.unit_price,
             unit_cost: i.unit_cost,
             position: idx,
+            // Las cajas conservan qué traen (para producción e inventario)
+            ...(items.some((x) => x.package_id) ? { package_id: i.package_id ?? null, components: i.components ?? [] } : {}),
           })),
         ),
       );

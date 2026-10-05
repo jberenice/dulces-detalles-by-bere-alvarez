@@ -121,9 +121,35 @@ export type Client = {
 };
 
 export type QuoteStatus = "borrador" | "enviada" | "aceptada" | "rechazada" | "vencida";
+/** Lo que trae UNA caja o paquete */
+export type PackageComponent = { dessert_id: string; name: string; qty: number };
+
+export type PackageItem = { dessert_id: string; qty?: number };
+export type Package = {
+  id: string;
+  name: string;
+  description: string | null;
+  image_url: string | null;
+  /** fijo: tú defines qué trae · surtido: la clienta elige sabores hasta llenar las piezas */
+  mode: "fijo" | "surtido";
+  pieces: number;
+  price: number;
+  price_mode: "total" | "pieza";
+  items: PackageItem[];
+  packaging_id: string | null;
+  extra_cost: number;
+  store_visible: boolean;
+  active: boolean;
+  position: number;
+  min_notice_days: number | null;
+  created_at: string;
+};
+
 export type LineItem = {
   id?: string;
   dessert_id: string | null;
+  package_id?: string | null;
+  components?: PackageComponent[];
   description: string;
   quantity: number;
   unit_price: number;
