@@ -32,6 +32,9 @@ Al activar la licencia se puede **precargar el recetario** con tus datos reales:
    - `supabase/migrations/0001_schema.sql`
    - `supabase/migrations/0002_seed_function.sql`
    - `supabase/migrations/0003_security.sql` (límites de intentos, aislamiento entre cuentas, licencias aleatorias)
+   - `supabase/migrations/0004_facebook_reminders.sql` (Facebook, recordatorios y aceptación de términos)
+   - `supabase/migrations/0005_timezones.sql` (zona horaria por usuaria)
+   - `supabase/cron_setup.sql` (recordatorios cada hora; reemplaza tu dominio y tu CRON_SECRET antes de ejecutarlo)
    - `supabase/admin_setup.sql` → el resultado te muestra **tu código de licencia de administradora** (aleatorio)
 3. **Authentication → URL Configuration**
    - *Site URL*: `https://TU-APP.vercel.app`
@@ -48,6 +51,8 @@ NEXT_PUBLIC_SITE_URL=https://TU-APP.vercel.app
 RESEND_API_KEY=...            # opcional: envío automático de correos con PDF
 RESEND_FROM="Dulces Detalles <cotizaciones@tudominio.com>"
 ```
+Para el **resumen diario de entregas por correo** agrega también `SUPABASE_SERVICE_ROLE_KEY` (secreta, nunca con `NEXT_PUBLIC_`) y `CRON_SECRET` (texto largo aleatorio). Cada usuaria elige en Ajustes su **zona horaria** (se detecta sola la primera vez) y la **hora** del resumen. `supabase/cron_setup.sql` revisa cada hora quién debe recibirlo; `vercel.json` hace una pasada diaria de respaldo.
+
 Sin `RESEND_API_KEY` el botón de correo abre el cliente de correo del usuario y descarga el PDF para adjuntarlo.
 
 ### 3. Local
@@ -68,6 +73,16 @@ npm run dev        # http://localhost:3000
 4. Actualiza la *Site URL* de Supabase con tu dominio final.
 
 ---
+
+## ⚖️ Documentos legales
+Están en `/aviso-de-privacidad`, `/terminos-y-condiciones` y `/politica-de-cookies`, enlazados en el pie de página. **Completa tu domicilio** en `src/lib/legal.ts` (la ley pide que el aviso de privacidad lo incluya) y pide a un abogado que los revise antes de vender licencias.
+
+## 🔔 Recordatorios de entrega
+- **Calendario** (`/dashboard/calendario`) con todas las entregas del mes.
+- **Campana** en el panel con pedidos atrasados, de hoy y próximos.
+- **Avisos del navegador** en el dispositivo (se activan con un clic; funcionan mientras la app está abierta).
+- **Correo diario** con el resumen, a la hora y en la zona horaria de cada usuaria (Supabase pg_cron + Resend).
+- Botón **Agregar a Google Calendar** en cada pedido, para recibir la alerta del celular aunque la app esté cerrada.
 
 ## 🧮 Fórmula de costeo (igual que tus hojas de Excel)
 

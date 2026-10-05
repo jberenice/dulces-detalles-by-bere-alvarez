@@ -9,6 +9,12 @@ export type Profile = {
   address: string | null;
   logo_url: string | null;
   instagram: string | null;
+  facebook: string | null;
+  reminder_email: boolean;
+  reminder_days_before: number;
+  reminder_hour: number;
+  timezone: string;
+  timezone_confirmed: boolean;
   currency: string;
   days_per_month: number;
   hours_per_day: number;

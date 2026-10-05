@@ -20,16 +20,22 @@ import {
   Plus,
   LogOut,
   MoreHorizontal,
+  CalendarDays,
 } from "lucide-react";
 import { cn } from "@/lib/cn";
 import { signOutDevice } from "@/lib/session";
+import { createClient } from "@/lib/supabase/client";
+import { browserTimeZone } from "@/lib/timezones";
+import type { Profile } from "@/lib/types";
 import { useBusiness } from "./BusinessProvider";
+import { NotificationBell } from "./NotificationBell";
 
 const NAV = [
   { group: "Principal", items: [
     { href: "/dashboard", label: "Inicio", icon: LayoutDashboard, exact: true },
     { href: "/dashboard/cotizaciones", label: "Cotizaciones", icon: FileText },
     { href: "/dashboard/pedidos", label: "Pedidos", icon: ShoppingBag },
+    { href: "/dashboard/calendario", label: "Calendario", icon: CalendarDays },
     { href: "/dashboard/clientes", label: "Clientes", icon: Users },
   ]},
   { group: "Recetario y costos", items: [
@@ -52,7 +58,7 @@ const MOBILE = [
 ];
 
 export function Shell({ children }: { children: React.ReactNode }) {
-  const { profile } = useBusiness();
+  const { profile, setProfile } = useBusiness();
   const pathname = usePathname();
   const router = useRouter();
   const [open, setOpen] = useState(false);
@@ -60,6 +66,19 @@ export function Shell({ children }: { children: React.ReactNode }) {
   const isActive = (href: string, exact?: boolean) => (exact ? pathname === href : pathname === href || pathname.startsWith(href + "/"));
 
   useEffect(() => setOpen(false), [pathname]);
+
+  // Detecta la zona horaria del dispositivo la primera vez (luego se cambia en Ajustes)
+  useEffect(() => {
+    if (profile.timezone_confirmed) return;
+    const tz = browserTimeZone();
+    createClient()
+      .from("profiles")
+      .update({ timezone: tz, timezone_confirmed: true })
+      .eq("id", profile.id)
+      .select()
+      .single()
+      .then(({ data }: { data: Profile | null }) => data && setProfile(data));
+  }, [profile.timezone_confirmed, profile.id, setProfile]);
 
   // Verifica periódicamente que esta sesión siga siendo el dispositivo activo de la licencia
   useEffect(() => {
@@ -90,13 +109,16 @@ export function Shell({ children }: { children: React.ReactNode }) {
 
   const SidebarContent = (
     <div className="flex h-full flex-col">
-      <Link href="/dashboard" className="flex items-center gap-3 px-6 pt-6 pb-5">
+      <div className="flex items-center gap-1 pt-6 pr-3 pb-5 pl-6">
+      <Link href="/dashboard" className="flex min-w-0 flex-1 items-center gap-3">
         <Image src={profile.logo_url || "/logo-transparent.png"} alt="" width={52} height={52} className="h-[52px] w-[52px] rounded-2xl object-contain" unoptimized={!!profile.logo_url} />
         <div className="min-w-0 leading-tight">
           <p className="truncate font-display text-[17px] font-semibold text-cocoa-700">{profile.business_name}</p>
           <p className="truncate text-xs text-cocoa-400">{profile.owner_name ?? profile.email}</p>
         </div>
       </Link>
+      <NotificationBell className="max-lg:hidden" />
+      </div>
       <nav className="flex-1 space-y-5 overflow-y-auto px-3 pb-4">
         {nav.map((g) => (
           <div key={g.group}>
@@ -158,11 +180,11 @@ export function Shell({ children }: { children: React.ReactNode }) {
         <button onClick={() => setOpen(true)} className="rounded-xl p-2 text-cocoa-600 hover:bg-cocoa-800/5" aria-label="Abrir menú">
           <Menu className="h-6 w-6" />
         </button>
-        <Link href="/dashboard" className="flex items-center gap-2">
-          <Image src="/logo-transparent.png" alt="Dulces Detalles" width={40} height={40} />
-          <span className="font-script text-2xl font-bold text-cocoa-600">Dulces Detalles</span>
+        <Link href="/dashboard" className="flex min-w-0 items-center gap-2">
+          <Image src="/logo-transparent.png" alt="Dulces Detalles" width={40} height={40} className="shrink-0" />
+          <span className="truncate font-script text-xl font-bold whitespace-nowrap text-cocoa-600 max-[359px]:hidden">Dulces Detalles</span>
         </Link>
-        <span className="w-10" />
+        <NotificationBell />
       </header>
 
       <main className="mx-auto w-full max-w-[1320px] px-4 pt-6 pb-28 sm:px-6 lg:px-10 lg:pt-10 lg:pb-12">{children}</main>

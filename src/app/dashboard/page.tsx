@@ -86,7 +86,7 @@ export default function DashboardHome() {
           <div className="flex flex-wrap gap-2">
             <ButtonLink href="/dashboard/cotizaciones/nueva"><FileText className="h-4 w-4" /> Cotizar</ButtonLink>
             <ButtonLink href="/dashboard/pedidos/nuevo" variant="secondary"><ShoppingBag className="h-4 w-4" /> Pedido</ButtonLink>
-            <ButtonLink href="/dashboard/postres/nuevo" variant="secondary" className="hidden sm:inline-flex"><CakeSlice className="h-4 w-4" /> Postre</ButtonLink>
+            <ButtonLink href="/dashboard/postres/nuevo" variant="secondary" className="max-sm:hidden"><CakeSlice className="h-4 w-4" /> Postre</ButtonLink>
           </div>
         </div>
       </section>

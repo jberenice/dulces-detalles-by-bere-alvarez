@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import { Playfair_Display, Nunito_Sans, Dancing_Script } from "next/font/google";
 import { Toaster } from "sonner";
+import { CookieNotice } from "@/components/legal/CookieNotice";
 import "./globals.css";
 
 const display = Playfair_Display({ subsets: ["latin"], variable: "--font-display-serif", display: "swap" });
@@ -37,6 +38,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     <html lang="es-MX" className={`${display.variable} ${body.variable} ${script.variable}`}>
       <body className="min-h-dvh font-sans">
         {children}
+        <CookieNotice />
         <Toaster
           position="top-center"
           toastOptions={{

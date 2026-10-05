@@ -15,6 +15,7 @@ export type PdfDoc = {
     email?: string | null;
     address?: string | null;
     instagram?: string | null;
+    facebook?: string | null;
     bank?: string | null;
     logo: string;
   };
@@ -109,7 +110,8 @@ export function DocumentPDF({ doc }: { doc: PdfDoc }) {
             {doc.business.owner ? <Text style={s.bizLine}>{doc.business.owner}</Text> : null}
             {doc.business.phone ? <Text style={s.bizLine}>WhatsApp: {doc.business.phone}</Text> : null}
             {doc.business.email ? <Text style={s.bizLine}>{doc.business.email}</Text> : null}
-            {doc.business.instagram ? <Text style={s.bizLine}>@{doc.business.instagram.replace(/^@/, "")}</Text> : null}
+            {doc.business.instagram ? <Text style={s.bizLine}>Instagram: @{doc.business.instagram.replace(/^@/, "")}</Text> : null}
+            {doc.business.facebook ? <Text style={s.bizLine}>Facebook: {doc.business.facebook}</Text> : null}
             {doc.business.address ? <Text style={s.bizLine}>{doc.business.address}</Text> : null}
           </View>
         </View>

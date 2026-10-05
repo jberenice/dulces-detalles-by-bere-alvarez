@@ -1,7 +1,9 @@
 import Image from "next/image";
 import Link from "next/link";
 import { ArrowRight, BarChart3, CakeSlice, Calculator, FileText, Heart, KeyRound, MessageCircle, ShoppingBag, Smartphone, Store, Users } from "lucide-react";
+import { redirect } from "next/navigation";
 import { ButtonLink } from "@/components/ui/Button";
+import { SiteFooter } from "@/components/legal/SiteFooter";
 
 const FEATURES = [
   { icon: FileText, title: "Cotizaciones en PDF", text: "Con tu logo y colores. Envíalas por WhatsApp o correo y tu cliente las acepta en línea.", tone: "bg-rose-50 text-rose-500" },
@@ -12,21 +14,26 @@ const FEATURES = [
   { icon: Store, title: "Tu minitienda", text: "Un catálogo en línea con carrito; los pedidos te llegan a WhatsApp y a tu panel.", tone: "bg-cream-200 text-cocoa-500" },
 ];
 
-export default function Landing() {
+export default async function Landing({ searchParams }: { searchParams: Promise<Record<string, string | undefined>> }) {
+  // Si Supabase regresa aquí con un enlace de correo vencido o inválido, lo mandamos al login con el aviso
+  const sp = await searchParams;
+  if (sp.error || sp.error_code) redirect("/login?error=enlace");
+  if (sp.code) redirect(`/auth/callback?code=${encodeURIComponent(sp.code)}`);
+
   return (
     <div className="overflow-x-hidden">
       {/* Navegación */}
-      <header className="sticky top-0 z-40 border-b border-cocoa-800/5 bg-cream-100/80 backdrop-blur-xl">
-        <div className="mx-auto flex max-w-6xl items-center justify-between px-4 py-3 sm:px-6">
-          <Link href="/" className="flex items-center gap-2">
-            <Image src="/logo-transparent.png" alt="Dulces Detalles" width={48} height={48} priority />
-            <span className="font-script text-2xl font-bold text-cocoa-600">Dulces Detalles</span>
+      <header className="sticky top-0 z-40 border-b border-cocoa-800/5 bg-cream-100/85 backdrop-blur-xl">
+        <div className="mx-auto flex max-w-6xl items-center justify-between gap-3 px-4 py-2.5 sm:px-6 sm:py-3">
+          <Link href="/" className="flex min-w-0 items-center gap-2">
+            <Image src="/logo-transparent.png" alt="Dulces Detalles" width={44} height={44} className="h-11 w-11 shrink-0" priority />
+            <span className="truncate font-script text-xl font-bold whitespace-nowrap text-cocoa-600 max-[359px]:hidden sm:text-2xl">Dulces Detalles</span>
           </Link>
-          <div className="flex items-center gap-2">
-            <ButtonLink href="/login" variant="ghost" size="sm" className="hidden sm:inline-flex">Iniciar sesión</ButtonLink>
+          <nav className="flex shrink-0 items-center gap-2">
+            <ButtonLink href="/login" variant="ghost" size="sm" className="max-sm:hidden">Iniciar sesión</ButtonLink>
             <ButtonLink href="/login" size="sm" className="sm:hidden">Entrar</ButtonLink>
-            <ButtonLink href="/registro" size="sm" className="hidden sm:inline-flex">Activar licencia</ButtonLink>
-          </div>
+            <ButtonLink href="/registro" size="sm" className="max-sm:hidden">Activar licencia</ButtonLink>
+          </nav>
         </div>
       </header>
 
@@ -36,8 +43,8 @@ export default function Landing() {
         <div className="absolute -right-24 bottom-0 h-96 w-96 rounded-full bg-mint-200/50 blur-3xl" />
         <div className="relative mx-auto grid max-w-6xl items-center gap-10 px-4 pt-12 pb-20 sm:px-6 lg:grid-cols-[1.1fr_1fr] lg:pt-20 lg:pb-28">
           <div className="animate-fade-up text-center lg:text-left">
-            <p className="font-script text-3xl text-rose-500">by Bere Álvarez</p>
-            <h1 className="mt-2 text-[42px] leading-[1.05] font-semibold sm:text-6xl">
+            <p className="font-script text-2xl text-rose-500 sm:text-3xl">by Bere Álvarez</p>
+            <h1 className="mt-2 text-[34px] leading-[1.08] font-semibold sm:text-6xl">
               Cotiza, costea y vende tus <span className="text-rose-500 italic">postres</span> con el cariño de siempre.
             </h1>
             <p className="mx-auto mt-5 max-w-xl text-lg leading-relaxed text-cocoa-500 lg:mx-0">
@@ -116,11 +123,7 @@ export default function Landing() {
         </div>
       </section>
 
-      <footer className="mx-auto flex max-w-6xl flex-col items-center gap-3 px-4 py-12 text-center sm:px-6">
-        <Image src="/logo-transparent.png" alt="Dulces Detalles" width={110} height={110} />
-        <p className="font-script text-2xl text-rose-500">Hechos con amor de hogar</p>
-        <p className="text-sm text-cocoa-400">© {new Date().getFullYear()} Dulces Detalles by Bere Álvarez · Desde 2018</p>
-      </footer>
+      <SiteFooter />
     </div>
   );
 }

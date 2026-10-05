@@ -54,6 +54,16 @@ export function waLink(phone: string | null | undefined, text: string) {
   return `https://wa.me/${p}?text=${encodeURIComponent(text)}`;
 }
 
+/** Acepta "mipagina", "@mipagina" o la URL completa de Facebook */
+export function facebookUrl(v: string | null | undefined) {
+  const s = (v ?? "").trim();
+  if (!s) return "";
+  if (/^https?:\/\//i.test(s)) return s;
+  return `https://facebook.com/${s.replace(/^@/, "").replace(/^(www\.)?facebook\.com\//i, "")}`;
+}
+export const facebookLabel = (v: string | null | undefined) =>
+  (v ?? "").trim().replace(/^https?:\/\/(www\.|m\.)?facebook\.com\//i, "").replace(/^@/, "").replace(/\/$/, "");
+
 export const slugify = (s: string) =>
   s
     .normalize("NFD")

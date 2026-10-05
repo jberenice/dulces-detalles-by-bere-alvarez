@@ -1,13 +1,14 @@
 "use client";
 import { useEffect, useMemo, useState } from "react";
 import Image from "next/image";
-import { CakeSlice, Check, Instagram, MapPin, MessageCircle, Minus, Plus, ShoppingBag, Truck, X } from "lucide-react";
+import { CakeSlice, Check, Facebook, Instagram, MapPin, MessageCircle, Minus, Plus, ShoppingBag, Truck, X } from "lucide-react";
 import { toast } from "sonner";
 import { createClient } from "@/lib/supabase/client";
 import { Button } from "@/components/ui/Button";
+import { SiteFooter } from "@/components/legal/SiteFooter";
 import { Input, Textarea } from "@/components/ui/Field";
 import { Modal } from "@/components/ui/Modal";
-import { addDays, dateLong, folio, money, toISODate, waLink } from "@/lib/format";
+import { addDays, dateLong, facebookLabel, facebookUrl, folio, money, toISODate, waLink } from "@/lib/format";
 import { cn } from "@/lib/cn";
 
 export type StoreProduct = { id: string; name: string; category: string; description: string | null; image_url: string | null; unit_label: string; price: number };
@@ -21,6 +22,7 @@ export type StoreData = {
     logo_url: string | null;
     whatsapp: string | null;
     instagram: string | null;
+    facebook?: string | null;
     address: string | null;
     min_notice_days: number;
     delivery: boolean;
@@ -131,6 +133,11 @@ export function Storefront({ data, slug }: { data: StoreData; slug: string }) {
                 <Instagram className="h-4 w-4" /> @{store.instagram.replace(/^@/, "")}
               </a>
             )}
+            {store.facebook && (
+              <a href={facebookUrl(store.facebook)} target="_blank" rel="noreferrer" className="flex items-center gap-1.5 rounded-full bg-white px-3.5 py-1.5 font-semibold text-sky-700 shadow-soft">
+                <Facebook className="h-4 w-4" /> {facebookLabel(store.facebook)}
+              </a>
+            )}
             {store.address && (
               <span className="flex items-center gap-1.5 rounded-full bg-white px-3.5 py-1.5 text-cocoa-500 shadow-soft">
                 <MapPin className="h-4 w-4" /> {store.address}
@@ -177,7 +184,7 @@ export function Storefront({ data, slug }: { data: StoreData; slug: string }) {
                 <div className="flex flex-1 flex-col p-3 sm:p-4">
                   <p className="text-[11px] font-bold tracking-wider text-mint-600 uppercase">{p.category}</p>
                   <h3 className="mt-0.5 font-display text-base leading-tight font-semibold sm:text-lg">{p.name}</h3>
-                  {p.description && <p className="mt-1 line-clamp-2 hidden text-sm text-cocoa-400 sm:block">{p.description}</p>}
+                  {p.description && <p className="mt-1 line-clamp-2 text-sm text-cocoa-400 max-sm:hidden">{p.description}</p>}
                   <div className="mt-auto flex items-end justify-between gap-2 pt-3">
                     <p className="font-display text-lg font-semibold text-rose-500 sm:text-xl">
                       {money(p.price).replace(".00", "")}
@@ -203,6 +210,7 @@ export function Storefront({ data, slug }: { data: StoreData; slug: string }) {
         <footer className="mt-16 text-center">
           <p className="font-script text-2xl text-rose-400">Hechos con amor de hogar</p>
           <p className="mt-1 text-xs text-cocoa-300">Tienda creada con Dulces Detalles</p>
+          <SiteFooter compact className="pb-2" />
         </footer>
       </main>
 

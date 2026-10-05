@@ -1,6 +1,6 @@
 "use client";
 import type { PdfDoc } from "@/components/pdf/DocumentPDF";
-import { date, dateLong, folio as fmtFolio, siteUrl } from "./format";
+import { date, dateLong, facebookLabel, folio as fmtFolio, siteUrl } from "./format";
 import type { Order, Profile, Quote } from "./types";
 
 /** Genera el PDF en el navegador (carga diferida de @react-pdf/renderer). */
@@ -16,7 +16,7 @@ export async function buildPdf(doc: PdfDoc): Promise<Blob> {
 /** Código corto de verificación (no secreto) a partir del token: permite comprobar que el PDF es auténtico */
 export const verifyCode = (token?: string | null) => (token ? token.replace(/-/g, "").slice(0, 8).toUpperCase().replace(/(.{4})(.{4})/, "$1-$2") : null);
 
-type BusinessLike = Pick<Profile, "business_name" | "owner_name" | "whatsapp" | "phone" | "email" | "address" | "instagram" | "bank_info" | "logo_url">;
+type BusinessLike = Pick<Profile, "business_name" | "owner_name" | "whatsapp" | "phone" | "email" | "address" | "instagram" | "facebook" | "bank_info" | "logo_url">;
 
 function businessOf(p: BusinessLike) {
   const logo = p.logo_url && !p.logo_url.endsWith(".webp") ? p.logo_url : `${siteUrl()}/logo-transparent.png`;
@@ -27,6 +27,7 @@ function businessOf(p: BusinessLike) {
     email: p.email,
     address: p.address,
     instagram: p.instagram,
+    facebook: p.facebook ? facebookLabel(p.facebook) : null,
     bank: p.bank_info,
     logo,
   };

@@ -2,7 +2,7 @@
 import { use, useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { ArrowLeft, Ban, Check, ChefHat, Clock, Download, FileText, MapPin, MessageCircle, Package, Pencil, PartyPopper, Phone, Send, Share2, Store, Trash2, Truck, Wallet } from "lucide-react";
+import { ArrowLeft, Ban, Check, ChefHat, Clock, Download, FileText, MapPin, MessageCircle, Package, Pencil, PartyPopper, Phone, CalendarPlus, Send, Share2, Store, Trash2, Truck, Wallet } from "lucide-react";
 import { toast } from "sonner";
 import { createClient } from "@/lib/supabase/client";
 import { must, useAsync } from "@/hooks/useAsync";
@@ -16,6 +16,7 @@ import { SendDialog } from "@/components/dashboard/SendDialog";
 import { ORDER_STATUS, PAYMENT_STATUS } from "@/lib/constants";
 import { buildPdf, downloadBlob, orderToPdf } from "@/lib/pdf";
 import { sharePdf } from "@/lib/documents";
+import { googleCalendarUrl } from "@/lib/reminders";
 import { date, dateLong, folio, money, num, waLink } from "@/lib/format";
 import { cn } from "@/lib/cn";
 import type { Order, OrderStatus } from "@/lib/types";
@@ -246,6 +247,19 @@ export default function OrderDetailPage({ params }: { params: Promise<{ id: stri
             {o.delivery_type === "envio" && o.delivery_address && (
               <a href={`https://maps.google.com/?q=${encodeURIComponent(o.delivery_address)}`} target="_blank" rel="noreferrer" className="flex items-center gap-2 font-bold text-rose-500"><MapPin className="h-4 w-4" /> Abrir en mapas</a>
             )}
+            {(() => {
+              const gcal = googleCalendarUrl({
+                delivery_date: o.delivery_date,
+                delivery_time: o.delivery_time,
+                title: `🧁 Entrega ${code} · ${name}`,
+                details: `${items.map((i) => `${num(i.quantity)} × ${i.description}`).join("\n")}\n\nTotal: ${money(o.total)}${balance > 0 ? ` · Por cobrar: ${money(balance)}` : ""}\nTel: ${phone ?? "—"}`,
+                location: o.delivery_type === "envio" ? o.delivery_address : null,
+                timezone: profile.timezone,
+              });
+              return gcal ? (
+                <a href={gcal} target="_blank" rel="noreferrer" className="flex items-center gap-2 font-bold text-mint-600 hover:underline"><CalendarPlus className="h-4 w-4" /> Agregar a Google Calendar</a>
+              ) : null;
+            })()}
             <p className="text-xs text-cocoa-400">Pedido creado {date(o.created_at, { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" })}</p>
           </Card>
 

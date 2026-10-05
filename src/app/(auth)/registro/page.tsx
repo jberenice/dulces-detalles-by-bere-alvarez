@@ -13,6 +13,7 @@ export default function RegisterPage() {
   const router = useRouter();
   const [form, setForm] = useState({ owner_name: "", business_name: "", phone: "", email: "", password: "", code: "" });
   const [seed, setSeed] = useState(true);
+  const [accepted, setAccepted] = useState(false);
   const [loading, setLoading] = useState(false);
   const [sent, setSent] = useState(false);
   const set = (k: keyof typeof form) => (e: React.ChangeEvent<HTMLInputElement>) => setForm({ ...form, [k]: e.target.value });
@@ -20,6 +21,7 @@ export default function RegisterPage() {
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault();
     if (form.password.length < 8) return toast.error("La contraseña debe tener al menos 8 caracteres");
+    if (!accepted) return toast.error("Debes aceptar los términos y el aviso de privacidad");
     setLoading(true);
     const supabase = createClient();
     const code = form.code.trim().toUpperCase();
@@ -43,6 +45,7 @@ export default function RegisterPage() {
           phone: form.phone,
           license_code: code,
           seed,
+          terms_accepted: true,
         },
       },
     });
@@ -107,6 +110,14 @@ export default function RegisterPage() {
           description="Ingredientes, empaques, gastos fijos y 30 recetas costeadas para empezar más rápido."
           className="rounded-2xl bg-cream-200/60 p-4"
         />
+        <label className="flex cursor-pointer items-start gap-3 text-sm text-cocoa-500">
+          <input type="checkbox" checked={accepted} onChange={(e) => setAccepted(e.target.checked)} className="mt-0.5 h-5 w-5 shrink-0 accent-rose-500" required />
+          <span>
+            Acepto los{" "}
+            <Link href="/terminos-y-condiciones" target="_blank" className="font-bold text-rose-500 hover:underline">términos y condiciones</Link> y el{" "}
+            <Link href="/aviso-de-privacidad" target="_blank" className="font-bold text-rose-500 hover:underline">aviso de privacidad</Link>.
+          </span>
+        </label>
         <Button type="submit" size="lg" className="w-full" loading={loading}>
           Activar mi licencia
         </Button>

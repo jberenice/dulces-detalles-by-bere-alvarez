@@ -1,6 +1,7 @@
 import Link from "next/link";
 import Image from "next/image";
 import { Heart } from "lucide-react";
+import { SiteFooter } from "@/components/legal/SiteFooter";
 
 export default function AuthLayout({ children }: { children: React.ReactNode }) {
   return (
@@ -31,6 +32,7 @@ export default function AuthLayout({ children }: { children: React.ReactNode }) 
             <Image src="/logo-transparent.png" alt="Dulces Detalles" width={150} height={150} priority />
           </div>
           {children}
+          <SiteFooter compact className="mt-6 pb-0" />
         </div>
       </main>
     </div>

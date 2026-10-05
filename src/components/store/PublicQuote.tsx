@@ -4,6 +4,7 @@ import { CalendarHeart, Check, Download, MessageCircle, Store } from "lucide-rea
 import { toast } from "sonner";
 import { createClient } from "@/lib/supabase/client";
 import { Button } from "@/components/ui/Button";
+import { SiteFooter } from "@/components/legal/SiteFooter";
 import { buildPdf, downloadBlob, quoteToPdf } from "@/lib/pdf";
 import { date, folio, money, num, waLink } from "@/lib/format";
 import type { Quote } from "@/lib/types";
@@ -21,6 +22,7 @@ export type PublicQuoteData = {
     address: string | null;
     logo_url: string | null;
     instagram: string | null;
+    facebook?: string | null;
     bank_info: string | null;
     store_slug: string | null;
   };
@@ -55,6 +57,7 @@ export function PublicQuote({ data, token }: { data: PublicQuoteData; token: str
           email: b.email,
           address: b.address,
           instagram: b.instagram,
+          facebook: b.facebook ?? null,
           bank_info: b.bank_info,
           logo_url: b.logo_url,
         }),
@@ -142,6 +145,7 @@ export function PublicQuote({ data, token }: { data: PublicQuoteData; token: str
         {b.store_slug && (
           <a href={`/tienda/${b.store_slug}`} className="mt-2 inline-flex items-center gap-1.5 text-sm font-bold text-cocoa-500 hover:text-rose-500"><Store className="h-4 w-4" /> Visita nuestra tienda</a>
         )}
+        <SiteFooter compact />
       </div>
     </div>
   );

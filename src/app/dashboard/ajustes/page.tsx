@@ -1,15 +1,16 @@
 "use client";
-import { useState } from "react";
-import { Building2, Calculator, FileText, KeyRound, Save } from "lucide-react";
+import { useEffect, useState } from "react";
+import { BellRing, Building2, Calculator, FileText, KeyRound, Save } from "lucide-react";
 import { toast } from "sonner";
 import { createClient } from "@/lib/supabase/client";
 import { must, useAsync } from "@/hooks/useAsync";
 import { useBusiness } from "@/components/layout/BusinessProvider";
 import { Badge, Card, CardHeader, PageHeader } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
-import { Input, Textarea } from "@/components/ui/Field";
+import { Input, Select, Textarea, Toggle } from "@/components/ui/Field";
 import { ImagePicker } from "@/components/ui/ImagePicker";
 import { date } from "@/lib/format";
+import { MX_TIMEZONES, browserTimeZone, hourLabel, nowIn } from "@/lib/timezones";
 import type { Profile } from "@/lib/types";
 
 export default function SettingsPage() {
@@ -17,6 +18,10 @@ export default function SettingsPage() {
   const { profile, setProfile } = useBusiness();
   const [p, setP] = useState<Profile>(profile);
   const [saving, setSaving] = useState(false);
+  const [detectedTz, setDetectedTz] = useState(profile.timezone);
+  useEffect(() => setDetectedTz(browserTimeZone()), []);
+  const [clock, setClock] = useState("");
+  useEffect(() => setClock(nowIn(p.timezone)), [p.timezone]);
   const license = useAsync(async () => must(await sb.from("licenses").select("code, status, activated_at, expires_at, session_device").eq("user_id", profile.id).maybeSingle()) as { code: string; status: string; activated_at: string | null; expires_at: string | null; session_device: string | null } | null);
 
   const set = <K extends keyof Profile>(k: K) => (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => setP({ ...p, [k]: e.target.value });
@@ -31,6 +36,12 @@ export default function SettingsPage() {
       email: p.email,
       address: p.address,
       instagram: p.instagram,
+      facebook: p.facebook,
+      reminder_email: p.reminder_email,
+      reminder_days_before: Number(p.reminder_days_before) || 0,
+      reminder_hour: Number(p.reminder_hour ?? 7),
+      timezone: p.timezone,
+      timezone_confirmed: true,
       logo_url: p.logo_url,
       default_profit_pct: Number(p.default_profit_pct) || 0,
       default_wear_pct: Number(p.default_wear_pct) || 0,
@@ -73,6 +84,7 @@ export default function SettingsPage() {
                 <Input label="Teléfono" type="tel" value={p.phone ?? ""} onChange={set("phone")} />
                 <Input label="Correo" type="email" value={p.email ?? ""} onChange={set("email")} />
                 <Input label="Instagram" value={p.instagram ?? ""} onChange={set("instagram")} prefix="@" />
+                <Input label="Facebook" value={p.facebook ?? ""} onChange={set("facebook")} placeholder="facebook.com/tupagina o tupagina" />
                 <Input className="sm:col-span-2" label="Dirección" value={p.address ?? ""} onChange={set("address")} />
               </div>
             </div>
@@ -96,6 +108,48 @@ export default function SettingsPage() {
               <Input label="% IVA" type="number" value={p.iva_pct} onChange={set("iva_pct")} suffix="%" />
               <Input label="% Tarjeta" type="number" value={p.card_fee_pct} onChange={set("card_fee_pct")} suffix="%" />
               <p className="col-span-2 text-xs text-cocoa-400">Los % de ganancia y desgaste se usan al crear postres nuevos. IVA y tarjeta aplican en todo el recetario.</p>
+            </div>
+          </Card>
+          <Card>
+            <CardHeader title="Recordatorios de entrega" icon={<BellRing className="h-5 w-5" />} />
+            <div className="space-y-4 p-5 sm:p-6">
+              <Toggle
+                checked={p.reminder_email}
+                onChange={(v) => setP({ ...p, reminder_email: v })}
+                label="Resumen diario por correo"
+                description="Te enviamos las entregas del día y las próximas a la hora que elijas, en tu zona horaria."
+              />
+              <Select label="Tu zona horaria" value={p.timezone} onChange={(e) => setP({ ...p, timezone: e.target.value })} hint={clock ? `Hora actual ahí: ${clock}` : undefined}>
+                {[...MX_TIMEZONES, ...(MX_TIMEZONES.some((z) => z.value === detectedTz) ? [] : [{ value: detectedTz, label: `${detectedTz.replace(/_/g, " ")} (detectada)` }])]
+                  .filter((z, i, arr) => arr.findIndex((x) => x.value === z.value) === i)
+                  .map((z) => (
+                    <option key={z.value} value={z.value}>{z.label}{z.value === detectedTz ? " ✓" : ""}</option>
+                  ))}
+                {!MX_TIMEZONES.some((z) => z.value === p.timezone) && p.timezone !== detectedTz && <option value={p.timezone}>{p.timezone}</option>}
+              </Select>
+              <Select label="Hora del resumen por correo" value={String(p.reminder_hour ?? 7)} onChange={(e) => setP({ ...p, reminder_hour: Number(e.target.value) })}>
+                {Array.from({ length: 24 }, (_, h) => <option key={h} value={h}>{hourLabel(h)}</option>)}
+              </Select>
+              <Select label="Avisarme con anticipación" value={String(p.reminder_days_before ?? 1)} onChange={(e) => setP({ ...p, reminder_days_before: Number(e.target.value) })}>
+                <option value="0">Solo el mismo día</option>
+                <option value="1">1 día antes</option>
+                <option value="2">2 días antes</option>
+                <option value="3">3 días antes</option>
+                <option value="7">1 semana antes</option>
+              </Select>
+              <Button
+                variant="secondary"
+                size="sm"
+                className="w-full"
+                onClick={async () => {
+                  if (!("Notification" in window)) return toast.error("Este navegador no permite notificaciones");
+                  const r = await Notification.requestPermission();
+                  if (r === "granted") toast.success("Avisos activados en este dispositivo 🔔");
+                  else toast.error("Los avisos están bloqueados en la configuración del navegador");
+                }}
+              >
+                <BellRing className="h-4 w-4" /> Activar avisos en este dispositivo
+              </Button>
             </div>
           </Card>
           <Card>
