@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { gzipSync } from "node:zlib";
+import { gzipSync } from "zlib";
 import { Resend } from "resend";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { brandFromProfile, brandedEmail, esc } from "@/lib/email-template";

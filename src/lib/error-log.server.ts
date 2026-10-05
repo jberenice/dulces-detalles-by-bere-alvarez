@@ -1,4 +1,3 @@
-import { createHash } from "node:crypto";
 import { createAdminClient } from "@/lib/supabase/admin";
 
 export type ErrorReport = {
@@ -10,11 +9,23 @@ export type ErrorReport = {
   userAgent?: string | null;
 };
 
+/** Hash corto (FNV-1a de 64 bits en dos mitades); sin módulos de Node para que compile en cualquier entorno */
+function hash(text: string) {
+  let a = 0x811c9dc5;
+  let b = 0x01000193 ^ text.length;
+  for (let i = 0; i < text.length; i++) {
+    const c = text.charCodeAt(i);
+    a = Math.imul(a ^ c, 0x01000193) >>> 0;
+    b = Math.imul(b ^ c, 0x5bd1e995) >>> 0;
+  }
+  return a.toString(16).padStart(8, "0") + b.toString(16).padStart(8, "0");
+}
+
 /** Huella para agrupar el mismo error: mensaje + primera línea del stack sin números de línea ni hashes */
 export function fingerprintOf(r: Pick<ErrorReport, "source" | "message" | "stack">) {
   const firstFrame = (r.stack ?? "").split("\n").find((l) => /at |@/.test(l)) ?? "";
   const clean = (s: string) => s.replace(/\?[^)\s]*/g, "").replace(/:\d+(:\d+)?/g, "").replace(/[0-9a-f]{8,}/gi, "#").trim();
-  return createHash("sha1").update(`${r.source}|${clean(r.message).slice(0, 300)}|${clean(firstFrame).slice(0, 300)}`).digest("hex");
+  return hash(`${r.source}|${clean(r.message).slice(0, 300)}|${clean(firstFrame).slice(0, 300)}`);
 }
 
 /**
