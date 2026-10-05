@@ -1,7 +1,7 @@
 /** Plantillas de mensajes de WhatsApp / correo editables por cada usuaria. */
 import type { Profile } from "./types";
 
-export type TemplateKey = "cotizacion_whatsapp" | "cotizacion_correo" | "pedido_confirmado" | "pedido_listo" | "recordatorio_pago" | "agradecimiento";
+export type TemplateKey = "cotizacion_whatsapp" | "cotizacion_correo" | "pedido_confirmado" | "pedido_listo" | "recordatorio_pago" | "agradecimiento" | "seguimiento_cotizacion";
 
 export const TEMPLATE_VARS: { key: string; label: string; example: string }[] = [
   { key: "cliente", label: "Nombre del cliente", example: "Laura" },
@@ -28,6 +28,7 @@ export const TEMPLATE_META: Record<TemplateKey, { title: string; description: st
   pedido_listo: { title: "Pedido listo", description: "Cuando el pedido está listo o va en camino", channel: "WhatsApp" },
   recordatorio_pago: { title: "Recordatorio de pago", description: "Para cobrar el saldo pendiente con amabilidad", channel: "WhatsApp" },
   agradecimiento: { title: "Agradecimiento", description: "Después de entregar, para pedir su opinión", channel: "WhatsApp" },
+  seguimiento_cotizacion: { title: "Seguimiento de cotización", description: "Cuando una cotización lleva días sin respuesta", channel: "WhatsApp" },
 };
 
 export const DEFAULT_TEMPLATES: Record<TemplateKey, string> = {
@@ -40,6 +41,8 @@ export const DEFAULT_TEMPLATES: Record<TemplateKey, string> = {
   pedido_listo: "¡Hola {cliente}! 🧁 Tu pedido {folio} ya está {entrega}.\nSaldo pendiente: {saldo}\n¡Que lo disfrutes!",
   recordatorio_pago:
     "¡Hola {cliente}! Te recuerdo amablemente que el saldo de tu pedido {folio} es de {saldo}.\n\nDatos para transferencia:\n{datos_pago}\n\n¡Gracias! 💕",
+  seguimiento_cotizacion:
+    "¡Hola {cliente}! 😊 Solo paso a saludarte y saber si pudiste revisar la cotización {folio}{titulo} por {total}.\n\nSi quieres ajustar sabores, cantidades o la fecha, con gusto lo vemos. Te dejo el enlace: {enlace}\n\nRecuerda que es válida hasta el {vigencia} 💕\n{negocio}",
   agradecimiento: "¡Hola {cliente}! Muchas gracias por tu pedido 💕 Nos encantaría saber qué te pareció. ¡Te esperamos pronto! — {negocio}",
 };
 

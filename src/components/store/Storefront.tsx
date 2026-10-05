@@ -1,14 +1,16 @@
 "use client";
 import { Fragment, useEffect, useMemo, useState } from "react";
-import { CakeSlice, Check, Clock, Facebook, Instagram, Loader2, MapPin, Megaphone, MessageCircle, Minus, Plus, ShoppingBag, Sparkles, Star, Truck, X } from "lucide-react";
+import { CakeSlice, CalendarDays, Check, ChevronLeft, ChevronRight, Clock, Facebook, Instagram, Loader2, MapPin, Megaphone, MessageCircle, Minus, Plus, ShoppingBag, Sparkles, Star, Truck, X } from "lucide-react";
 import { toast } from "sonner";
 import { createClient } from "@/lib/supabase/client";
 import { SiteFooter } from "@/components/legal/SiteFooter";
-import { Input, Textarea } from "@/components/ui/Field";
+import { Input, Select, Textarea } from "@/components/ui/Field";
+import { DeliveryCalendar, firstAvailable } from "./DeliveryCalendar";
 import { Modal } from "@/components/ui/Modal";
-import { addDays, dateLong, facebookLabel, facebookUrl, folio, money, toISODate, waLink } from "@/lib/format";
+import { dateLong, facebookLabel, facebookUrl, folio, money, toISODate, waLink } from "@/lib/format";
 import { normalizeTheme, themeVars, type StoreTheme } from "@/lib/storeTheme";
 import { cn } from "@/lib/cn";
+import type { DeliveryZone, VariantGroup } from "@/lib/types";
 
 export type StoreProduct = {
   id: string;
@@ -19,6 +21,9 @@ export type StoreProduct = {
   unit_label: string;
   price: number;
   featured?: boolean;
+  variants?: VariantGroup[];
+  gallery?: string[];
+  min_notice_days?: number | null;
 };
 export type StoreData = {
   store: {
@@ -40,9 +45,27 @@ export type StoreData = {
     about?: string | null;
     hours?: string | null;
     announcement?: string | null;
+    zones?: DeliveryZone[];
+    today?: string;
+    unavailable_dates?: string[];
   };
   products: StoreProduct[];
 };
+
+type Choice = { group: string; option: string };
+type CartLine = { id: string; qty: number; options: Choice[] };
+
+const lineKey = (id: string, options: Choice[]) => (options.length ? `${id}|${options.map((o) => `${o.group}=${o.option}`).join("|")}` : id);
+/** Igual que en la base de datos: un grupo sin "required" se considera obligatorio */
+const isRequired = (g: VariantGroup) => g.required !== false;
+const hasVariants = (p: StoreProduct) => (p.variants ?? []).some((g) => g.options?.length);
+const optionPrice = (p: StoreProduct, choices: Choice[]) =>
+  choices.reduce((a, c) => a + Number(p.variants?.find((g) => g.name === c.group)?.options.find((o) => o.name === c.option)?.price ?? 0), 0);
+/** Precio mínimo con las opciones obligatorias más baratas */
+const fromPrice = (p: StoreProduct) =>
+  Number(p.price) + (p.variants ?? []).filter((g) => isRequired(g) && g.options?.length).reduce((a, g) => a + Math.min(...g.options.map((o) => Number(o.price) || 0)), 0);
+const variesPrice = (p: StoreProduct) => (p.variants ?? []).some((g) => g.options?.some((o) => Number(o.price) > 0));
+const photos = (p: StoreProduct) => [p.image_url, ...(p.gallery ?? [])].filter(Boolean) as string[];
 
 const price = (n: number) => money(n).replace(".00", "");
 
@@ -55,13 +78,21 @@ export function Storefront({ data, slug, preview = false }: { data: StoreData; s
   const theme: StoreTheme = useMemo(() => normalizeTheme(store.theme), [store.theme]);
   const vars = useMemo(() => themeVars(theme), [theme]);
   const storageKey = `dd-cart-${slug}`;
-  const [cart, setCart] = useState<Record<string, number>>({});
+  const [cart, setCart] = useState<Record<string, CartLine>>({});
   const [cat, setCat] = useState("Todo");
   const [open, setOpen] = useState(false);
   const [detail, setDetail] = useState<StoreProduct | null>(null);
+  const [sel, setSel] = useState<Record<string, string>>({});
+  const [detailQty, setDetailQty] = useState(1);
+  const [photo, setPhoto] = useState(0);
   const [done, setDone] = useState<{ folio: number; total: number; wa: string } | null>(null);
-  const minDate = toISODate(addDays(new Date(), store.min_notice_days));
-  const [f, setF] = useState({ name: "", phone: "", email: "", date: minDate, time: "", type: store.pickup ? "recoger" : "envio", address: "", notes: "" });
+  const today = store.today ?? toISODate(new Date());
+  const unavailable = useMemo(() => store.unavailable_dates ?? [], [store.unavailable_dates]);
+  const zones = useMemo(() => (store.zones ?? []).filter((z) => z?.name), [store.zones]);
+  const [f, setF] = useState({
+    name: "", phone: "", email: "", date: firstAvailable(today, store.min_notice_days, unavailable), time: "",
+    type: store.pickup ? "recoger" : "envio", address: "", notes: "", zone: "",
+  });
   const [sending, setSending] = useState(false);
 
   // Carrito persistente en este navegador (no en la vista previa)
@@ -69,7 +100,13 @@ export function Storefront({ data, slug, preview = false }: { data: StoreData; s
     if (preview) return;
     try {
       const raw = localStorage.getItem(storageKey);
-      if (raw) setCart(JSON.parse(raw));
+      if (raw) {
+        const parsed = JSON.parse(raw) as Record<string, CartLine | number>;
+        const next: Record<string, CartLine> = {};
+        // Compatibilidad con el carrito anterior ({ id: cantidad })
+        for (const [k, v] of Object.entries(parsed)) next[k] = typeof v === "number" ? { id: k, qty: v, options: [] } : v;
+        setCart(next);
+      }
     } catch {}
   }, [storageKey, preview]);
   useEffect(() => {
@@ -95,24 +132,66 @@ export function Storefront({ data, slug, preview = false }: { data: StoreData; s
   const categories = useMemo(() => ["Todo", ...new Set(products.map((p) => p.category))], [products]);
   const featured = products.filter((p) => p.featured);
   const list = products.filter((p) => cat === "Todo" || p.category === cat);
-  const lines = products.filter((p) => cart[p.id] > 0).map((p) => ({ ...p, qty: cart[p.id] }));
+  const byId = useMemo(() => new Map(products.map((p) => [p.id, p])), [products]);
+  const lines = Object.entries(cart)
+    .map(([key, l]) => {
+      const p = byId.get(l.id);
+      if (!p || l.qty <= 0) return null;
+      // Descarta opciones que ya no existen
+      const valid =
+        l.options.every((c) => p.variants?.find((g) => g.name === c.group)?.options.some((o) => o.name === c.option)) &&
+        // Si después se agregó un grupo obligatorio (p. ej. Tamaño), la línea vieja ya no es válida
+        (p.variants ?? []).every((g) => !isRequired(g) || !g.options?.length || l.options.some((c) => c.group === g.name));
+      if (!valid) return null;
+      const unit = Number(p.price) + optionPrice(p, l.options);
+      return { key, p, qty: l.qty, options: l.options, unit, label: l.options.map((c) => c.option).join(" · ") };
+    })
+    .filter(Boolean) as { key: string; p: StoreProduct; qty: number; options: Choice[]; unit: number; label: string }[];
   const count = lines.reduce((a, l) => a + l.qty, 0);
-  const subtotal = lines.reduce((a, l) => a + l.qty * Number(l.price), 0);
-  const shipping = f.type === "envio" ? Number(store.shipping_fee) : 0;
+  const subtotal = lines.reduce((a, l) => a + l.qty * l.unit, 0);
+  const zone = zones.find((z) => z.name === f.zone);
+  const shipping = f.type === "envio" ? (zones.length ? Number(zone?.fee ?? 0) : Number(store.shipping_fee)) : 0;
+  const minNotice = Math.max(store.min_notice_days, ...lines.map((l) => Number(l.p.min_notice_days ?? 0)));
+  const qtyOf = (id: string) => lines.filter((l) => l.p.id === id).reduce((a, l) => a + l.qty, 0);
 
-  const add = (id: string, d = 1) =>
+  // Si un postre pide más anticipación, se mueve la fecha al primer día posible
+  useEffect(() => {
+    const first = firstAvailable(today, minNotice, unavailable);
+    if (!f.date || f.date < first || unavailable.includes(f.date)) setF((x) => ({ ...x, date: first }));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [minNotice, today, unavailable]);
+
+  const addLine = (id: string, options: Choice[] = [], d = 1) =>
     setCart((c) => {
-      const n = Math.max(0, (c[id] ?? 0) + d);
-      const next = { ...c, [id]: n };
-      if (!n) delete next[id];
+      const key = lineKey(id, options);
+      const n = Math.max(0, (c[key]?.qty ?? 0) + d);
+      const next = { ...c, [key]: { id, qty: n, options } };
+      if (!n) delete next[key];
       return next;
     });
+  const add = (id: string, d = 1) => addLine(id, [], d);
+
+  function openDetail(p: StoreProduct) {
+    setDetail(p);
+    setPhoto(0);
+    setDetailQty(1);
+    setSel(Object.fromEntries((p.variants ?? []).filter((g) => isRequired(g) && g.options?.length).map((g) => [g.name, g.options[0].name])));
+  }
+  const detailChoices: Choice[] = detail
+    ? (detail.variants ?? []).filter((g) => sel[g.name]).map((g) => ({ group: g.name, option: sel[g.name] }))
+    : [];
+  const detailUnit = detail ? Number(detail.price) + optionPrice(detail, detailChoices) : 0;
+  const missing = detail ? (detail.variants ?? []).find((g) => isRequired(g) && g.options?.length && !sel[g.name]) : undefined;
 
   async function checkout(e: React.FormEvent) {
     e.preventDefault();
     if (!lines.length) return;
     if (f.type === "envio" && !f.address.trim()) return toast.error("Escribe la dirección de entrega");
+    if (f.type === "envio" && zones.length && !zone) return toast.error("Elige tu zona de entrega");
+    if (!f.date) return toast.error("Elige la fecha de entrega");
     setSending(true);
+    // Se abre la ventana antes de esperar al servidor: los celulares bloquean ventanas abiertas después
+    const popup = window.open("", "_blank");
     const { data: res, error } = await createClient().rpc("place_store_order", {
       p_slug: slug,
       p_name: f.name,
@@ -123,16 +202,20 @@ export function Storefront({ data, slug, preview = false }: { data: StoreData; s
       p_delivery_type: f.type,
       p_address: f.address,
       p_notes: f.notes,
-      p_items: lines.map((l) => ({ dessert_id: l.id, quantity: l.qty })),
+      p_items: lines.map((l) => ({ dessert_id: l.p.id, quantity: l.qty, options: l.options })),
+      p_zone: f.type === "envio" && zone ? zone.name : null,
     });
     setSending(false);
-    if (error) return toast.error(error.message);
+    if (error) {
+      popup?.close();
+      return toast.error(error.message);
+    }
     const text =
       `¡Hola ${store.business_name}! 🧁 Quiero hacer un pedido (${folio("P", res.folio)}):\n\n` +
-      lines.map((l) => `• ${l.qty} × ${l.name} — ${money(l.qty * l.price)}`).join("\n") +
+      lines.map((l) => `• ${l.qty} × ${l.p.name}${l.label ? ` (${l.label})` : ""} — ${money(l.qty * l.unit)}`).join("\n") +
       `\n\n${shipping ? `Envío: ${money(shipping)}\n` : ""}*Total: ${money(res.total)}*\n\n` +
       `📅 ${f.date ? dateLong(f.date) : "Fecha por confirmar"}${f.time ? ` a las ${f.time}` : ""}\n` +
-      `${f.type === "envio" ? `🚚 Envío a: ${f.address}` : "🏠 Paso a recoger"}\n` +
+      `${f.type === "envio" ? `🚚 Envío${zone ? ` (${zone.name})` : ""} a: ${f.address}` : "🏠 Paso a recoger"}\n` +
       `👤 ${f.name} · ${f.phone}` +
       (f.notes ? `\n📝 ${f.notes}` : "");
     const wa = waLink(store.whatsapp, text);
@@ -140,19 +223,34 @@ export function Storefront({ data, slug, preview = false }: { data: StoreData; s
     // Aviso push a la repostería (si tiene la app con notificaciones activas)
     fetch("/api/push/pedido", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ order_id: res.order_id }) }).catch(() => {});
     setCart({});
-    window.open(wa, "_blank");
+    if (popup && !popup.closed) popup.location.href = wa;
   }
 
   const btnPrimary = "bg-[var(--st-primary)] text-[var(--st-on-primary)] transition hover:brightness-95 active:scale-95";
   const card = "overflow-hidden rounded-[var(--st-radius)] bg-[var(--st-surface)] shadow-[0_1px_2px_rgb(0_0_0/0.04),0_10px_28px_-12px_rgb(0_0_0/0.18)] ring-1 ring-[var(--st-line)]";
 
-  const qtyControl = (p: StoreProduct, size: "sm" | "md" = "md") =>
-    cart[p.id] ? (
+  const qtyControl = (p: StoreProduct, size: "sm" | "md" = "md") => {
+    const n = qtyOf(p.id);
+    // Con variantes se elige en el detalle (tamaño, sabor, relleno…)
+    if (hasVariants(p))
+      return (
+        <button
+          onClick={() => openDetail(p)}
+          className={cn("relative grid shrink-0 place-items-center rounded-full shadow-md", btnPrimary, size === "sm" ? "h-9 w-9" : "h-10 w-10")}
+          aria-label={`Elegir opciones de ${p.name}`}
+        >
+          <Plus className="h-5 w-5" />
+          {n > 0 && (
+            <span className="absolute -top-1 -right-1 grid h-5 min-w-5 place-items-center rounded-full bg-[var(--st-text)] px-1 text-[10px] font-bold text-[var(--st-bg)]">{n}</span>
+          )}
+        </button>
+      );
+    return n ? (
       <div className="flex items-center gap-1 rounded-full bg-[var(--st-soft)] p-1">
         <button onClick={() => add(p.id, -1)} className="grid h-7 w-7 place-items-center rounded-full bg-[var(--st-surface)] text-[var(--st-primary)] shadow-sm" aria-label="Quitar uno">
           <Minus className="h-3.5 w-3.5" />
         </button>
-        <span className="w-5 text-center text-sm font-bold text-[var(--st-text)]">{cart[p.id]}</span>
+        <span className="w-5 text-center text-sm font-bold text-[var(--st-text)]">{n}</span>
         <button onClick={() => add(p.id)} className={cn("grid h-7 w-7 place-items-center rounded-full", btnPrimary)} aria-label="Agregar uno">
           <Plus className="h-3.5 w-3.5" />
         </button>
@@ -169,6 +267,10 @@ export function Storefront({ data, slug, preview = false }: { data: StoreData; s
         <Plus className="h-5 w-5" />
       </button>
     );
+  };
+
+  /** "$350" o "Desde $350" si el precio cambia según las opciones */
+  const priceLabel = (p: StoreProduct) => (variesPrice(p) ? `Desde ${price(fromPrice(p))}` : price(fromPrice(p)));
 
   const productImg = (p: StoreProduct, className?: string) =>
     p.image_url ? (
@@ -184,7 +286,7 @@ export function Storefront({ data, slug, preview = false }: { data: StoreData; s
     if (theme.layout === "lista")
       return (
         <article className={cn(card, "group flex gap-3 p-2.5 @xl:gap-4 @xl:p-3")}>
-          <button onClick={() => setDetail(p)} className="relative aspect-square w-24 shrink-0 overflow-hidden rounded-[calc(var(--st-radius)*0.7)] @xl:w-32">
+          <button onClick={() => openDetail(p)} className="relative aspect-square w-24 shrink-0 overflow-hidden rounded-[calc(var(--st-radius)*0.7)] @xl:w-32">
             {productImg(p)}
           </button>
           <div className="flex min-w-0 flex-1 flex-col py-1">
@@ -193,7 +295,7 @@ export function Storefront({ data, slug, preview = false }: { data: StoreData; s
             {p.description && <p className="mt-0.5 line-clamp-2 text-sm text-[var(--st-muted)]">{p.description}</p>}
             <div className="mt-auto flex items-center justify-between gap-2 pt-2">
               <p className="text-lg font-bold text-[var(--st-primary)]">
-                {price(p.price)} <span className="text-xs font-normal text-[var(--st-muted)]">/ {p.unit_label}</span>
+                {priceLabel(p)} <span className="text-xs font-normal text-[var(--st-muted)]">/ {p.unit_label}</span>
               </p>
               {qtyControl(p, "sm")}
             </div>
@@ -203,7 +305,7 @@ export function Storefront({ data, slug, preview = false }: { data: StoreData; s
     if (theme.layout === "galeria")
       return (
         <article className={cn(card, "group relative aspect-[4/5]")}>
-          <button onClick={() => setDetail(p)} className="absolute inset-0">
+          <button onClick={() => openDetail(p)} className="absolute inset-0">
             {productImg(p)}
           </button>
           <div className="pointer-events-none absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/75 via-black/35 to-transparent p-4 pt-16 text-white">
@@ -211,7 +313,7 @@ export function Storefront({ data, slug, preview = false }: { data: StoreData; s
             <h3 className="text-xl leading-tight font-semibold !text-white">{p.name}</h3>
             <div className="pointer-events-auto mt-2 flex items-center justify-between gap-2">
               <p className="text-lg font-bold">
-                {price(p.price)} <span className="text-xs font-normal opacity-80">/ {p.unit_label}</span>
+                {priceLabel(p)} <span className="text-xs font-normal opacity-80">/ {p.unit_label}</span>
               </p>
               {qtyControl(p)}
             </div>
@@ -220,12 +322,15 @@ export function Storefront({ data, slug, preview = false }: { data: StoreData; s
       );
     return (
       <article className={cn(card, "group flex flex-col")}>
-        <button onClick={() => setDetail(p)} className="relative aspect-square overflow-hidden">
+        <button onClick={() => openDetail(p)} className="relative aspect-square overflow-hidden">
           {productImg(p)}
           {p.featured && (
             <span className="absolute top-2 left-2 flex items-center gap-1 rounded-full bg-[var(--st-accent)] px-2 py-0.5 text-[10px] font-bold text-[var(--st-on-accent)]">
               <Star className="h-3 w-3 fill-current" /> Favorito
             </span>
+          )}
+          {photos(p).length > 1 && (
+            <span className="absolute right-2 bottom-2 rounded-full bg-black/55 px-2 py-0.5 text-[10px] font-bold text-white backdrop-blur">{photos(p).length} fotos</span>
           )}
         </button>
         <div className="flex flex-1 flex-col p-3 @xl:p-4">
@@ -234,7 +339,7 @@ export function Storefront({ data, slug, preview = false }: { data: StoreData; s
           {p.description && <p className="mt-1 line-clamp-2 text-sm text-[var(--st-muted)] @max-xl:hidden">{p.description}</p>}
           <div className="mt-auto flex items-end justify-between gap-2 pt-3">
             <p className="text-lg font-bold text-[var(--st-primary)] @xl:text-xl">
-              {price(p.price)}
+              {priceLabel(p)}
               <span className="block text-[11px] font-normal text-[var(--st-muted)] @xl:inline @xl:pl-1">/ {p.unit_label}</span>
             </p>
             {qtyControl(p)}
@@ -265,13 +370,13 @@ export function Storefront({ data, slug, preview = false }: { data: StoreData; s
           {featured.map((p) => (
             <div key={p.id} className="w-[46%] shrink-0 snap-start @xl:w-[31%] @4xl:w-[23%]">
               <article className={cn(card, "group flex h-full flex-col")}>
-                <button onClick={() => setDetail(p)} className="relative aspect-[4/5] overflow-hidden">
+                <button onClick={() => openDetail(p)} className="relative aspect-[4/5] overflow-hidden">
                   {productImg(p)}
                 </button>
                 <div className="flex flex-1 items-end justify-between gap-2 p-3">
                   <div className="min-w-0">
                     <h3 className="truncate text-base font-semibold">{p.name}</h3>
-                    <p className="font-bold text-[var(--st-primary)]">{price(p.price)}</p>
+                    <p className="font-bold text-[var(--st-primary)]">{priceLabel(p)}</p>
                   </div>
                   {qtyControl(p, "sm")}
                 </div>
@@ -336,7 +441,19 @@ export function Storefront({ data, slug, preview = false }: { data: StoreData; s
             <ul className="mt-2 space-y-1 text-sm text-[var(--st-muted)]">
               <li>Pedidos con {store.min_notice_days} día{store.min_notice_days === 1 ? "" : "s"} de anticipación</li>
               {store.pickup && <li>Recoge en tienda{store.address ? ` · ${store.address}` : ""}</li>}
-              {store.delivery && <li>Envío a domicilio{Number(store.shipping_fee) ? ` · ${money(store.shipping_fee)}` : ""}</li>}
+              {store.delivery && !zones.length && <li>Envío a domicilio{Number(store.shipping_fee) ? ` · ${money(store.shipping_fee)}` : ""}</li>}
+              {store.delivery && zones.length > 0 && (
+                <li>
+                  Envío a domicilio:
+                  <span className="mt-1 flex flex-wrap gap-1.5">
+                    {zones.map((z) => (
+                      <span key={z.name} className="rounded-full bg-[var(--st-soft)] px-2.5 py-0.5 text-xs font-semibold text-[var(--st-text)]">
+                        {z.name} · {Number(z.fee) ? price(z.fee) : "gratis"}
+                      </span>
+                    ))}
+                  </span>
+                </li>
+              )}
             </ul>
           </div>
         </div>
@@ -462,27 +579,97 @@ export function Storefront({ data, slug, preview = false }: { data: StoreData; s
           {/* Detalle */}
           <Modal open={!!detail} onClose={() => setDetail(null)} title={detail?.name} size="md"
             footer={detail && (
-              <button
-                className={cn("flex h-12 w-full items-center justify-center gap-2 rounded-2xl px-6 font-bold sm:w-auto", btnPrimary)}
-                onClick={() => {
-                  add(detail.id);
-                  setDetail(null);
-                  toast.success("Agregado a tu pedido");
-                }}
-              >
-                <Plus className="h-4 w-4" /> Agregar · {money(detail.price)}
-              </button>
+              <div className="flex w-full flex-col-reverse gap-3 sm:flex-row sm:items-center sm:justify-end">
+                <div className="flex items-center justify-center gap-1 rounded-full bg-cream-200 p-1">
+                  <button type="button" onClick={() => setDetailQty((q) => Math.max(1, q - 1))} className="grid h-9 w-9 place-items-center rounded-full bg-white text-cocoa-600 shadow-sm" aria-label="Menos"><Minus className="h-4 w-4" /></button>
+                  <span className="w-8 text-center font-bold">{detailQty}</span>
+                  <button type="button" onClick={() => setDetailQty((q) => Math.min(99, q + 1))} className="grid h-9 w-9 place-items-center rounded-full bg-white text-cocoa-600 shadow-sm" aria-label="Más"><Plus className="h-4 w-4" /></button>
+                </div>
+                <button
+                  className={cn("flex h-12 w-full items-center justify-center gap-2 rounded-2xl px-6 font-bold disabled:opacity-50 sm:w-auto", btnPrimary)}
+                  disabled={!!missing}
+                  onClick={() => {
+                    addLine(detail.id, detailChoices, detailQty);
+                    setDetail(null);
+                    toast.success("Agregado a tu pedido");
+                  }}
+                >
+                  <Plus className="h-4 w-4" /> {missing ? `Elige ${missing.name.toLowerCase()}` : `Agregar · ${money(detailUnit * detailQty)}`}
+                </button>
+              </div>
             )}
           >
             {detail && (
               <div>
-                {detail.image_url && (
-                  // eslint-disable-next-line @next/next/no-img-element
-                  <img src={detail.image_url} alt={detail.name} className="mb-4 aspect-[4/3] w-full rounded-3xl object-cover" />
+                {photos(detail).length > 0 && (
+                  <div className="relative mb-4 overflow-hidden rounded-3xl">
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img src={photos(detail)[photo] ?? photos(detail)[0]} alt={detail.name} className="aspect-[4/3] w-full object-cover" />
+                    {photos(detail).length > 1 && (
+                      <>
+                        <button type="button" onClick={() => setPhoto((i) => (i - 1 + photos(detail).length) % photos(detail).length)} className="absolute top-1/2 left-2 grid h-9 w-9 -translate-y-1/2 place-items-center rounded-full bg-white/85 text-cocoa-700 shadow" aria-label="Foto anterior"><ChevronLeft className="h-5 w-5" /></button>
+                        <button type="button" onClick={() => setPhoto((i) => (i + 1) % photos(detail).length)} className="absolute top-1/2 right-2 grid h-9 w-9 -translate-y-1/2 place-items-center rounded-full bg-white/85 text-cocoa-700 shadow" aria-label="Foto siguiente"><ChevronRight className="h-5 w-5" /></button>
+                        <div className="absolute inset-x-0 bottom-2 flex justify-center gap-1.5">
+                          {photos(detail).map((_, i) => (
+                            <button key={i} type="button" onClick={() => setPhoto(i)} className={cn("h-1.5 rounded-full transition-all", i === photo ? "w-5 bg-white" : "w-1.5 bg-white/60")} aria-label={`Foto ${i + 1}`} />
+                          ))}
+                        </div>
+                      </>
+                    )}
+                  </div>
                 )}
-                <p className="text-[15px] leading-relaxed text-cocoa-500">{detail.description || "Delicioso postre hecho en casa con ingredientes de calidad."}</p>
-                <p className="mt-3 font-display text-2xl font-semibold text-[var(--st-primary)]">
-                  {money(detail.price)} <span className="text-sm font-normal text-cocoa-400">/ {detail.unit_label}</span>
+                {photos(detail).length > 1 && (
+                  <div className="-mt-2 mb-4 flex gap-2 overflow-x-auto scrollbar-none">
+                    {photos(detail).map((src, i) => (
+                      <button key={src + i} type="button" onClick={() => setPhoto(i)} className={cn("h-14 w-14 shrink-0 overflow-hidden rounded-xl ring-2", i === photo ? "ring-[var(--st-primary)]" : "ring-transparent opacity-70")}>
+                        {/* eslint-disable-next-line @next/next/no-img-element */}
+                        <img src={src} alt="" className="h-full w-full object-cover" loading="lazy" />
+                      </button>
+                    ))}
+                  </div>
+                )}
+                <p className="text-[15px] leading-relaxed whitespace-pre-line text-cocoa-500">{detail.description || "Delicioso postre hecho en casa con ingredientes de calidad."}</p>
+                {Number(detail.min_notice_days ?? 0) > store.min_notice_days && (
+                  <p className="mt-3 inline-flex items-center gap-1.5 rounded-full bg-cream-200 px-3 py-1 text-xs font-semibold text-cocoa-500">
+                    <CalendarDays className="h-3.5 w-3.5" /> Pídelo con {detail.min_notice_days} días de anticipación
+                  </p>
+                )}
+                {(detail.variants ?? []).filter((g) => g.options?.length).map((g) => (
+                  <fieldset key={g.name} className="mt-5">
+                    <legend className="mb-2 flex items-center gap-2 text-sm font-bold text-cocoa-700">
+                      {g.name}
+                      <span className={cn("rounded-full px-2 py-0.5 text-[10px] font-bold", isRequired(g) ? "bg-rose-50 text-rose-600" : "bg-cream-200 text-cocoa-400")}>
+                        {isRequired(g) ? "Obligatorio" : "Opcional"}
+                      </span>
+                    </legend>
+                    <div className="flex flex-wrap gap-2">
+                      {g.options.map((o) => {
+                        const on = sel[g.name] === o.name;
+                        return (
+                          <button
+                            key={o.name}
+                            type="button"
+                            onClick={() => setSel((x) => {
+                              const next = { ...x };
+                              if (on && !isRequired(g)) delete next[g.name];
+                              else next[g.name] = o.name;
+                              return next;
+                            })}
+                            className={cn(
+                              "rounded-2xl border px-3.5 py-2 text-left text-sm font-semibold transition",
+                              on ? "border-[var(--st-primary)] bg-[var(--st-soft)] text-[var(--st-text)]" : "border-cocoa-800/10 text-cocoa-500 hover:border-cocoa-800/25",
+                            )}
+                          >
+                            {o.name}
+                            {Number(o.price) > 0 && <span className="ml-1.5 text-xs font-bold text-[var(--st-primary)]">+{price(o.price)}</span>}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </fieldset>
+                ))}
+                <p className="mt-5 font-display text-2xl font-semibold text-[var(--st-primary)]">
+                  {money(detailUnit)} <span className="text-sm font-normal text-cocoa-400">/ {detail.unit_label}</span>
                 </p>
               </div>
             )}
@@ -503,41 +690,55 @@ export function Storefront({ data, slug, preview = false }: { data: StoreData; s
               <form onSubmit={checkout} className="space-y-5">
                 <ul className="divide-y divide-cocoa-800/5 rounded-3xl bg-cream-50 px-4 ring-1 ring-cocoa-800/5">
                   {lines.map((l) => (
-                    <li key={l.id} className="flex items-center gap-3 py-3">
+                    <li key={l.key} className="flex items-center gap-3 py-3">
                       <div className="min-w-0 flex-1">
-                        <p className="truncate font-semibold text-cocoa-700">{l.name}</p>
-                        <p className="text-xs text-cocoa-400">{money(l.price)} c/u</p>
+                        <p className="truncate font-semibold text-cocoa-700">{l.p.name}</p>
+                        {l.label && <p className="truncate text-xs font-semibold text-[var(--st-primary)]">{l.label}</p>}
+                        <p className="text-xs text-cocoa-400">{money(l.unit)} c/u</p>
                       </div>
                       <div className="flex items-center gap-1 rounded-full bg-white p-1 shadow-sm">
-                        <button type="button" onClick={() => add(l.id, -1)} className="grid h-7 w-7 place-items-center rounded-full text-[var(--st-primary)]" aria-label="Quitar uno">{l.qty === 1 ? <X className="h-3.5 w-3.5" /> : <Minus className="h-3.5 w-3.5" />}</button>
+                        <button type="button" onClick={() => addLine(l.p.id, l.options, -1)} className="grid h-7 w-7 place-items-center rounded-full text-[var(--st-primary)]" aria-label="Quitar uno">{l.qty === 1 ? <X className="h-3.5 w-3.5" /> : <Minus className="h-3.5 w-3.5" />}</button>
                         <span className="w-6 text-center text-sm font-bold">{l.qty}</span>
-                        <button type="button" onClick={() => add(l.id)} className="grid h-7 w-7 place-items-center rounded-full text-[var(--st-primary)]" aria-label="Agregar uno"><Plus className="h-3.5 w-3.5" /></button>
+                        <button type="button" onClick={() => addLine(l.p.id, l.options)} className="grid h-7 w-7 place-items-center rounded-full text-[var(--st-primary)]" aria-label="Agregar uno"><Plus className="h-3.5 w-3.5" /></button>
                       </div>
-                      <p className="w-20 text-right font-semibold tabular-nums">{money(l.qty * l.price)}</p>
+                      <p className="w-20 text-right font-semibold tabular-nums">{money(l.qty * l.unit)}</p>
                     </li>
                   ))}
                 </ul>
                 <div className="grid gap-4 sm:grid-cols-2">
                   <Input label="Tu nombre" required maxLength={120} value={f.name} onChange={(e) => setF({ ...f, name: e.target.value })} />
                   <Input label="WhatsApp" type="tel" required maxLength={20} value={f.phone} onChange={(e) => setF({ ...f, phone: e.target.value })} placeholder="998 123 4567" />
-                  <Input label="Fecha de entrega" type="date" required min={minDate} value={f.date} onChange={(e) => setF({ ...f, date: e.target.value })} />
+                  <div className="sm:col-span-2">
+                    <p className="label">Fecha de entrega {f.date && <span className="font-normal text-cocoa-400">· {dateLong(f.date)}</span>}</p>
+                    <DeliveryCalendar value={f.date} onChange={(v) => setF({ ...f, date: v })} today={today} minNotice={minNotice} unavailable={unavailable} />
+                  </div>
                   <Input label="Hora aproximada" type="time" value={f.time} onChange={(e) => setF({ ...f, time: e.target.value })} />
                   {store.pickup && store.delivery && (
                     <div className="grid grid-cols-2 gap-2 sm:col-span-2">
                       {(["recoger", "envio"] as const).map((t) => (
                         <button key={t} type="button" onClick={() => setF({ ...f, type: t })} className={cn("flex items-center justify-center gap-2 rounded-2xl border px-3 py-3 text-sm font-bold", f.type === t ? "border-[var(--st-primary)] bg-[var(--st-soft)] text-[var(--st-primary)]" : "border-cocoa-800/10 text-cocoa-500")}>
                           {t === "envio" ? <Truck className="h-4 w-4" /> : <ShoppingBag className="h-4 w-4" />}
-                          {t === "envio" ? `Envío${Number(store.shipping_fee) ? ` (+${money(store.shipping_fee)})` : ""}` : "Paso a recoger"}
+                          {t === "envio" ? `Envío${!zones.length && Number(store.shipping_fee) ? ` (+${money(store.shipping_fee)})` : ""}` : "Paso a recoger"}
                         </button>
                       ))}
                     </div>
+                  )}
+                  {f.type === "envio" && zones.length > 0 && (
+                    <Select className="sm:col-span-2" label="Zona de entrega" required value={f.zone} onChange={(e) => setF({ ...f, zone: e.target.value })}>
+                      <option value="">Elige tu zona…</option>
+                      {zones.map((z) => (
+                        <option key={z.name} value={z.name}>
+                          {z.name} · {Number(z.fee) ? money(z.fee) : "Envío gratis"}
+                        </option>
+                      ))}
+                    </Select>
                   )}
                   {f.type === "envio" && <Input className="sm:col-span-2" label="Dirección de entrega" required maxLength={300} value={f.address} onChange={(e) => setF({ ...f, address: e.target.value })} />}
                   <Textarea className="sm:col-span-2" label="Notas (opcional)" rows={2} maxLength={1000} value={f.notes} onChange={(e) => setF({ ...f, notes: e.target.value })} placeholder="Mensaje para el pastel, alergias, colores…" />
                 </div>
                 <div className="rounded-3xl bg-cocoa-800 p-5 text-cream-100">
                   <div className="flex justify-between text-sm"><span>Subtotal</span><span className="tabular-nums">{money(subtotal)}</span></div>
-                  {shipping > 0 && <div className="mt-1 flex justify-between text-sm"><span>Envío</span><span className="tabular-nums">{money(shipping)}</span></div>}
+                  {f.type === "envio" && (shipping > 0 || zone) && <div className="mt-1 flex justify-between text-sm"><span>Envío{zone ? ` · ${zone.name}` : ""}</span><span className="tabular-nums">{shipping ? money(shipping) : "Gratis"}</span></div>}
                   <div className="mt-2 flex items-end justify-between border-t border-white/10 pt-3">
                     <span className="font-bold">Total</span>
                     <span className="font-display text-3xl font-semibold text-white tabular-nums">{money(subtotal + shipping)}</span>

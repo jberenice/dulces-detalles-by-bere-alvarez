@@ -1,18 +1,24 @@
 import Image from "next/image";
 import Link from "next/link";
-import { ArrowRight, BarChart3, CakeSlice, Calculator, FileText, Heart, KeyRound, MessageCircle, ShoppingBag, Smartphone, Store, Users } from "lucide-react";
+import { ArrowRight, BarChart3, BellRing, CakeSlice, Calculator, ChevronDown, FileText, Heart, KeyRound, MessageCircle, PlayCircle, Quote, ShoppingBag, Smartphone, Store, TrendingDown, Wallet } from "lucide-react";
 import { redirect } from "next/navigation";
 import { ButtonLink } from "@/components/ui/Button";
 import { SiteFooter } from "@/components/legal/SiteFooter";
 import { SocialLinks } from "@/components/legal/SocialLinks";
+import { Pricing } from "@/components/marketing/Pricing";
+import { WhatsAppFloat } from "@/components/marketing/WhatsAppFloat";
+import { DEMO_VIDEO_ID, FAQ, TESTIMONIALS } from "@/lib/marketing";
 
 const FEATURES = [
-  { icon: FileText, title: "Cotizaciones en PDF", text: "Con tu logo y colores. Envíalas por WhatsApp o correo y tu cliente las acepta en línea.", tone: "bg-rose-50 text-rose-500" },
   { icon: Calculator, title: "Costeo exacto", text: "Ingredientes, empaques, gastos fijos, desgaste y ganancia: el precio justo de cada postre.", tone: "bg-mint-50 text-mint-600" },
-  { icon: ShoppingBag, title: "Pedidos y agenda", text: "Fechas de entrega, anticipos, saldos y estados, todo en una agenda clara.", tone: "bg-cream-200 text-cocoa-500" },
-  { icon: Users, title: "Clientes", text: "Historial de compras, cumpleaños y mensajes rápidos por WhatsApp.", tone: "bg-rose-50 text-rose-500" },
-  { icon: BarChart3, title: "Reportes de ventas", text: "Ventas, utilidad y los postres más vendidos por periodo, exportables a Excel.", tone: "bg-mint-50 text-mint-600" },
-  { icon: Store, title: "Tu minitienda", text: "Un catálogo en línea con carrito; los pedidos te llegan a WhatsApp y a tu panel.", tone: "bg-cream-200 text-cocoa-500" },
+  { icon: FileText, title: "Cotizaciones en PDF", text: "Con tu logo y colores. Envíalas por WhatsApp o correo y tu cliente las acepta en línea.", tone: "bg-rose-50 text-rose-500" },
+  { icon: BellRing, title: "Seguimiento automático", text: "Las cotizaciones sin respuesta te esperan con un mensaje amable listo para enviar.", tone: "bg-cream-200 text-cocoa-500" },
+  { icon: ShoppingBag, title: "Pedidos y agenda", text: "Calendario de entregas, agenda de producción e inventario que se descuenta solo.", tone: "bg-mint-50 text-mint-600" },
+  { icon: Wallet, title: "Saldos claros", text: "Anticipos y pagos parciales: sabes quién te debe, cuánto y le recuerdas antes de entregar.", tone: "bg-rose-50 text-rose-500" },
+  { icon: TrendingDown, title: "Alerta de margen", text: "Si sube el azúcar o la mantequilla, te decimos qué postres quedaron cortos y su nuevo precio.", tone: "bg-cream-200 text-cocoa-500" },
+  { icon: Store, title: "Tu minitienda", text: "Tamaños, sabores y rellenos con precio, zonas de entrega, días llenos y tu QR para imprimir.", tone: "bg-mint-50 text-mint-600" },
+  { icon: BarChart3, title: "Reportes de ventas", text: "Ventas, utilidad y los postres más vendidos por periodo, exportables a Excel.", tone: "bg-rose-50 text-rose-500" },
+  { icon: Smartphone, title: "App en tu celular", text: "Instálala en tu pantalla de inicio y recibe un aviso cada vez que te hacen un pedido.", tone: "bg-cream-200 text-cocoa-500" },
 ];
 
 export default async function Landing({ searchParams }: { searchParams: Promise<Record<string, string | undefined>> }) {
@@ -31,6 +37,8 @@ export default async function Landing({ searchParams }: { searchParams: Promise<
             <span className="truncate font-script text-xl font-bold whitespace-nowrap text-cocoa-600 max-[359px]:hidden sm:text-2xl">Dulces Detalles</span>
           </Link>
           <nav className="flex shrink-0 items-center gap-2">
+            <a href="#precios" className="rounded-xl px-3 py-2 text-[13px] font-bold text-cocoa-600 hover:bg-cocoa-800/5 max-md:hidden">Precios</a>
+            <a href="#preguntas" className="rounded-xl px-3 py-2 text-[13px] font-bold text-cocoa-600 hover:bg-cocoa-800/5 max-lg:hidden">Preguntas</a>
             <ButtonLink href="/login" variant="ghost" size="sm" className="max-sm:hidden">Iniciar sesión</ButtonLink>
             <ButtonLink href="/demo" size="sm" variant="secondary" className="max-[389px]:hidden">Demo</ButtonLink>
             <ButtonLink href="/login" size="sm" className="sm:hidden">Entrar</ButtonLink>
@@ -55,11 +63,12 @@ export default async function Landing({ searchParams }: { searchParams: Promise<
             </p>
             <div className="mt-8 flex flex-col justify-center gap-3 sm:flex-row lg:justify-start">
               <ButtonLink href="/demo" size="lg">Probar demo gratis <ArrowRight className="h-4 w-4" /></ButtonLink>
-              <ButtonLink href="/registro" size="lg" variant="outline">Activar mi licencia</ButtonLink>
+              <ButtonLink href="#precios" size="lg" variant="outline">Ver planes y precios</ButtonLink>
             </div>
             <p className="mt-6 flex items-center justify-center gap-4 text-sm text-cocoa-400 lg:justify-start">
               <span className="flex items-center gap-1.5"><Smartphone className="h-4 w-4 text-mint-500" /> Celular y computadora</span>
               <span className="flex items-center gap-1.5"><MessageCircle className="h-4 w-4 text-mint-500" /> WhatsApp integrado</span>
+              <span className="flex items-center gap-1.5 max-sm:hidden"><Heart className="h-4 w-4 text-mint-500" /> 0 % comisiones</span>
             </p>
           </div>
           <div className="relative mx-auto w-full max-w-md">
@@ -97,6 +106,37 @@ export default async function Landing({ searchParams }: { searchParams: Promise<
         </div>
       </section>
 
+      {/* Video */}
+      <section id="video" className="mx-auto max-w-5xl px-4 pb-20 sm:px-6">
+        <div className="mx-auto mb-8 max-w-2xl text-center">
+          <p className="font-script text-2xl text-rose-500">Míralo en acción</p>
+          <h2 className="mt-1 text-3xl font-semibold sm:text-4xl">Un recorrido de un minuto</h2>
+        </div>
+        {DEMO_VIDEO_ID ? (
+          <div className="overflow-hidden rounded-[28px] bg-cocoa-800 shadow-lift ring-8 ring-white">
+            <iframe
+              className="aspect-video w-full"
+              src={`https://www.youtube-nocookie.com/embed/${encodeURIComponent(DEMO_VIDEO_ID)}?rel=0&modestbranding=1`}
+              title="Recorrido por Dulces Detalles"
+              loading="lazy"
+              allow="accelerometer; encrypted-media; gyroscope; picture-in-picture"
+              allowFullScreen
+            />
+          </div>
+        ) : (
+          <Link href="/demo" className="group sprinkles relative grid aspect-video place-items-center overflow-hidden rounded-[28px] bg-cocoa-800 shadow-lift ring-8 ring-white">
+            <div className="absolute inset-0 bg-gradient-to-br from-rose-500/30 via-transparent to-mint-500/30" />
+            <div className="relative text-center text-cream-100">
+              <span className="mx-auto grid h-20 w-20 place-items-center rounded-full bg-rose-500 text-white shadow-rose transition group-hover:scale-110">
+                <PlayCircle className="h-10 w-10" />
+              </span>
+              <p className="mt-4 font-display text-2xl font-semibold text-white sm:text-3xl">Recórrela tú misma</p>
+              <p className="mt-1 text-sm text-cream-200/80">Entra a la demo con datos de ejemplo · sin tarjeta</p>
+            </div>
+          </Link>
+        )}
+      </section>
+
       {/* Cómo funciona */}
       <section className="bg-cocoa-800 text-cream-100">
         <div className="sprinkles mx-auto grid max-w-6xl gap-10 px-4 py-20 sm:px-6 lg:grid-cols-2 lg:items-center">
@@ -128,6 +168,67 @@ export default async function Landing({ searchParams }: { searchParams: Promise<
         </div>
       </section>
 
+      {/* Testimonios (solo reales y con permiso: se editan en src/lib/marketing.ts) */}
+      {TESTIMONIALS.length > 0 && (
+        <section className="mx-auto max-w-6xl px-4 pt-20 sm:px-6">
+          <div className="mx-auto max-w-2xl text-center">
+            <p className="font-script text-2xl text-rose-500">Lo que dicen ellas</p>
+            <h2 className="mt-1 text-4xl font-semibold">Reposteras que ya la usan</h2>
+          </div>
+          <div className="mt-10 grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+            {TESTIMONIALS.map((t) => (
+              <figure key={t.name + t.business} className="card flex flex-col p-6">
+                <Quote className="h-7 w-7 text-rose-300" />
+                <blockquote className="mt-3 flex-1 text-[15px] leading-relaxed text-cocoa-600">“{t.text}”</blockquote>
+                <figcaption className="mt-5 flex items-center gap-3">
+                  {t.photo ? (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img src={t.photo} alt="" className="h-11 w-11 rounded-full object-cover" />
+                  ) : (
+                    <span className="grid h-11 w-11 place-items-center rounded-full bg-rose-100 font-bold text-rose-600">{t.name[0]}</span>
+                  )}
+                  <span>
+                    <span className="block font-semibold text-cocoa-700">{t.name}</span>
+                    <span className="block text-xs text-cocoa-400">{t.business}{t.city ? ` · ${t.city}` : ""}</span>
+                  </span>
+                </figcaption>
+              </figure>
+            ))}
+          </div>
+        </section>
+      )}
+
+      {/* Precios */}
+      <section id="precios" className="scroll-mt-20 bg-cream-200/60">
+        <div className="mx-auto max-w-6xl px-4 py-20 sm:px-6">
+          <div className="mx-auto mb-10 max-w-2xl text-center">
+            <p className="font-script text-2xl text-rose-500">Planes a tu medida</p>
+            <h2 className="mt-1 text-4xl font-semibold">Elige cómo quieres crecer</h2>
+            <p className="mt-3 text-cocoa-400">Sin comisiones por venta. Cambia de plan cuando quieras.</p>
+          </div>
+          <Pricing />
+        </div>
+      </section>
+
+      {/* Preguntas frecuentes */}
+      <section id="preguntas" className="mx-auto max-w-3xl scroll-mt-20 px-4 py-20 sm:px-6">
+        <div className="text-center">
+          <p className="font-script text-2xl text-rose-500">Resolvemos tus dudas</p>
+          <h2 className="mt-1 text-4xl font-semibold">Preguntas frecuentes</h2>
+        </div>
+        <div className="mt-10 space-y-3">
+          {FAQ.map((f) => (
+            <details key={f.q} className="group card overflow-hidden [&_summary::-webkit-details-marker]:hidden">
+              <summary className="flex cursor-pointer list-none items-center justify-between gap-4 px-5 py-4 font-semibold text-cocoa-700 sm:px-6">
+                {f.q}
+                <ChevronDown className="h-5 w-5 shrink-0 text-rose-400 transition group-open:rotate-180" />
+              </summary>
+              <p className="px-5 pb-5 text-[15px] leading-relaxed text-cocoa-500 sm:px-6">{f.a}</p>
+            </details>
+          ))}
+        </div>
+      </section>
+
       {/* Redes sociales */}
       <section className="mx-auto max-w-4xl px-4 py-16 text-center sm:px-6">
         <p className="font-script text-2xl text-rose-500">Endulza tu feed</p>
@@ -137,6 +238,7 @@ export default async function Landing({ searchParams }: { searchParams: Promise<
       </section>
 
       <SiteFooter />
+      <WhatsAppFloat />
     </div>
   );
 }

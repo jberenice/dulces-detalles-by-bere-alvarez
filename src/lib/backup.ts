@@ -27,7 +27,7 @@ const STATUS: Record<string, string> = {
 
 export async function loadBackupData() {
   const [profile] = await fetchAll<Row>("profiles", "*", "");
-  const [clients, desserts, items, ingredients, fixed, quotes, quoteItems, orders, orderItems, movements] = await Promise.all([
+  const [clients, desserts, items, ingredients, fixed, quotes, quoteItems, orders, orderItems, movements, payments] = await Promise.all([
     fetchAll<Row>("clients"),
     fetchAll<Row>("desserts"),
     fetchAll<Row>("dessert_items", "*", "position"),
@@ -38,8 +38,9 @@ export async function loadBackupData() {
     fetchAll<Row>("orders"),
     fetchAll<Row>("order_items", "*", "position"),
     fetchAll<Row>("inventory_movements").catch(() => [] as Row[]),
+    fetchAll<Row>("order_payments", "*", "paid_at").catch(() => [] as Row[]),
   ]);
-  return { profile, clients, desserts, items, ingredients, fixed, quotes, quoteItems, orders, orderItems, movements };
+  return { profile, clients, desserts, items, ingredients, fixed, quotes, quoteItems, orders, orderItems, movements, payments };
 }
 
 /** Respaldo completo en Excel con una hoja por tipo de información */
@@ -152,6 +153,17 @@ export async function exportExcel() {
         { header: "Motivo", key: "reason", width: 18 }, { header: "Pedido", key: "pedido", width: 10 }, { header: "Nota", key: "note", width: 30 },
       ],
       rows: d.movements.map((m) => ({ ...m, ingrediente: ingById.get(m.ingredient_id as string)?.name, pedido: folio("P", orderById.get(m.order_id as string)?.folio) })),
+    },
+    {
+      name: "Pagos",
+      columns: [
+        { header: "Fecha", key: "paid_at", type: "datetime", width: 17 }, { header: "Pedido", key: "pedido", width: 10 }, { header: "Cliente", key: "cliente", width: 26 },
+        { header: "Monto", key: "amount", type: "money" }, { header: "Forma de pago", key: "method", width: 16 }, { header: "Nota", key: "note", width: 30 },
+      ],
+      rows: d.payments.map((p) => {
+        const o = orderById.get(p.order_id as string);
+        return { ...p, pedido: folio("P", o?.folio as number | undefined), cliente: (clientById.get(o?.client_id as string)?.name as string | undefined) ?? (o?.customer_name as string | undefined) };
+      }),
     },
   ];
 

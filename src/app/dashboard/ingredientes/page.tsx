@@ -7,6 +7,7 @@ import { must, useAsync } from "@/hooks/useAsync";
 import { Badge, Card, EmptyState, PageHeader, Skeleton } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { Input, Select, Toggle } from "@/components/ui/Field";
+import { planAllows } from "@/lib/plans";
 import { useBusiness } from "@/components/layout/BusinessProvider";
 import { fmtQty } from "@/lib/production";
 import { Modal } from "@/components/ui/Modal";
@@ -51,7 +52,7 @@ export default function IngredientsPage() {
     return { ingredients: must(ings) as Ingredient[], usage };
   });
 
-  const { profile, setProfile } = useBusiness();
+  const { profile, setProfile, plan } = useBusiness();
   const inv = profile.inventory_enabled;
   const [lowOnly, setLowOnly] = useState(false);
   const [stock, setStock] = useState<StockForm | null>(null);
@@ -66,6 +67,7 @@ export default function IngredientsPage() {
   );
 
   async function toggleInventory(v: boolean) {
+    if (v && !planAllows(plan.plan, "profesional")) return toast.info("El inventario automático es parte del plan Profesional ✨");
     const { data: p, error } = await sb.from("profiles").update({ inventory_enabled: v }).eq("id", profile.id).select().single();
     if (error) return toast.error(error.message);
     setProfile(p as Profile);
@@ -121,7 +123,13 @@ export default function IngredientsPage() {
     const res = form.id ? await sb.from("ingredients").update(payload).eq("id", form.id) : await sb.from("ingredients").insert(payload);
     setSaving(false);
     if (res.error) return toast.error(res.error.message);
-    toast.success(form.id ? "Actualizado — tus recetas ya usan el nuevo precio" : "Agregado");
+    const before = form.id ? data?.ingredients.find((i) => i.id === form.id) : null;
+    const rose = before && payload.package_price / qty > Number(before.unit_cost) + 1e-9;
+    if (rose && planAllows(plan.plan, "premium"))
+      toast.success("Actualizado — revisa si algún postre quedó con margen bajo", {
+        action: { label: "Ver márgenes", onClick: () => window.location.assign("/dashboard/margenes") },
+      });
+    else toast.success(form.id ? "Actualizado — tus recetas ya usan el nuevo precio" : "Agregado");
     setForm(null);
     reload();
   }

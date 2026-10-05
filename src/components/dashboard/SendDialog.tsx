@@ -77,7 +77,7 @@ export function SendDialog({
       const res = await fetch("/api/email", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ to, subject, message: msg, filename, pdfBase64: await blobToBase64(blob) }),
+        body: JSON.stringify({ to, subject, message: msg, filename, pdfBase64: await blobToBase64(blob), link }),
       });
       const data = await res.json();
       if (data.ok) {

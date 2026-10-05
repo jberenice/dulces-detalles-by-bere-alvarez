@@ -38,6 +38,7 @@ Al activar la licencia se puede **precargar el recetario** con tus datos reales:
    - `supabase/migrations/0007_inventory_push_templates.sql` (inventario, notificaciones push y plantillas)
    - `supabase/migrations/0008_demo.sql` (cuenta demo de 48 horas)
    - `supabase/migrations/0009_anonymous_hardening.sql` (límites para usuarios anónimos de la demo)
+   - `supabase/migrations/0010_premium.sql` (planes, pagos parciales, variantes, zonas, cupo diario, métricas)
    - `supabase/cron_setup.sql` (recordatorios cada hora; reemplaza tu dominio y tu CRON_SECRET antes de ejecutarlo)
    - `supabase/admin_setup.sql` → el resultado te muestra **tu código de licencia de administradora** (aleatorio)
 3. **Authentication → URL Configuration**
@@ -104,8 +105,23 @@ Están en `/aviso-de-privacidad`, `/terminos-y-condiciones` y `/politica-de-cook
 
 ## 🔑 Cómo generar licencias
 1. Entra con tu cuenta de administradora → menú **Administración → Licencias**.
-2. **Generar licencias** → cantidad, nota (p. ej. el nombre de la clienta) y vencimiento opcional. Los códigos se copian al portapapeles.
-3. Envía el código a tu clienta: se registra en `/registro` con él. Desde el mismo panel puedes **suspender**, **reactivar** o **liberar el dispositivo**.
+2. **Generar licencias** → plan (Básico, Profesional o Premium), periodo (mensual, anual o de por vida), precio cobrado, cantidad y nota. Los códigos se copian al portapapeles.
+3. Envía el código a tu clienta: se registra en `/registro` con él. La vigencia mensual/anual **empieza a contar cuando lo activa**.
+4. Desde el mismo panel puedes **cambiar de plan**, **renovar** (suma un mes o un año y registra el pago), **suspender**, **reactivar** o **liberar el dispositivo**.
+5. **Administración → Métricas**: licencias activas, por vencer (con botón para recordarles por WhatsApp), nuevas del mes, ingresos y demos.
+
+## 💎 Planes
+Los precios, nombres y lo que incluye cada plan se editan en `src/lib/plans.ts` (la página principal, los candados del menú y el panel de licencias leen de ahí).
+- **Básico:** costeo, cotizaciones, pedidos con pagos parciales, calendario, clientes, reportes y respaldo.
+- **Profesional:** + minitienda (variantes, galería, zonas, cupo diario, QR), seguimiento de cotizaciones, saldos, producción, inventario, plantillas y notificaciones.
+- **Premium:** + alerta de margen, correos con logo y colores propios, recordatorio de saldo por correo a clientes y resumen diario por correo.
+Las licencias que ya existían quedan como **Premium de por vida**.
+
+## 📣 Página principal
+- **Video:** graba un recorrido de 60–90 s, súbelo a YouTube como "No listado" y pega el ID en `src/lib/marketing.ts` (`DEMO_VIDEO_ID`).
+- **Testimonios:** agrega en `src/lib/marketing.ts` solo opiniones reales y con permiso de tus clientas; mientras la lista esté vacía, la sección no aparece.
+- **Preguntas frecuentes** y **botón de WhatsApp** (usa `SALES_WHATSAPP` de `src/lib/legal.ts`).
+- Al compartir el enlace de una tienda se genera una tarjeta con su logo y la foto de un postre destacado. Las fotos nuevas se guardan en JPEG para que se vean en WhatsApp; si un postre se subió antes, vuelve a subir su foto.
 
 Por SQL (alternativa): `select code from public.licenses where status = 'disponible';` para ver las disponibles, o
 `insert into public.licenses (code, notes) values (public.generate_license_code(), 'Clienta X') returning code;` para crear una.

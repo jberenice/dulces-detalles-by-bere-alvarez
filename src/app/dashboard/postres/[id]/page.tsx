@@ -12,6 +12,7 @@ import { Button } from "@/components/ui/Button";
 import { Input, Select, Textarea, Toggle } from "@/components/ui/Field";
 import { Combobox } from "@/components/ui/Combobox";
 import { ImagePicker } from "@/components/ui/ImagePicker";
+import { StoreOptionsEditor, cleanVariants } from "@/components/dashboard/StoreOptionsEditor";
 import { Modal } from "@/components/ui/Modal";
 import { CATEGORIES, UNITS } from "@/lib/constants";
 import { computeCost, marginPct, roundPrice } from "@/lib/costing";
@@ -59,6 +60,9 @@ export default function DessertEditorPage({ params }: { params: Promise<{ id: st
         sale_price: null,
         store_visible: false,
         active: true,
+        variants: [],
+        gallery: [],
+        min_notice_days: null,
       });
       setRows([{ key: newKey(), ingredient_id: "", section: "Ingredientes", quantity: "" }]);
       return;
@@ -146,6 +150,8 @@ export default function DessertEditorPage({ params }: { params: Promise<{ id: st
         wear_pct: Number(form.wear_pct) || 0,
         shipping: Number(form.shipping) || 0,
         sale_price: form.sale_price === null || (form.sale_price as unknown) === "" ? null : Number(form.sale_price),
+        variants: cleanVariants(form.variants),
+        gallery: (form.gallery ?? []).slice(0, 7),
       };
       if (payload.store_visible && payload.sale_price === null) payload.sale_price = suggested;
       let dessertId = id;
@@ -396,6 +402,15 @@ export default function DessertEditorPage({ params }: { params: Promise<{ id: st
               <Toggle checked={form.apply_card_fee} onChange={(v) => set("apply_card_fee", v)} label={`Comisión por tarjeta (${profile.card_fee_pct}%)`} description="Cubre la comisión de la terminal." />
             </div>
           </Card>
+
+          {/* Tienda: variantes, galería y anticipación */}
+          <StoreOptionsEditor
+            variants={form.variants ?? []}
+            gallery={form.gallery ?? []}
+            minNotice={form.min_notice_days ?? null}
+            storeMinNotice={profile.store_min_notice_days}
+            onChange={(patch) => setForm({ ...form, ...patch })}
+          />
         </div>
 
         {/* Resumen de costos */}

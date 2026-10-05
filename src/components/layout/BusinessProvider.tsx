@@ -2,17 +2,18 @@
 import { createContext, useCallback, useContext, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import type { Profile } from "@/lib/types";
+import type { PlanInfo } from "@/lib/plans";
 
-type Ctx = { profile: Profile; setProfile: (p: Profile) => void; refresh: () => Promise<void> };
+type Ctx = { profile: Profile; setProfile: (p: Profile) => void; refresh: () => Promise<void>; plan: PlanInfo };
 const BusinessCtx = createContext<Ctx | null>(null);
 
-export function BusinessProvider({ initial, children }: { initial: Profile; children: React.ReactNode }) {
+export function BusinessProvider({ initial, plan, children }: { initial: Profile; plan: PlanInfo; children: React.ReactNode }) {
   const [profile, setProfile] = useState(initial);
   const refresh = useCallback(async () => {
     const { data } = await createClient().from("profiles").select("*").eq("id", initial.id).single();
     if (data) setProfile(data as Profile);
   }, [initial.id]);
-  return <BusinessCtx.Provider value={{ profile, setProfile, refresh }}>{children}</BusinessCtx.Provider>;
+  return <BusinessCtx.Provider value={{ profile, setProfile, refresh, plan }}>{children}</BusinessCtx.Provider>;
 }
 
 export function useBusiness() {

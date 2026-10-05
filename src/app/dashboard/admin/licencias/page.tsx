@@ -1,16 +1,17 @@
 "use client";
 import { useState } from "react";
-import { Copy, KeyRound, MonitorSmartphone, Plus, ShieldCheck, ShieldOff, Unplug } from "lucide-react";
+import { Copy, KeyRound, MonitorSmartphone, Plus, RefreshCw, ShieldCheck, ShieldOff, Unplug } from "lucide-react";
 import { toast } from "sonner";
 import { createClient } from "@/lib/supabase/client";
 import { useAsync, must } from "@/hooks/useAsync";
 import { useBusiness } from "@/components/layout/BusinessProvider";
 import { Badge, Card, EmptyState, PageHeader, Skeleton, StatCard } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
-import { Input } from "@/components/ui/Field";
+import { Input, Select } from "@/components/ui/Field";
 import { Modal } from "@/components/ui/Modal";
 import { useConfirm } from "@/components/ui/Confirm";
-import { date } from "@/lib/format";
+import { date, money, money0 } from "@/lib/format";
+import { BILLING_LABEL, PLANS, planName, type Billing, type PlanId } from "@/lib/plans";
 
 type Row = {
   id: string;
@@ -26,7 +27,14 @@ type Row = {
   has_session: boolean;
   activated_at: string | null;
   created_at: string;
+  plan: PlanId;
+  billing: Billing;
+  term_days: number | null;
+  price: number;
+  paid_total: number;
 };
+
+const priceOf = (plan: PlanId, billing: Billing) => PLANS.find((p) => p.id === plan)?.prices[billing] ?? 0;
 
 export default function LicensesPage() {
   const { profile } = useBusiness();
@@ -37,6 +45,11 @@ export default function LicensesPage() {
   const [count, setCount] = useState(1);
   const [notes, setNotes] = useState("");
   const [expires, setExpires] = useState("");
+  const [plan, setPlan] = useState<PlanId>("profesional");
+  const [billing, setBilling] = useState<Billing>("mensual");
+  const [price, setPrice] = useState<string>(String(priceOf("profesional", "mensual")));
+  const [renew, setRenew] = useState<Row | null>(null);
+  const [renewAmount, setRenewAmount] = useState("");
   const [busy, setBusy] = useState(false);
   const [filter, setFilter] = useState<"todas" | Row["status"]>("todas");
 
@@ -49,6 +62,9 @@ export default function LicensesPage() {
       p_count: count,
       p_notes: notes || null,
       p_expires: expires ? new Date(expires + "T23:59:59").toISOString() : null,
+      p_plan: plan,
+      p_billing: billing,
+      p_price: Number(price) || 0,
     });
     setBusy(false);
     if (error) return toast.error(error.message);
@@ -57,6 +73,17 @@ export default function LicensesPage() {
     toast.success(`${(created as Row[]).length} licencia(s) generadas y copiadas`);
     setOpen(false);
     setNotes("");
+    reload();
+  }
+
+  async function doRenew() {
+    if (!renew) return;
+    setBusy(true);
+    const { error } = await sb.rpc("admin_renew_license", { p_id: renew.id, p_amount: Number(renewAmount) || 0, p_note: null });
+    setBusy(false);
+    if (error) return toast.error(error.message);
+    toast.success(`Licencia renovada (${BILLING_LABEL[renew.billing].toLowerCase()}) 💕`);
+    setRenew(null);
     reload();
   }
 
@@ -114,11 +141,12 @@ export default function LicensesPage() {
           <EmptyState icon={<KeyRound className="h-8 w-8" />} title="Sin licencias" description="Genera tu primer código para compartirlo con una nueva usuaria." />
         ) : (
           <div className="overflow-x-auto">
-            <table className="table-base min-w-[880px]">
+            <table className="table-base min-w-[1040px]">
               <thead>
                 <tr>
                   <th>Código</th>
                   <th>Estado</th>
+                  <th>Plan</th>
                   <th>Usuario</th>
                   <th>Dispositivo</th>
                   <th>Vence</th>
@@ -139,6 +167,21 @@ export default function LicensesPage() {
                     </td>
                     <td>
                       <Badge tone={r.status === "activa" ? "success" : r.status === "disponible" ? "info" : "danger"}>{r.status}</Badge>
+                    </td>
+                    <td>
+                      <select
+                        className="rounded-lg border border-cocoa-800/10 bg-cream-50 px-2 py-1 text-[13px] font-semibold text-cocoa-700"
+                        value={r.plan}
+                        onChange={(e) => update(r.id, { plan: e.target.value }, `Plan cambiado a ${planName(e.target.value as PlanId)}`)}
+                        aria-label="Plan"
+                      >
+                        {PLANS.map((p) => (
+                          <option key={p.id} value={p.id}>{p.name}</option>
+                        ))}
+                      </select>
+                      <p className="mt-0.5 text-xs text-cocoa-400">
+                        {BILLING_LABEL[r.billing]}{Number(r.paid_total) > 0 && ` · ${money0(r.paid_total)}`}
+                      </p>
                     </td>
                     <td>
                       {r.email ? (
@@ -162,9 +205,30 @@ export default function LicensesPage() {
                         <span className="text-cocoa-300">Sin sesión</span>
                       )}
                     </td>
-                    <td className="text-[13px]">{r.expires_at ? date(r.expires_at) : "Sin vencimiento"}</td>
+                    <td className="text-[13px]">
+                      {r.expires_at ? (
+                        <span className={new Date(r.expires_at) < new Date() ? "font-bold text-rose-600" : ""}>{date(r.expires_at)}</span>
+                      ) : r.term_days && r.status === "disponible" ? (
+                        <span className="text-cocoa-400">{r.term_days} días al activarse</span>
+                      ) : (
+                        "De por vida"
+                      )}
+                    </td>
                     <td>
                       <div className="flex justify-end gap-1">
+                        {r.billing !== "vitalicia" && r.status === "activa" && (
+                          <Button
+                            size="sm"
+                            variant="mint"
+                            title="Renovar"
+                            onClick={() => {
+                              setRenew(r);
+                              setRenewAmount(String(priceOf(r.plan, r.billing) ?? ""));
+                            }}
+                          >
+                            <RefreshCw className="h-4 w-4" /> Renovar
+                          </Button>
+                        )}
                         {r.has_session && (
                           <Button size="sm" variant="ghost" title="Liberar dispositivo" onClick={() => update(r.id, { active_session: null }, "Dispositivo liberado")}>
                             <Unplug className="h-4 w-4" />
@@ -214,10 +278,71 @@ export default function LicensesPage() {
         }
       >
         <div className="space-y-4">
-          <Input label="Cantidad" type="number" min={1} max={200} value={count} onChange={(e) => setCount(Number(e.target.value))} />
+          <div className="grid gap-4 sm:grid-cols-2">
+            <Select
+              label="Plan"
+              value={plan}
+              onChange={(e) => {
+                const v = e.target.value as PlanId;
+                setPlan(v);
+                const b = PLANS.find((p) => p.id === v)!.prices[billing] == null ? "anual" : billing;
+                setBilling(b);
+                setPrice(String(priceOf(v, b) ?? 0));
+              }}
+            >
+              {PLANS.map((p) => (
+                <option key={p.id} value={p.id}>{p.name}</option>
+              ))}
+            </Select>
+            <Select
+              label="Periodo"
+              value={billing}
+              onChange={(e) => {
+                const b = e.target.value as Billing;
+                setBilling(b);
+                setPrice(String(priceOf(plan, b) ?? 0));
+              }}
+            >
+              {(Object.keys(BILLING_LABEL) as Billing[])
+                .filter((b) => PLANS.find((p) => p.id === plan)!.prices[b] != null)
+                .map((b) => (
+                  <option key={b} value={b}>{BILLING_LABEL[b]}</option>
+                ))}
+            </Select>
+            <Input label="Cantidad" type="number" min={1} max={200} value={count} onChange={(e) => setCount(Number(e.target.value))} />
+            <Input label="Precio cobrado (c/u)" type="number" min={0} prefix="$" value={price} onChange={(e) => setPrice(e.target.value)} hint="Se suma a tus ingresos. Pon 0 si es de cortesía." />
+          </div>
+          <p className="rounded-2xl bg-cream-100 p-3 text-xs text-cocoa-500">
+            {billing === "vitalicia"
+              ? "Licencia de por vida: no vence."
+              : `La vigencia (${billing === "mensual" ? "30" : "365"} días) empieza a contar cuando la usuaria activa su código. Para renovarla usa el botón “Renovar”.`}
+          </p>
           <Input label="Nota (opcional)" placeholder="Ej. Venta a Repostería Luna" value={notes} onChange={(e) => setNotes(e.target.value)} />
-          <Input label="Vence el (opcional)" type="date" value={expires} onChange={(e) => setExpires(e.target.value)} hint="Déjalo vacío para una licencia de por vida." />
+          <Input label="Fecha límite para activar (opcional)" type="date" value={expires} onChange={(e) => setExpires(e.target.value)} hint="Si no se activa antes de esta fecha, el código deja de funcionar." />
         </div>
+      </Modal>
+
+      <Modal
+        open={!!renew}
+        onClose={() => setRenew(null)}
+        title="Renovar licencia"
+        description={renew ? `${renew.business_name ?? renew.email ?? renew.code} · ${planName(renew.plan)} ${BILLING_LABEL[renew.billing].toLowerCase()}` : undefined}
+        size="sm"
+        footer={
+          <>
+            <Button variant="ghost" onClick={() => setRenew(null)}>Cancelar</Button>
+            <Button variant="mint" onClick={doRenew} loading={busy}>Renovar</Button>
+          </>
+        }
+      >
+        {renew && (
+          <div className="space-y-4">
+            <p className="text-sm text-cocoa-500">
+              Se suma {renew.billing === "mensual" ? "1 mes" : "1 año"} a partir de {renew.expires_at && new Date(renew.expires_at) > new Date() ? `su vencimiento actual (${date(renew.expires_at)})` : "hoy"}.
+            </p>
+            <Input label="Monto cobrado" type="number" min={0} prefix="$" value={renewAmount} onChange={(e) => setRenewAmount(e.target.value)} hint={`Pagado hasta hoy: ${money(renew.paid_total)}`} />
+          </div>
+        )}
       </Modal>
     </>
   );

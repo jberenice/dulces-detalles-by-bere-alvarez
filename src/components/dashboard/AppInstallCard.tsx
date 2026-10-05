@@ -4,6 +4,8 @@ import { BellOff, BellRing, Download, Send, Share, Smartphone } from "lucide-rea
 import { toast } from "sonner";
 import { Card, CardHeader, Badge } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
+import { useBusiness } from "@/components/layout/BusinessProvider";
+import { planAllows } from "@/lib/plans";
 import { currentSubscription, disableNotifications, enableNotifications, isIOS, isStandalone, pushSupported, sendTestPush } from "@/lib/push-client";
 
 type InstallPrompt = Event & { prompt: () => Promise<void>; userChoice: Promise<{ outcome: string }> };
@@ -15,6 +17,7 @@ export function AppInstallCard() {
   const [subscribed, setSubscribed] = useState(false);
   const [busy, setBusy] = useState(false);
   const [ios, setIos] = useState(false);
+  const { plan } = useBusiness();
 
   useEffect(() => {
     setInstalled(isStandalone());
@@ -42,6 +45,7 @@ export function AppInstallCard() {
   }
 
   async function enable() {
+    if (!planAllows(plan.plan, "profesional")) return toast.info("Las notificaciones en el celular son parte del plan Profesional ✨");
     setBusy(true);
     const r = await enableNotifications();
     setBusy(false);

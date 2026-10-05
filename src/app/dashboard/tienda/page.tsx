@@ -1,11 +1,12 @@
 "use client";
-import { useEffect, useMemo, useState } from "react";
-import QRCode from "qrcode";
+import { useMemo, useState } from "react";
 import {
   ArrowDown,
   ArrowUp,
-  Copy,
-  Download,
+  CalendarOff,
+  MapPin,
+  Plus,
+  X,
   ExternalLink,
   Eye,
   EyeOff,
@@ -15,18 +16,16 @@ import {
   Paintbrush,
   Save,
   Settings2,
-  ShoppingBag,
   Smartphone,
   Star,
   Store,
-  Truck,
   GalleryHorizontalEnd,
 } from "lucide-react";
 import { toast } from "sonner";
 import { createClient } from "@/lib/supabase/client";
 import { useCatalog } from "@/hooks/useCatalog";
 import { useBusiness } from "@/components/layout/BusinessProvider";
-import { Badge, Card, CardHeader, PageHeader, Skeleton } from "@/components/ui/Card";
+import { Card, CardHeader, PageHeader, Skeleton } from "@/components/ui/Card";
 import { Button, ButtonLink } from "@/components/ui/Button";
 import { Input, Textarea, Toggle } from "@/components/ui/Field";
 import { ImagePicker } from "@/components/ui/ImagePicker";
@@ -34,10 +33,11 @@ import { Tabs } from "@/components/ui/Tabs";
 import { Modal } from "@/components/ui/Modal";
 import { priceFor } from "@/components/dashboard/LineItemsEditor";
 import { Storefront, type StoreData } from "@/components/store/Storefront";
-import { money, siteUrl, slugify } from "@/lib/format";
+import { date, money, siteUrl, slugify, toISODate } from "@/lib/format";
+import { StoreQrCard } from "@/components/dashboard/StoreQrCard";
 import { PRESETS, SECTION_LABELS, normalizeTheme, type StoreTheme } from "@/lib/storeTheme";
 import { cn } from "@/lib/cn";
-import type { Dessert, Profile } from "@/lib/types";
+import type { DeliveryZone, Dessert, Profile } from "@/lib/types";
 
 type Tab = "general" | "diseno" | "productos";
 
@@ -49,14 +49,14 @@ export default function StoreSettingsPage() {
   const [p, setP] = useState<Profile>({ ...profile, store_slug: profile.store_slug ?? slugify(profile.business_name) });
   const [theme, setTheme] = useState<StoreTheme>(() => normalizeTheme(profile.store_theme));
   const [saving, setSaving] = useState(false);
-  const [qr, setQr] = useState("");
   const [device, setDevice] = useState<"movil" | "escritorio">("movil");
   const [bigPreview, setBigPreview] = useState(false);
-  const url = `${siteUrl()}/tienda/${p.store_slug}`;
 
-  useEffect(() => {
-    if (p.store_slug) QRCode.toDataURL(url, { margin: 1, width: 480, color: { dark: "#5a3512", light: "#fffaef" } }).then(setQr);
-  }, [url, p.store_slug]);
+  const [zones, setZones] = useState<DeliveryZone[]>(() => profile.store_zones ?? []);
+  const [blocked, setBlocked] = useState<string[]>(() => profile.store_blocked_dates ?? []);
+  const [newBlocked, setNewBlocked] = useState("");
+  const todayIso = toISODate(new Date());
+  const upcomingBlocked = useMemo(() => blocked.filter((d) => d >= todayIso).sort(), [blocked, todayIso]);
 
   const t = (patch: Partial<StoreTheme>) => setTheme((prev) => ({ ...prev, ...patch }));
   const setColor = (k: "primary" | "accent" | "background" | "surface" | "text", v: string) => t({ [k]: v, preset: "personalizado" } as Partial<StoreTheme>);
@@ -92,6 +92,9 @@ export default function StoreSettingsPage() {
         about: p.store_about,
         hours: p.store_hours,
         announcement: p.store_announcement,
+        zones: zones.filter((z) => z.name.trim()).map((z) => ({ name: z.name.trim(), fee: Number(z.fee) || 0 })),
+        today: todayIso,
+        unavailable_dates: upcomingBlocked,
       },
       products: visible.map((d) => ({
         id: d.id,
@@ -102,9 +105,12 @@ export default function StoreSettingsPage() {
         unit_label: d.unit_label,
         price: priceFor(d, catalog.costs.get(d.id)),
         featured: !!d.store_featured,
+        variants: d.variants ?? [],
+        gallery: d.gallery ?? [],
+        min_notice_days: d.min_notice_days ?? null,
       })),
     }),
-    [p, theme, visible, catalog.costs],
+    [p, theme, visible, catalog.costs, zones, upcomingBlocked, todayIso],
   );
 
   async function save() {
@@ -127,6 +133,12 @@ export default function StoreSettingsPage() {
         store_about: p.store_about || null,
         store_hours: p.store_hours || null,
         store_announcement: p.store_announcement || null,
+        store_daily_capacity: p.store_daily_capacity ? Math.max(1, Math.min(200, Math.round(Number(p.store_daily_capacity)))) : null,
+        store_blocked_dates: upcomingBlocked,
+        store_zones: zones
+          .map((z) => ({ name: z.name.trim().slice(0, 60), fee: Math.max(0, Number(z.fee) || 0) }))
+          .filter((z, i, all) => z.name && all.findIndex((x) => x.name.toLowerCase() === z.name.toLowerCase()) === i)
+          .slice(0, 30),
       })
       .eq("id", profile.id)
       .select()
@@ -135,6 +147,8 @@ export default function StoreSettingsPage() {
     if (error) return toast.error(error.code === "23505" ? "Esa dirección ya está ocupada, prueba otra" : error.message);
     setProfile(data as Profile);
     setP(data as Profile);
+    setZones((data as Profile).store_zones ?? []);
+    setBlocked((data as Profile).store_blocked_dates ?? []);
     toast.success(p.store_enabled ? "¡Tu tienda está en línea! 🎉" : "Cambios guardados");
   }
 
@@ -446,29 +460,83 @@ export default function StoreSettingsPage() {
                 <div className="mt-4 grid gap-4 sm:grid-cols-2">
                   <Toggle checked={p.store_pickup} onChange={(v) => setP({ ...p, store_pickup: v })} label="Recoger en tienda" />
                   <Toggle checked={p.store_delivery} onChange={(v) => setP({ ...p, store_delivery: v })} label="Envío a domicilio" />
-                  {p.store_delivery && <Input label="Costo de envío" type="number" min={0} prefix="$" value={p.store_shipping_fee} onChange={(e) => setP({ ...p, store_shipping_fee: e.target.value as unknown as number })} />}
+                  {p.store_delivery && !zones.length && <Input label="Costo de envío" type="number" min={0} prefix="$" value={p.store_shipping_fee} onChange={(e) => setP({ ...p, store_shipping_fee: e.target.value as unknown as number })} hint="O cobra según la zona ↓" />}
                 </div>
+                {p.store_delivery && (
+                  <div className="mt-6 border-t border-cocoa-800/5 pt-5">
+                    <h4 className="flex items-center gap-2 text-sm font-bold text-cocoa-700"><MapPin className="h-4 w-4 text-rose-400" /> Zonas de entrega</h4>
+                    <p className="mt-0.5 text-xs text-cocoa-400">Tu cliente elige su zona y el envío se cobra solo. Ej. Centro $50 · Zona Hotelera $120. Si no agregas zonas se usa el costo de envío fijo.</p>
+                    <div className="mt-3 space-y-2">
+                      {zones.map((z, i) => (
+                        <div key={i} className="grid grid-cols-[1fr_130px_36px] items-center gap-2">
+                          <input className="field py-2" placeholder="Nombre de la zona" maxLength={60} value={z.name} onChange={(e) => setZones(zones.map((x, j) => (j === i ? { ...x, name: e.target.value } : x)))} />
+                          <div className="relative">
+                            <span className="pointer-events-none absolute top-1/2 left-3 -translate-y-1/2 text-xs text-cocoa-400">$</span>
+                            <input className="field py-2 pl-7" type="number" min={0} step="any" value={z.fee} onChange={(e) => setZones(zones.map((x, j) => (j === i ? { ...x, fee: e.target.value as unknown as number } : x)))} />
+                          </div>
+                          <button type="button" onClick={() => setZones(zones.filter((_, j) => j !== i))} className="grid h-9 w-9 place-items-center rounded-xl text-cocoa-300 hover:bg-rose-50 hover:text-rose-500" aria-label="Quitar zona"><X className="h-4 w-4" /></button>
+                        </div>
+                      ))}
+                    </div>
+                    {zones.length < 30 && (
+                      <button type="button" onClick={() => setZones([...zones, { name: "", fee: 0 }])} className="mt-3 flex items-center gap-1.5 text-sm font-bold text-rose-500 hover:text-rose-600">
+                        <Plus className="h-4 w-4" /> Agregar zona
+                      </button>
+                    )}
+                  </div>
+                )}
                 {!p.whatsapp && <p className="mt-4 rounded-2xl bg-amber-50 p-3 text-sm text-amber-700">Agrega tu WhatsApp en Ajustes para recibir los pedidos de la tienda.</p>}
               </Card>
-              <Card className="overflow-hidden">
-                <div className="sprinkles flex flex-col items-center gap-4 bg-cream-200 p-6 text-center sm:flex-row sm:text-left">
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  {qr && <img src={qr} alt="Código QR de tu tienda" className="w-40 shrink-0 rounded-2xl shadow-soft" />}
-                  <div className="min-w-0 flex-1">
-                    <Badge tone={profile.store_enabled ? "success" : "neutral"}>{profile.store_enabled ? "En línea" : "Sin publicar"}</Badge>
-                    <p className="mt-2 font-script text-2xl text-rose-500">¡Compártela!</p>
-                    <p className="text-sm text-cocoa-500">Imprime el QR para tu mostrador o ponlo en tus cajas.</p>
-                    <div className="mt-3 flex flex-wrap justify-center gap-2 sm:justify-start">
-                      <Button size="sm" variant="secondary" onClick={() => navigator.clipboard.writeText(url).then(() => toast.success("Enlace copiado"))}><Copy className="h-4 w-4" /> Copiar enlace</Button>
-                      {qr && <a href={qr} download={`QR-${p.store_slug}.png`} className="inline-flex h-9 items-center gap-1.5 rounded-xl px-3.5 text-[13px] font-bold text-cocoa-600 hover:bg-cocoa-800/5"><Download className="h-4 w-4" /> Descargar QR</a>}
+              <Card className="p-5 sm:p-6">
+                <h3 className="flex items-center gap-2 text-lg font-semibold"><CalendarOff className="h-5 w-5 text-rose-400" /> Fechas y cupo</h3>
+                <p className="text-sm text-cocoa-400">Evita que te pidan más de lo que puedes hornear: los días llenos se ven tachados en el calendario de tu tienda.</p>
+                <div className="mt-4 grid gap-4 sm:grid-cols-2">
+                  <Input
+                    label="Pedidos máximos por día"
+                    type="number"
+                    min={1}
+                    max={200}
+                    placeholder="Sin límite"
+                    value={p.store_daily_capacity ?? ""}
+                    onChange={(e) => setP({ ...p, store_daily_capacity: e.target.value === "" ? null : (e.target.value as unknown as number) })}
+                    hint="Cuenta todos tus pedidos del día (tienda y manuales), excepto cancelados."
+                  />
+                  <div>
+                    <label className="label">Bloquear un día</label>
+                    <div className="flex gap-2">
+                      <input type="date" className="field" min={todayIso} value={newBlocked} onChange={(e) => setNewBlocked(e.target.value)} />
+                      <Button
+                        variant="secondary"
+                        onClick={() => {
+                          if (!newBlocked) return;
+                          if (!blocked.includes(newBlocked)) setBlocked([...blocked, newBlocked]);
+                          setNewBlocked("");
+                        }}
+                      >
+                        <Plus className="h-4 w-4" />
+                      </Button>
                     </div>
-                    <p className="mt-3 flex items-center justify-center gap-4 text-xs text-cocoa-400 sm:justify-start">
-                      {p.store_pickup && <span className="flex items-center gap-1"><ShoppingBag className="h-3.5 w-3.5" /> Recoger</span>}
-                      {p.store_delivery && <span className="flex items-center gap-1"><Truck className="h-3.5 w-3.5" /> Envío</span>}
-                    </p>
+                    <p className="mt-1 text-xs text-cocoa-400">Vacaciones, días con agenda llena o festivos.</p>
                   </div>
                 </div>
+                {upcomingBlocked.length > 0 && (
+                  <div className="mt-4 flex flex-wrap gap-2">
+                    {upcomingBlocked.map((d) => (
+                      <span key={d} className="inline-flex items-center gap-1 rounded-full bg-rose-50 py-1 pr-1 pl-3 text-xs font-bold text-rose-600">
+                        {date(d, { weekday: "short", day: "numeric", month: "short" })}
+                        <button type="button" onClick={() => setBlocked(blocked.filter((x) => x !== d))} className="grid h-5 w-5 place-items-center rounded-full hover:bg-rose-100" aria-label="Desbloquear">
+                          <X className="h-3 w-3" />
+                        </button>
+                      </span>
+                    ))}
+                  </div>
+                )}
               </Card>
+              {profile.store_slug ? (
+                <StoreQrCard url={`${siteUrl()}/tienda/${profile.store_slug}`} enabled={profile.store_enabled} slug={profile.store_slug} />
+              ) : (
+                <p className="rounded-2xl bg-cream-200 p-4 text-sm text-cocoa-500">Guarda la dirección de tu tienda para generar tu código QR.</p>
+              )}
             </>
           )}
         </div>

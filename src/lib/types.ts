@@ -42,7 +42,18 @@ export type Profile = {
   store_about: string | null;
   store_hours: string | null;
   store_announcement: string | null;
+  followup_days?: number;
+  margin_tolerance_pct?: number;
+  store_daily_capacity?: number | null;
+  store_blocked_dates?: string[];
+  store_zones?: DeliveryZone[];
+  onboarding?: Record<string, boolean> | null;
+  balance_reminder_email?: boolean;
 };
+
+export type DeliveryZone = { name: string; fee: number };
+export type VariantOption = { name: string; price: number };
+export type VariantGroup = { name: string; required: boolean; options: VariantOption[] };
 
 export type FixedCost = { id: string; name: string; monthly_amount: number };
 
@@ -88,6 +99,9 @@ export type Dessert = {
   store_visible: boolean;
   store_featured?: boolean;
   store_position?: number;
+  variants?: VariantGroup[];
+  gallery?: string[];
+  min_notice_days?: number | null;
   active: boolean;
   created_at: string;
   dessert_items?: DessertItem[];
@@ -138,6 +152,8 @@ export type Quote = {
   share_enabled?: boolean;
   sent_at: string | null;
   accepted_at: string | null;
+  followed_up_at?: string | null;
+  follow_up_count?: number;
   created_at: string;
   clients?: Pick<Client, "id" | "name" | "phone" | "email" | "address"> | null;
   quote_items?: LineItem[];
@@ -171,7 +187,17 @@ export type Order = {
   payment_method: string | null;
   public_token?: string;
   inventory_applied?: boolean;
+  delivery_zone?: string | null;
   created_at: string;
   clients?: Pick<Client, "id" | "name" | "phone" | "email" | "address"> | null;
   order_items?: LineItem[];
+};
+
+export type OrderPayment = {
+  id: string;
+  order_id: string;
+  amount: number;
+  method: string | null;
+  note: string | null;
+  paid_at: string;
 };

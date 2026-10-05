@@ -8,6 +8,7 @@ import { useBusiness } from "@/components/layout/BusinessProvider";
 import { Badge, Card, CardHeader, PageHeader } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { Input, Select, Textarea, Toggle } from "@/components/ui/Field";
+import { BILLING_LABEL, planAllows, planName } from "@/lib/plans";
 import { ImagePicker } from "@/components/ui/ImagePicker";
 import { AppInstallCard } from "@/components/dashboard/AppInstallCard";
 import { date } from "@/lib/format";
@@ -17,7 +18,8 @@ import type { Profile } from "@/lib/types";
 
 export default function SettingsPage() {
   const sb = createClient();
-  const { profile, setProfile } = useBusiness();
+  const { profile, setProfile, plan } = useBusiness();
+  const premium = planAllows(plan.plan, "premium");
   const [p, setP] = useState<Profile>(profile);
   const [saving, setSaving] = useState(false);
   const [detectedTz, setDetectedTz] = useState(profile.timezone);
@@ -40,6 +42,7 @@ export default function SettingsPage() {
       instagram: p.instagram,
       facebook: p.facebook,
       reminder_email: p.reminder_email,
+      balance_reminder_email: !!p.balance_reminder_email,
       reminder_days_before: Number(p.reminder_days_before) || 0,
       reminder_hour: Number(p.reminder_hour ?? 7),
       timezone: p.timezone,
@@ -117,10 +120,16 @@ export default function SettingsPage() {
             <CardHeader title="Recordatorios de entrega" icon={<BellRing className="h-5 w-5" />} />
             <div className="space-y-4 p-5 sm:p-6">
               <Toggle
-                checked={p.reminder_email}
-                onChange={(v) => setP({ ...p, reminder_email: v })}
-                label="Resumen diario por correo"
+                checked={p.reminder_email && premium}
+                onChange={(v) => (premium ? setP({ ...p, reminder_email: v }) : toast.info("El resumen por correo es parte del plan Premium ✨"))}
+                label={`Resumen diario por correo${premium ? "" : " · Premium"}`}
                 description="Te enviamos las entregas del día y las próximas a la hora que elijas, en tu zona horaria."
+              />
+              <Toggle
+                checked={!!p.balance_reminder_email && premium}
+                onChange={(v) => (premium ? setP({ ...p, balance_reminder_email: v }) : toast.info("El recordatorio de saldo por correo es parte del plan Premium ✨"))}
+                label={`Recordar el saldo a mis clientes${premium ? "" : " · Premium"}`}
+                description="Un día antes de la entrega, si el pedido tiene saldo y el cliente tiene correo, le enviamos un correo con tu logo, el monto y tus datos de pago."
               />
               <Select label="Tu zona horaria" value={p.timezone} onChange={(e) => setP({ ...p, timezone: e.target.value })} hint={clock ? `Hora actual ahí: ${clock}` : undefined}>
                 {[...MX_TIMEZONES, ...(MX_TIMEZONES.some((z) => z.value === detectedTz) ? [] : [{ value: detectedTz, label: `${detectedTz.replace(/_/g, " ")} (detectada)` }])]
@@ -156,13 +165,21 @@ export default function SettingsPage() {
               ) : license.data ? (
                 <>
                   <p className="font-mono font-semibold tracking-wider text-cocoa-700">{license.data.code}</p>
-                  <Badge tone={license.data.status === "activa" ? "success" : "danger"}>{license.data.status}</Badge>
+                  <div className="flex flex-wrap gap-1.5">
+                    <Badge tone={license.data.status === "activa" ? "success" : "danger"}>{license.data.status}</Badge>
+                    <Badge tone="rose">Plan {planName(plan.plan)}{plan.billing ? ` · ${BILLING_LABEL[plan.billing]}` : ""}</Badge>
+                  </div>
                   <p className="text-cocoa-500">Activada: {date(license.data.activated_at)}</p>
                   <p className="text-cocoa-500">Vence: {license.data.expires_at ? date(license.data.expires_at) : "Sin vencimiento"}</p>
                   <p className="text-cocoa-500">Dispositivo: {license.data.session_device ?? "—"}</p>
                 </>
               ) : (
                 <p className="text-cocoa-400">Cargando…</p>
+              )}
+              {!profile.is_demo && profile.role !== "admin" && plan.plan !== "premium" && (
+                <a href={salesLink(`¡Hola! Tengo el plan ${planName(plan.plan)} de Dulces Detalles y quiero subir de plan 🧁`)} target="_blank" rel="noopener noreferrer" className="inline-block pt-1 font-bold text-rose-500 hover:underline">
+                  Subir de plan →
+                </a>
               )}
               <p className="pt-2 text-xs text-cocoa-400">Tu licencia funciona en un dispositivo a la vez. Si entras desde otro, este se cerrará.</p>
             </div>

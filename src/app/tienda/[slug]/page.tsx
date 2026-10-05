@@ -13,10 +13,14 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
   const { slug } = await params;
   const data = await getStore(slug);
   if (!data) return { title: "Tienda no disponible" };
+  const description = data.store.description ?? `Pide tus postres favoritos de ${data.store.business_name}`;
+  // La imagen para compartir la genera opengraph-image.tsx (logo + foto de un postre)
   return {
-    title: data.store.title,
-    description: data.store.description ?? `Pide tus postres favoritos de ${data.store.business_name}`,
-    openGraph: { images: [data.store.banner_url ?? data.store.logo_url ?? "/logo.png"] },
+    title: { absolute: data.store.title },
+    description,
+    alternates: { canonical: `/tienda/${slug}` },
+    openGraph: { title: data.store.title, description, url: `/tienda/${slug}`, siteName: data.store.business_name, type: "website", locale: "es_MX" },
+    twitter: { card: "summary_large_image", title: data.store.title, description },
   };
 }
 

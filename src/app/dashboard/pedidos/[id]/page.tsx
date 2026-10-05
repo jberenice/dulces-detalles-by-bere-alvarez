@@ -10,9 +10,8 @@ import { useBusiness } from "@/components/layout/BusinessProvider";
 import { useConfirm } from "@/components/ui/Confirm";
 import { Badge, Card, Skeleton } from "@/components/ui/Card";
 import { Button, ButtonLink } from "@/components/ui/Button";
-import { Input } from "@/components/ui/Field";
-import { Modal } from "@/components/ui/Modal";
 import { SendDialog } from "@/components/dashboard/SendDialog";
+import { PaymentModal } from "@/components/dashboard/PaymentModal";
 import { ORDER_STATUS, PAYMENT_STATUS } from "@/lib/constants";
 import { getTemplate, renderTemplate } from "@/lib/templates";
 import { buildPdf, downloadBlob, orderToPdf } from "@/lib/pdf";
@@ -20,7 +19,7 @@ import { sharePdf } from "@/lib/documents";
 import { googleCalendarUrl } from "@/lib/reminders";
 import { date, dateLong, folio, money, num, waLink } from "@/lib/format";
 import { cn } from "@/lib/cn";
-import type { Order, OrderStatus } from "@/lib/types";
+import type { Order, OrderPayment, OrderStatus } from "@/lib/types";
 
 const FLOW: { key: OrderStatus; label: string; icon: typeof Check }[] = [
   { key: "pendiente", label: "Pendiente", icon: Clock },
@@ -39,12 +38,19 @@ export default function OrderDetailPage({ params }: { params: Promise<{ id: stri
   const [sending, setSending] = useState(false);
   const [sendTab, setSendTab] = useState<"whatsapp" | "email">("whatsapp");
   const [payOpen, setPayOpen] = useState(false);
-  const [payAmount, setPayAmount] = useState<string>("");
   const [busy, setBusy] = useState(false);
-  const { data: o, loading, setData } = useAsync(
+  const { data: o, loading, setData, reload } = useAsync(
     async () => must(await sb.from("orders").select("*, clients(id, name, phone, email, address), order_items(*)").eq("id", id).single()) as Order,
     [id],
   );
+  const payments = useAsync(
+    async () => must(await sb.from("order_payments").select("*").eq("order_id", id).order("paid_at", { ascending: true })) as OrderPayment[],
+    [id],
+  );
+  const reloadAll = () => {
+    reload();
+    payments.reload();
+  };
 
   useEffect(() => {
     if (!o) return;
@@ -75,13 +81,12 @@ export default function OrderDetailPage({ params }: { params: Promise<{ id: stri
     if (msg) toast.success(msg);
   }
 
-  async function registerPayment() {
-    const amount = Number(payAmount);
-    if (!(amount > 0)) return toast.error("Monto inválido");
-    const deposit = Math.min(Number(o!.deposit) + amount, Number(o!.total));
-    await patch({ deposit, payment_status: deposit >= Number(o!.total) ? "pagado" : "anticipo" }, "Pago registrado 💰");
-    setPayOpen(false);
-    setPayAmount("");
+  async function removePayment(p: OrderPayment) {
+    if (!(await confirm({ title: "¿Eliminar este pago?", message: `Se restarán ${money(p.amount)} de lo pagado.`, confirmText: "Eliminar", danger: true }))) return;
+    const { error } = await sb.from("order_payments").delete().eq("id", p.id);
+    if (error) return toast.error(error.message);
+    toast.success("Pago eliminado");
+    reloadAll();
   }
 
   async function remove() {
@@ -247,8 +252,26 @@ export default function OrderDetailPage({ params }: { params: Promise<{ id: stri
             {o.payment_status !== "pagado" && (
               <div className="mt-4 grid grid-cols-2 gap-2">
                 <Button size="sm" variant="secondary" onClick={() => setPayOpen(true)}>Registrar abono</Button>
-                <Button size="sm" variant="mint" onClick={() => patch({ deposit: o.total, payment_status: "pagado" }, "Pedido pagado ✨")}>Marcar pagado</Button>
+                <Button size="sm" variant="mint" onClick={async () => { await patch({ payment_status: "pagado" }, "Pedido pagado ✨"); reloadAll(); }}>Marcar pagado</Button>
               </div>
+            )}
+            {(payments.data ?? []).length > 0 && (
+              <ul className="mt-4 space-y-1.5 border-t border-cocoa-800/5 pt-3">
+                {payments.data!.map((p) => (
+                  <li key={p.id} className="group flex items-center gap-2 text-[13px]">
+                    <span className={cn("h-1.5 w-1.5 shrink-0 rounded-full", Number(p.amount) > 0 ? "bg-mint-400" : "bg-rose-400")} />
+                    <span className="min-w-0 flex-1 truncate text-cocoa-500">
+                      {date(p.paid_at, { day: "numeric", month: "short" })}
+                      {p.method && ` · ${p.method}`}
+                      {p.note && ` · ${p.note}`}
+                    </span>
+                    <span className="font-semibold text-cocoa-700 tabular-nums">{money(p.amount)}</span>
+                    <button onClick={() => removePayment(p)} className="rounded-lg p-1 text-cocoa-300 opacity-60 hover:bg-rose-50 hover:text-rose-500 group-hover:opacity-100" aria-label="Eliminar pago">
+                      <Trash2 className="h-3.5 w-3.5" />
+                    </button>
+                  </li>
+                ))}
+              </ul>
             )}
             {o.payment_method && <p className="mt-3 text-xs text-cocoa-400">Método: {o.payment_method}</p>}
           </Card>
@@ -259,7 +282,7 @@ export default function OrderDetailPage({ params }: { params: Promise<{ id: stri
             {email && <a href={`mailto:${email}`} className="flex items-center gap-2 truncate text-cocoa-600 hover:text-rose-500"><Send className="h-4 w-4 text-cocoa-300" /> {email}</a>}
             <p className="flex items-start gap-2 text-cocoa-600">
               {o.delivery_type === "envio" ? <Truck className="mt-0.5 h-4 w-4 shrink-0 text-cocoa-300" /> : <Store className="mt-0.5 h-4 w-4 shrink-0 text-cocoa-300" />}
-              {o.delivery_type === "envio" ? o.delivery_address || "Envío (sin dirección)" : "Recoge en tienda"}
+              {o.delivery_type === "envio" ? `${o.delivery_zone ? o.delivery_zone + " · " : ""}${o.delivery_address || "Envío (sin dirección)"}` : "Recoge en tienda"}
             </p>
             {o.delivery_type === "envio" && o.delivery_address && (
               <a href={`https://maps.google.com/?q=${encodeURIComponent(o.delivery_address)}`} target="_blank" rel="noreferrer" className="flex items-center gap-2 font-bold text-rose-500"><MapPin className="h-4 w-4" /> Abrir en mapas</a>
@@ -301,11 +324,11 @@ export default function OrderDetailPage({ params }: { params: Promise<{ id: stri
         </div>
       </div>
 
-      <Modal open={payOpen} onClose={() => setPayOpen(false)} title="Registrar abono" size="sm"
-        footer={<><Button variant="ghost" onClick={() => setPayOpen(false)}>Cancelar</Button><Button variant="mint" onClick={registerPayment}>Registrar</Button></>}
-      >
-        <Input label="Monto recibido" type="number" min={0} step="any" prefix="$" value={payAmount} onChange={(e) => setPayAmount(e.target.value)} hint={`Saldo actual: ${money(balance)}`} autoFocus />
-      </Modal>
+      <PaymentModal
+        order={payOpen ? { id: o.id, folio: o.folio, total: o.total, deposit: o.deposit, customer: name } : null}
+        onClose={() => setPayOpen(false)}
+        onSaved={reloadAll}
+      />
 
       <SendDialog
         open={sending}

@@ -1,7 +1,7 @@
 "use client";
 import { useMemo } from "react";
 import Link from "next/link";
-import { AlertTriangle, ArrowRight, CalendarClock, CakeSlice, FileText, HandCoins, Plus, ShoppingBag, Sparkles, Store, TrendingUp, Wheat } from "lucide-react";
+import { AlertTriangle, ArrowRight, BellRing, CalendarClock, CakeSlice, FileText, HandCoins, Plus, ShoppingBag, Sparkles, Store, TrendingUp, Wallet, Wheat } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { must, useAsync } from "@/hooks/useAsync";
 import { useBusiness } from "@/components/layout/BusinessProvider";
@@ -13,9 +13,11 @@ import { ORDER_STATUS, QUOTE_STATUS } from "@/lib/constants";
 import { addDays, date, folio, money, money0, parseDate, toISODate } from "@/lib/format";
 import type { Ingredient, Order, Quote } from "@/lib/types";
 import { fmtQty } from "@/lib/production";
+import { OnboardingChecklist } from "@/components/dashboard/OnboardingChecklist";
+import { planAllows } from "@/lib/plans";
 
 export default function DashboardHome() {
-  const { profile } = useBusiness();
+  const { profile, plan } = useBusiness();
   const sb = createClient();
   const now = new Date();
   const monthStart = toISODate(new Date(now.getFullYear(), now.getMonth(), 1));
@@ -39,7 +41,12 @@ export default function DashboardHome() {
     const lowStock = profile.inventory_enabled
       ? ((must(await sb.from("ingredients").select("id, name, unit, stock, min_stock").gt("min_stock", 0)) as Ingredient[]).filter((i) => Number(i.stock) <= Number(i.min_stock)))
       : [];
-    const active = must(await sb.from("orders").select("total, deposit").in("status", ["pendiente", "confirmado", "en_preparacion", "listo"])) as Pick<Order, "total" | "deposit">[];
+    const active = must(await sb.from("orders").select("total, deposit, delivery_date").in("status", ["pendiente", "confirmado", "en_preparacion", "listo"])) as Pick<Order, "total" | "deposit" | "delivery_date">[];
+    // Cotizaciones enviadas sin respuesta (para "Por seguir")
+    const sent = must(await sb.from("quotes").select("sent_at, followed_up_at, created_at, valid_until").eq("status", "enviada")) as Pick<Quote, "sent_at" | "followed_up_at" | "created_at" | "valid_until">[];
+    const limit = Date.now() - (profile.followup_days ?? 3) * 86_400_000;
+    const followUps = sent.filter((q) => (!q.valid_until || q.valid_until >= today) && new Date(q.followed_up_at ?? q.sent_at ?? q.created_at).getTime() <= limit).length;
+    const soonDue = active.filter((o) => Number(o.total) - Number(o.deposit) > 0.009 && o.delivery_date && o.delivery_date <= toISODate(addDays(now, 2))).length;
     return {
       sales30,
       salesMonth,
@@ -49,6 +56,8 @@ export default function DashboardHome() {
       receivable: active.reduce((a, o) => a + Math.max(Number(o.total) - Number(o.deposit), 0), 0),
       activeCount: active.length,
       lowStock,
+      followUps,
+      soonDue,
     };
   });
 
@@ -96,6 +105,8 @@ export default function DashboardHome() {
         </div>
       </section>
 
+      <OnboardingChecklist />
+
       {/* KPIs */}
       <div className="mb-6 grid grid-cols-2 gap-3 xl:grid-cols-4">
         {loading || !month || !data ? (
@@ -109,6 +120,31 @@ export default function DashboardHome() {
           </>
         )}
       </div>
+
+      {data && (data.followUps > 0 || data.soonDue > 0) && planAllows(plan.plan, "profesional") && (
+        <div className="mb-6 grid gap-3 sm:grid-cols-2">
+          {data.followUps > 0 && (
+            <Link href="/dashboard/seguimiento" className="flex items-center gap-3 rounded-3xl bg-rose-50 p-4 ring-1 ring-rose-200/70 transition hover:bg-rose-100/70">
+              <span className="grid h-10 w-10 shrink-0 place-items-center rounded-2xl bg-white text-rose-500"><BellRing className="h-5 w-5" /></span>
+              <div className="min-w-0 flex-1">
+                <p className="font-semibold text-rose-700">{data.followUps} cotizaci{data.followUps === 1 ? "ón" : "ones"} por seguir</p>
+                <p className="text-sm text-rose-700/80">Sin respuesta desde hace {profile.followup_days ?? 3}+ días</p>
+              </div>
+              <ArrowRight className="h-4 w-4 shrink-0 text-rose-500" />
+            </Link>
+          )}
+          {data.soonDue > 0 && (
+            <Link href="/dashboard/saldos" className="flex items-center gap-3 rounded-3xl bg-mint-50 p-4 ring-1 ring-mint-200 transition hover:bg-mint-100/70">
+              <span className="grid h-10 w-10 shrink-0 place-items-center rounded-2xl bg-white text-mint-600"><Wallet className="h-5 w-5" /></span>
+              <div className="min-w-0 flex-1">
+                <p className="font-semibold text-mint-700">{data.soonDue} saldo{data.soonDue === 1 ? "" : "s"} por cobrar pronto</p>
+                <p className="text-sm text-mint-700/80">Entregas de hoy a pasado mañana</p>
+              </div>
+              <ArrowRight className="h-4 w-4 shrink-0 text-mint-600" />
+            </Link>
+          )}
+        </div>
+      )}
 
       {data && data.lowStock.length > 0 && (
         <Link href="/dashboard/ingredientes" className="mb-6 flex items-start gap-3 rounded-3xl bg-amber-50 p-4 ring-1 ring-amber-200/70 transition hover:bg-amber-100/70">

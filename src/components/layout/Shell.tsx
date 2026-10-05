@@ -25,6 +25,11 @@ import {
   MessageSquareText,
   DatabaseBackup,
   GraduationCap,
+  BellRing,
+  Wallet,
+  TrendingDown,
+  Lock,
+  Gauge,
 } from "lucide-react";
 import { cn } from "@/lib/cn";
 import { signOutDevice } from "@/lib/session";
@@ -37,12 +42,16 @@ import { DemoBanner } from "./DemoBanner";
 import type { Profile } from "@/lib/types";
 import { useBusiness } from "./BusinessProvider";
 import { NotificationBell } from "./NotificationBell";
+import { UpgradeCard } from "./UpgradeCard";
+import { planAllows, routePlan, PLANS } from "@/lib/plans";
 
 const NAV = [
   { group: "Principal", items: [
     { href: "/dashboard", label: "Inicio", icon: LayoutDashboard, exact: true },
     { href: "/dashboard/cotizaciones", label: "Cotizaciones", icon: FileText },
+    { href: "/dashboard/seguimiento", label: "Por seguir", icon: BellRing },
     { href: "/dashboard/pedidos", label: "Pedidos", icon: ShoppingBag },
+    { href: "/dashboard/saldos", label: "Saldos", icon: Wallet },
     { href: "/dashboard/calendario", label: "Calendario", icon: CalendarDays },
     { href: "/dashboard/produccion", label: "Producción", icon: ChefHat },
     { href: "/dashboard/clientes", label: "Clientes", icon: Users },
@@ -51,6 +60,7 @@ const NAV = [
     { href: "/dashboard/postres", label: "Postres", icon: CakeSlice },
     { href: "/dashboard/ingredientes", label: "Ingredientes e inventario", icon: Wheat },
     { href: "/dashboard/costos-fijos", label: "Gastos fijos", icon: Receipt },
+    { href: "/dashboard/margenes", label: "Alerta de margen", icon: TrendingDown },
   ]},
   { group: "Negocio", items: [
     { href: "/dashboard/reportes", label: "Reportes", icon: BarChart3 },
@@ -70,7 +80,7 @@ const MOBILE = [
 ];
 
 export function Shell({ children }: { children: React.ReactNode }) {
-  const { profile, setProfile } = useBusiness();
+  const { profile, setProfile, plan } = useBusiness();
   const pathname = usePathname();
   const router = useRouter();
   const [open, setOpen] = useState(false);
@@ -127,8 +137,14 @@ export function Shell({ children }: { children: React.ReactNode }) {
   }, [router]);
 
   const nav = profile.role === "admin"
-    ? [...NAV, { group: "Administración", items: [{ href: "/dashboard/admin/licencias", label: "Licencias", icon: KeyRound }] }]
+    ? [...NAV, { group: "Administración", items: [
+        { href: "/dashboard/admin", label: "Métricas", icon: Gauge, exact: true },
+        { href: "/dashboard/admin/licencias", label: "Licencias", icon: KeyRound },
+      ] }]
     : NAV;
+
+  const gate = routePlan(pathname);
+  const locked = gate && !planAllows(plan.plan, gate.min) ? gate : null;
 
   const SidebarContent = (
     <div className="flex h-full flex-col">
@@ -150,6 +166,8 @@ export function Shell({ children }: { children: React.ReactNode }) {
               {g.items.map((it) => {
                 const active = isActive(it.href, "exact" in it ? it.exact : false);
                 const Icon = it.icon;
+                const need = routePlan(it.href);
+                const needLabel = need && !planAllows(plan.plan, need.min) ? PLANS.find((p) => p.id === need.min)?.name : null;
                 return (
                   <li key={it.href}>
                     <Link
@@ -159,8 +177,16 @@ export function Shell({ children }: { children: React.ReactNode }) {
                         active ? "bg-rose-500 text-white shadow-rose" : "text-cocoa-500 hover:bg-cream-200 hover:text-cocoa-700",
                       )}
                     >
-                      <Icon className={cn("h-[18px] w-[18px]", active ? "text-white" : "text-cocoa-300 group-hover:text-rose-400")} />
-                      {it.label}
+                      <Icon className={cn("h-[18px] w-[18px] shrink-0", active ? "text-white" : "text-cocoa-300 group-hover:text-rose-400")} />
+                      <span className="min-w-0 flex-1 truncate">{it.label}</span>
+                      {needLabel && (
+                        <span
+                          title={`Incluido en el plan ${needLabel}`}
+                          className={cn("inline-flex items-center gap-0.5 rounded-full px-1.5 py-0.5 text-[9.5px] font-bold uppercase", active ? "bg-white/20 text-white" : "bg-cream-200 text-cocoa-400")}
+                        >
+                          <Lock className="h-2.5 w-2.5" /> {needLabel}
+                        </span>
+                      )}
                     </Link>
                   </li>
                 );
@@ -212,7 +238,9 @@ export function Shell({ children }: { children: React.ReactNode }) {
         <NotificationBell />
       </header>
 
-      <main className="mx-auto w-full max-w-[1320px] px-4 pt-6 pb-28 sm:px-6 lg:px-10 lg:pt-10 lg:pb-12">{children}</main>
+      <main className="mx-auto w-full max-w-[1320px] px-4 pt-6 pb-28 sm:px-6 lg:px-10 lg:pt-10 lg:pb-12">
+        {locked ? <UpgradeCard min={locked.min} feature={locked.feature} /> : children}
+      </main>
 
       {/* Navegación inferior móvil */}
       <nav className="fixed inset-x-0 bottom-0 z-40 border-t border-cocoa-800/5 bg-white/90 pb-safe backdrop-blur-xl lg:hidden">

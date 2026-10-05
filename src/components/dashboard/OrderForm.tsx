@@ -196,7 +196,7 @@ export function OrderForm({ orderId }: { orderId?: string }) {
             <h3 className="flex items-center gap-2 text-lg font-semibold"><Wallet className="h-5 w-5 text-mint-500" /> Pago y estado</h3>
             <div className="mt-4 grid gap-3">
               <div className="grid grid-cols-2 gap-3">
-                <Input label="Anticipo" type="number" min={0} step="any" prefix="$" value={f.deposit} onChange={(e) => setF({ ...f, deposit: e.target.value })} />
+                <Input label={orderId ? "Pagado" : "Anticipo"} type="number" min={0} step="any" prefix="$" value={f.deposit} onChange={(e) => setF({ ...f, deposit: e.target.value })} hint={orderId ? "Para abonos usa “Registrar abono” en el pedido" : undefined} />
                 <Select label="Método" value={f.payment_method} onChange={(e) => setF({ ...f, payment_method: e.target.value })}>
                   <option value="">—</option>
                   <option>Efectivo</option>
