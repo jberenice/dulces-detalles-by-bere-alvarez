@@ -66,9 +66,17 @@ export async function GET(request: Request) {
   const admin: Db = createAdminClient(SUPABASE_URL, serviceKey, { auth: { persistSession: false, autoRefreshToken: false } });
   const utcToday = new Date().toISOString().slice(0, 10);
 
+  // Limpieza: borra las cuentas demo vencidas (sus datos se eliminan en cascada)
+  let demosDeleted = 0;
+  const { data: expiredDemos } = await admin.rpc("demo_expired_users", { p_limit: 100 });
+  for (const id of (expiredDemos ?? []) as string[]) {
+    const { error } = await admin.auth.admin.deleteUser(id);
+    if (!error) demosDeleted++;
+  }
+
   const { data: profiles, error: pErr } = await admin
     .from("profiles")
-    .select("id, email, business_name, owner_name, reminder_days_before, reminder_hour, reminder_last_sent, timezone, reminder_email");
+    .select("id, email, business_name, owner_name, reminder_days_before, reminder_hour, reminder_last_sent, timezone, reminder_email, is_demo");
   if (pErr) return NextResponse.json({ ok: false, error: pErr.message }, { status: 500 });
 
   const { data: orders, error: oErr } = await admin
@@ -105,6 +113,7 @@ export async function GET(request: Request) {
     timezone: string;
     reminder_email: boolean;
   }[]) {
+    if ((p as { is_demo?: boolean }).is_demo) continue;
     const subs = subsByUser.get(p.id) ?? [];
     const wantsEmail = p.reminder_email && !!p.email && !!process.env.RESEND_API_KEY;
     if (!wantsEmail && !subs.length) continue;
@@ -193,5 +202,5 @@ export async function GET(request: Request) {
     if (delivered) await admin.from("profiles").update({ reminder_last_sent: today }).eq("id", p.id);
   }
 
-  return NextResponse.json({ ok: true, sent, pushed });
+  return NextResponse.json({ ok: true, sent, pushed, demosDeleted });
 }

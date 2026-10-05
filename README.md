@@ -36,6 +36,8 @@ Al activar la licencia se puede **precargar el recetario** con tus datos reales:
    - `supabase/migrations/0005_timezones.sql` (zona horaria por usuaria)
    - `supabase/migrations/0006_store_design.sql` (diseño personalizable de la minitienda)
    - `supabase/migrations/0007_inventory_push_templates.sql` (inventario, notificaciones push y plantillas)
+   - `supabase/migrations/0008_demo.sql` (cuenta demo de 48 horas)
+   - `supabase/migrations/0009_anonymous_hardening.sql` (límites para usuarios anónimos de la demo)
    - `supabase/cron_setup.sql` (recordatorios cada hora; reemplaza tu dominio y tu CRON_SECRET antes de ejecutarlo)
    - `supabase/admin_setup.sql` → el resultado te muestra **tu código de licencia de administradora** (aleatorio)
 3. **Authentication → URL Configuration**
@@ -92,6 +94,21 @@ Están en `/aviso-de-privacidad`, `/terminos-y-condiciones` y `/politica-de-cook
 - **App instalable + notificaciones push**: Ajustes → App y notificaciones. Avisa al instante de pedidos nuevos de la tienda y del resumen diario de entregas, aunque la app esté cerrada. Requiere `NEXT_PUBLIC_VAPID_PUBLIC_KEY`, `VAPID_PRIVATE_KEY` y `VAPID_SUBJECT` (genera las tuyas con `npx web-push generate-vapid-keys`) y `SUPABASE_SERVICE_ROLE_KEY`.
 - **Mensajes** (`/dashboard/mensajes`): plantillas de WhatsApp y correo editables con variables como `{cliente}`, `{folio}`, `{total}`, `{saldo}`.
 - **Respaldo** (`/dashboard/respaldo`): Excel completo con una hoja por tema y respaldo técnico JSON.
+
+## 🎁 Cuenta demo y tutorial
+- En `/demo` cualquier persona entra a una **repostería de ejemplo** sin registrarse: 30 recetas costeadas, clientes, pedidos, cotizaciones, inventario y tienda. Dura **48 horas** y luego se borra sola (el cron de cada hora la elimina).
+- Cada visitante tiene su **propia copia**: nadie ve ni modifica lo de otra persona.
+- En la demo no se envían correos ni se suben fotos; hay una franja con el botón **«Quiero mi licencia»** (WhatsApp de ventas en `src/lib/legal.ts`).
+- **Activar:** Supabase → Authentication → Sign In / Providers → **Allow anonymous sign-ins** = ON. Recomendado también activar CAPTCHA (Turnstile) para evitar abusos.
+- **Tutorial** (`/dashboard/tutorial`): bienvenida en carrusel + 9 pasos que se palomean solos al visitar cada sección. Disponible para todas las usuarias.
+
+## 🔑 Cómo generar licencias
+1. Entra con tu cuenta de administradora → menú **Administración → Licencias**.
+2. **Generar licencias** → cantidad, nota (p. ej. el nombre de la clienta) y vencimiento opcional. Los códigos se copian al portapapeles.
+3. Envía el código a tu clienta: se registra en `/registro` con él. Desde el mismo panel puedes **suspender**, **reactivar** o **liberar el dispositivo**.
+
+Por SQL (alternativa): `select code from public.licenses where status = 'disponible';` para ver las disponibles, o
+`insert into public.licenses (code, notes) values (public.generate_license_code(), 'Clienta X') returning code;` para crear una.
 
 ## 🧮 Fórmula de costeo (igual que tus hojas de Excel)
 

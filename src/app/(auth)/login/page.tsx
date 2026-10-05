@@ -1,5 +1,5 @@
 "use client";
-import { Suspense, useEffect, useState } from "react";
+import { Suspense, useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Mail } from "lucide-react";
@@ -10,6 +10,7 @@ import { safeNext } from "@/lib/safe-redirect";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Field";
 import { PasswordInput } from "@/components/ui/PasswordInput";
+import { Turnstile, captchaEnabled, type TurnstileHandle } from "@/components/ui/Turnstile";
 
 function LoginForm() {
   const router = useRouter();
@@ -18,6 +19,8 @@ function LoginForm() {
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const [remember, setRemember] = useState(true);
+  const [captcha, setCaptcha] = useState<string | null>(null);
+  const captchaRef = useRef<TurnstileHandle>(null);
 
   // Solo se recuerda el correo (nunca la contraseña); tu navegador puede guardar la contraseña de forma segura
   useEffect(() => {
@@ -30,9 +33,11 @@ function LoginForm() {
 
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault();
+    if (captchaEnabled() && !captcha) return toast.error("Espera un momento: estamos verificando que no eres un robot");
     setLoading(true);
     const supabase = createClient();
-    const { error } = await supabase.auth.signInWithPassword({ email: email.trim(), password });
+    const { error } = await supabase.auth.signInWithPassword({ email: email.trim(), password, options: { captchaToken: captcha ?? undefined } });
+    captchaRef.current?.reset();
     if (error) {
       setLoading(false);
       toast.error(error.message === "Invalid login credentials" ? "Correo o contraseña incorrectos" : error.message);
@@ -75,6 +80,7 @@ function LoginForm() {
             ¿Olvidaste tu contraseña?
           </Link>
         </div>
+        <Turnstile ref={captchaRef} onToken={setCaptcha} className="flex justify-center" />
         <Button type="submit" size="lg" className="w-full" loading={loading}>
           Entrar
         </Button>
@@ -85,6 +91,9 @@ function LoginForm() {
         <Link href="/registro" className="mt-1 inline-block font-bold text-mint-600 hover:underline">
           Crea tu cuenta y actívala →
         </Link>
+        <p className="mt-3 text-sm text-cocoa-500">
+          ¿Aún no la tienes? <Link href="/demo" className="font-bold text-rose-500 hover:underline">Prueba la demo gratis</Link>
+        </p>
       </div>
       <p className="mt-6 text-center text-xs text-cocoa-400">
         Tu licencia funciona en un dispositivo a la vez. Al entrar aquí se cerrará la sesión en cualquier otro equipo.

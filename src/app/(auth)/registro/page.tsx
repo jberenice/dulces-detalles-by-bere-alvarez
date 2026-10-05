@@ -1,5 +1,5 @@
 "use client";
-import { useState } from "react";
+import { useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { KeyRound, MailCheck } from "lucide-react";
@@ -9,6 +9,7 @@ import { claimDevice } from "@/lib/session";
 import { Button } from "@/components/ui/Button";
 import { Input, Toggle } from "@/components/ui/Field";
 import { PasswordInput } from "@/components/ui/PasswordInput";
+import { Turnstile, captchaEnabled, type TurnstileHandle } from "@/components/ui/Turnstile";
 
 export default function RegisterPage() {
   const router = useRouter();
@@ -16,6 +17,8 @@ export default function RegisterPage() {
   const [seed, setSeed] = useState(true);
   const [accepted, setAccepted] = useState(false);
   const [confirm, setConfirm] = useState("");
+  const [captcha, setCaptcha] = useState<string | null>(null);
+  const captchaRef = useRef<TurnstileHandle>(null);
   const [loading, setLoading] = useState(false);
   const [sent, setSent] = useState(false);
   const set = (k: keyof typeof form) => (e: React.ChangeEvent<HTMLInputElement>) => setForm({ ...form, [k]: e.target.value });
@@ -25,6 +28,8 @@ export default function RegisterPage() {
     if (form.password.length < 8) return toast.error("La contraseña debe tener al menos 8 caracteres");
     if (form.password !== confirm) return toast.error("Las contraseñas no coinciden");
     if (!accepted) return toast.error("Debes aceptar los términos y el aviso de privacidad");
+    if (captchaEnabled() && !captcha) return toast.error("Espera un momento: estamos verificando que no eres un robot");
+
     setLoading(true);
     const supabase = createClient();
     const code = form.code.trim().toUpperCase();
@@ -42,6 +47,7 @@ export default function RegisterPage() {
       password: form.password,
       options: {
         emailRedirectTo: `${window.location.origin}/auth/callback?next=/dashboard`,
+        captchaToken: captcha ?? undefined,
         data: {
           owner_name: form.owner_name,
           business_name: form.business_name || "Mi repostería",
@@ -52,6 +58,7 @@ export default function RegisterPage() {
         },
       },
     });
+    captchaRef.current?.reset();
     if (error) {
       setLoading(false);
       return toast.error(error.message.includes("registered") ? "Ese correo ya tiene una cuenta" : error.message);
@@ -122,6 +129,7 @@ export default function RegisterPage() {
             <Link href="/aviso-de-privacidad" target="_blank" className="font-bold text-rose-500 hover:underline">aviso de privacidad</Link>.
           </span>
         </label>
+        <Turnstile ref={captchaRef} onToken={setCaptcha} className="flex justify-center" />
         <Button type="submit" size="lg" className="w-full" loading={loading}>
           Activar mi licencia
         </Button>

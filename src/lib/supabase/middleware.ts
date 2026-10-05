@@ -64,6 +64,8 @@ export async function updateSession(request: NextRequest) {
         return redirect("/licencia-inactiva", { motivo: "suspendida" });
       case "expired":
         return redirect("/licencia-inactiva", { motivo: "vencida" });
+      case "demo_expired":
+        return redirect("/demo", { expirada: "1" });
       case "other_device":
         return redirect("/sesion-activa", { next: path });
       default:

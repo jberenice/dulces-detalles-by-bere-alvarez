@@ -4,6 +4,7 @@ import { ImagePlus, Loader2, X } from "lucide-react";
 import { toast } from "sonner";
 import { uploadImage } from "@/lib/upload";
 import { cn } from "@/lib/cn";
+import { useBusiness } from "@/components/layout/BusinessProvider";
 
 export function ImagePicker({
   value,
@@ -24,9 +25,15 @@ export function ImagePicker({
 }) {
   const ref = useRef<HTMLInputElement>(null);
   const [busy, setBusy] = useState(false);
+  const { profile } = useBusiness();
 
   async function onFile(f?: File) {
     if (!f) return;
+    if (profile.is_demo) {
+      toast.info("En la demo no se pueden subir fotos. ¡Con tu licencia sí! 📸");
+      if (ref.current) ref.current.value = "";
+      return;
+    }
     setBusy(true);
     try {
       onChange(await uploadImage(f, folder));

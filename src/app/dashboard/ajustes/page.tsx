@@ -11,6 +11,7 @@ import { Input, Select, Textarea, Toggle } from "@/components/ui/Field";
 import { ImagePicker } from "@/components/ui/ImagePicker";
 import { AppInstallCard } from "@/components/dashboard/AppInstallCard";
 import { date } from "@/lib/format";
+import { salesLink } from "@/lib/legal";
 import { MX_TIMEZONES, browserTimeZone, hourLabel, nowIn } from "@/lib/timezones";
 import type { Profile } from "@/lib/types";
 
@@ -144,7 +145,13 @@ export default function SettingsPage() {
           <Card>
             <CardHeader title="Tu licencia" icon={<KeyRound className="h-5 w-5" />} />
             <div className="space-y-2 p-5 text-sm sm:p-6">
-              {profile.role === "admin" ? (
+              {profile.is_demo ? (
+                <>
+                  <Badge tone="rose">Cuenta demo</Badge>
+                  <p className="text-cocoa-500">Se borra el {date(profile.demo_expires_at ?? null, { day: "numeric", month: "long", hour: "2-digit", minute: "2-digit" })}.</p>
+                  <a href={salesLink()} target="_blank" rel="noopener noreferrer" className="inline-block font-bold text-rose-500 hover:underline">Quiero mi licencia →</a>
+                </>
+              ) : profile.role === "admin" ? (
                 <Badge tone="rose">Administradora</Badge>
               ) : license.data ? (
                 <>

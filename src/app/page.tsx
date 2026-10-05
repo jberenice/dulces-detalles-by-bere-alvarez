@@ -32,6 +32,7 @@ export default async function Landing({ searchParams }: { searchParams: Promise<
           </Link>
           <nav className="flex shrink-0 items-center gap-2">
             <ButtonLink href="/login" variant="ghost" size="sm" className="max-sm:hidden">Iniciar sesión</ButtonLink>
+            <ButtonLink href="/demo" size="sm" variant="secondary" className="max-[389px]:hidden">Demo</ButtonLink>
             <ButtonLink href="/login" size="sm" className="sm:hidden">Entrar</ButtonLink>
             <ButtonLink href="/registro" size="sm" className="max-sm:hidden">Activar licencia</ButtonLink>
           </nav>
@@ -53,8 +54,8 @@ export default async function Landing({ searchParams }: { searchParams: Promise<
               recibe pedidos desde tu propia tienda en línea.
             </p>
             <div className="mt-8 flex flex-col justify-center gap-3 sm:flex-row lg:justify-start">
-              <ButtonLink href="/registro" size="lg">Activar mi licencia <ArrowRight className="h-4 w-4" /></ButtonLink>
-              <ButtonLink href="/login" size="lg" variant="outline">Ya tengo cuenta</ButtonLink>
+              <ButtonLink href="/demo" size="lg">Probar demo gratis <ArrowRight className="h-4 w-4" /></ButtonLink>
+              <ButtonLink href="/registro" size="lg" variant="outline">Activar mi licencia</ButtonLink>
             </div>
             <p className="mt-6 flex items-center justify-center gap-4 text-sm text-cocoa-400 lg:justify-start">
               <span className="flex items-center gap-1.5"><Smartphone className="h-4 w-4 text-mint-500" /> Celular y computadora</span>
@@ -103,7 +104,10 @@ export default async function Landing({ searchParams }: { searchParams: Promise<
             <p className="font-script text-2xl text-rose-300">Así de fácil</p>
             <h2 className="mt-1 text-4xl font-semibold text-white">De la receta al pedido en 3 pasos</h2>
             <p className="mt-3 text-cream-200/70">Cada licencia es personal: una cuenta, un dispositivo activo a la vez, y tus datos siempre protegidos.</p>
-            <ButtonLink href="/registro" size="lg" className="mt-8"><KeyRound className="h-4 w-4" /> Tengo mi código</ButtonLink>
+            <div className="mt-8 flex flex-wrap gap-3">
+              <ButtonLink href="/demo" size="lg">Probar la demo</ButtonLink>
+              <ButtonLink href="/registro" size="lg" variant="secondary"><KeyRound className="h-4 w-4" /> Tengo mi código</ButtonLink>
+            </div>
           </div>
           <ol className="space-y-4">
             {[

@@ -19,6 +19,10 @@ export async function POST(request: Request) {
 
   if (!process.env.RESEND_API_KEY) return NextResponse.json({ ok: false, reason: "not_configured" }, { status: 200 });
 
+  // Las cuentas demo no envían correos reales
+  const { data: demo } = await supabase.from("profiles").select("is_demo").eq("id", user.id).single();
+  if (demo?.is_demo) return NextResponse.json({ ok: false, error: "En la demo no se envían correos reales. Puedes descargar el PDF 😉" }, { status: 403 });
+
   // Cupo por usuaria (anti spam): 40 correos por hora
   const { error: quotaError } = await supabase.rpc("consume_email_quota");
   if (quotaError) return NextResponse.json({ ok: false, error: quotaError.message }, { status: 429 });

@@ -36,6 +36,8 @@ export type Profile = {
   store_shipping_fee: number;
   store_theme: unknown;
   inventory_enabled: boolean;
+  is_demo?: boolean;
+  demo_expires_at?: string | null;
   message_templates: Record<string, string> | null;
   store_about: string | null;
   store_hours: string | null;

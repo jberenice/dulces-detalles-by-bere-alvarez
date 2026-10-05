@@ -24,12 +24,16 @@ import {
   ChefHat,
   MessageSquareText,
   DatabaseBackup,
+  GraduationCap,
 } from "lucide-react";
 import { cn } from "@/lib/cn";
 import { signOutDevice } from "@/lib/session";
 import { createClient } from "@/lib/supabase/client";
 import { browserTimeZone } from "@/lib/timezones";
 import { registerServiceWorker } from "@/lib/push-client";
+import { trackVisit } from "@/lib/tutorial";
+import { WelcomeTour } from "@/components/tutorial/WelcomeTour";
+import { DemoBanner } from "./DemoBanner";
 import type { Profile } from "@/lib/types";
 import { useBusiness } from "./BusinessProvider";
 import { NotificationBell } from "./NotificationBell";
@@ -53,6 +57,7 @@ const NAV = [
     { href: "/dashboard/tienda", label: "Mi tienda", icon: Store },
     { href: "/dashboard/mensajes", label: "Mensajes", icon: MessageSquareText },
     { href: "/dashboard/respaldo", label: "Respaldo", icon: DatabaseBackup },
+    { href: "/dashboard/tutorial", label: "Tutorial", icon: GraduationCap },
     { href: "/dashboard/ajustes", label: "Ajustes", icon: Settings },
   ]},
 ];
@@ -73,6 +78,11 @@ export function Shell({ children }: { children: React.ReactNode }) {
   const isActive = (href: string, exact?: boolean) => (exact ? pathname === href : pathname === href || pathname.startsWith(href + "/"));
 
   useEffect(() => setOpen(false), [pathname]);
+
+  // Tutorial: marca como visto el paso de la sección actual
+  useEffect(() => {
+    trackVisit(profile.id, pathname);
+  }, [pathname, profile.id]);
 
   // Service worker: app instalable y notificaciones push
   useEffect(() => {
@@ -103,6 +113,7 @@ export function Shell({ children }: { children: React.ReactNode }) {
         if (status === "other_device") router.replace("/sesion-activa");
         else if (status === "suspended" || status === "expired") router.replace(`/licencia-inactiva?motivo=${status === "expired" ? "vencida" : "suspendida"}`);
         else if (status === "no_auth") router.replace("/login");
+        else if (status === "demo_expired") router.replace("/demo?expirada=1");
       } catch {}
     };
     const id = setInterval(check, 60_000);
@@ -171,6 +182,8 @@ export function Shell({ children }: { children: React.ReactNode }) {
 
   return (
     <div className="min-h-dvh lg:pl-[272px]">
+      <DemoBanner />
+      <WelcomeTour />
       {/* Sidebar escritorio */}
       <aside className="fixed inset-y-0 left-0 z-40 hidden w-[272px] border-r border-cocoa-800/5 bg-white/80 backdrop-blur-xl lg:block">{SidebarContent}</aside>
 
