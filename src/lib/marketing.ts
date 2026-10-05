@@ -49,6 +49,10 @@ export const FAQ: { q: string; a: string }[] = [
     a: "No. Entran a tu tienda desde el enlace o el QR, eligen sus postres, la fecha y la zona, y el pedido te llega a WhatsApp y a tu panel.",
   },
   {
+    q: "¿Mi tienda tiene su propia dirección?",
+    a: "Sí. En los planes Profesional y Premium tu tienda queda en tutienda.dulcesdetallesbyberealvarez.com, con el nombre que tú elijas. Si prefieres tu propio dominio (tutienda.com), lo conectamos por ti como servicio extra; en Premium anual la instalación va incluida.",
+  },
+  {
     q: "¿Puedo cambiar de plan después?",
     a: "Sí, cuando quieras. Subes de plan y las funciones nuevas se activan en tu misma cuenta, sin perder nada.",
   },

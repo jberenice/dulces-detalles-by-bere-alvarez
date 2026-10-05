@@ -1,8 +1,8 @@
 "use client";
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
-import { Cake, CakeSlice, Check, Cookie, Crown, MessageCircle } from "lucide-react";
-import { PLANS, type PlanId } from "@/lib/plans";
+import { Cake, CakeSlice, Check, Cookie, Crown, Globe, MessageCircle } from "lucide-react";
+import { CUSTOM_DOMAIN_ADDON, PLANS, type PlanId } from "@/lib/plans";
 import { salesLink } from "@/lib/legal";
 import { money0 } from "@/lib/format";
 import { cn } from "@/lib/cn";
@@ -213,7 +213,7 @@ export function Pricing() {
               </a>
               <ul className="mt-7 space-y-3">
                 {p.features.map((f, i) => (
-                  <li key={f} className={cn("flex gap-2.5 text-[14.5px] leading-snug", dark ? "text-cream-100/90" : "text-cocoa-600", i === 0 && p.id !== "basico" && "font-bold")}>
+                  <li key={f} className={cn("flex gap-2.5 text-[14.5px] leading-snug [overflow-wrap:anywhere]", dark ? "text-cream-100/90" : "text-cocoa-600", i === 0 && p.id !== "basico" && "font-bold")}>
                     <Check className={cn("mt-0.5 h-4 w-4 shrink-0", dark ? "text-mint-300" : "text-mint-500")} /> {f}
                   </li>
                 ))}
@@ -221,6 +221,26 @@ export function Pricing() {
             </div>
           );
         })}
+      </div>
+
+      <div className="mx-auto mt-10 flex max-w-3xl flex-col items-center gap-4 rounded-[28px] border border-dashed border-mint-300 bg-white/70 p-5 text-center sm:flex-row sm:text-left">
+        <span className="grid h-12 w-12 shrink-0 place-items-center rounded-2xl bg-mint-50 text-mint-600">
+          <Globe className="h-6 w-6" />
+        </span>
+        <div className="min-w-0 flex-1">
+          <p className="font-display text-lg font-semibold text-cocoa-700">¿Quieres tu propio dominio? (tutienda.com)</p>
+          <p className="text-sm text-cocoa-500">
+            Servicio extra para Profesional: instalación única de {money0(CUSTOM_DOMAIN_ADDON.setup)}. En Premium anual va incluido. {CUSTOM_DOMAIN_ADDON.note}
+          </p>
+        </div>
+        <a
+          href={salesLink("¡Hola! Me interesa conectar mi propio dominio a mi tienda de Dulces Detalles 🌐")}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="inline-flex h-11 shrink-0 items-center gap-2 rounded-2xl bg-mint-500 px-5 font-bold text-white hover:bg-mint-600"
+        >
+          <MessageCircle className="h-4 w-4" /> Preguntar
+        </a>
       </div>
 
       <p className="mt-8 text-center text-sm text-cocoa-400">

@@ -9,7 +9,7 @@
 create or replace function public.is_reserved_slug(p text) returns boolean
 language sql immutable as $$
   select lower(coalesce(p, '')) = any (array[
-    'www','app','api','admin','administracion','mail','correo','email','smtp','imap','pop','ftp','ns','ns1','ns2','dns',
+    'www','send','app','api','admin','administracion','mail','correo','email','smtp','imap','pop','ftp','ns','ns1','ns2','dns',
     'tienda','tiendas','dashboard','panel','login','registro','demo','soporte','ayuda','help','blog','static','cdn',
     'assets','img','media','dev','staging','test','pruebas','status','docs','cuenta','pagos','legal','dulcesdetalles'
   ]);

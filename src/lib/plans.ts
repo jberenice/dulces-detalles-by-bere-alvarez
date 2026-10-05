@@ -47,6 +47,7 @@ export const PLANS: {
     features: [
       "Todo lo del plan Básico",
       "Minitienda en línea personalizable con variantes, galería y zonas de entrega",
+      "Dirección propia para tu tienda: tutienda.dulcesdetallesbyberealvarez.com",
       "Cupo diario, días llenos y anticipación mínima",
       "Código QR de tu tienda para imprimir",
       "Seguimiento de cotizaciones sin respuesta",
@@ -62,6 +63,7 @@ export const PLANS: {
     prices: { mensual: 499, anual: 4990, vitalicia: null },
     features: [
       "Todo lo del plan Profesional",
+      "Tu propio dominio (tutienda.com): instalación gratis en el plan anual",
       "Alerta de margen cuando suben tus ingredientes",
       "Correos con tu logo y colores",
       "Recordatorio automático de saldo por correo a tus clientes",
@@ -71,6 +73,12 @@ export const PLANS: {
     ],
   },
 ];
+
+/** Servicio extra: conectar el dominio propio de la clienta (se muestra debajo de los planes) */
+export const CUSTOM_DOMAIN_ADDON = {
+  setup: 400, // instalación única (MXN)
+  note: "El dominio se compra a tu nombre (aprox. $300–400 al año) y lo conectamos por ti.",
+};
 
 export const planName = (id: PlanId | null | undefined) => PLANS.find((p) => p.id === id)?.name ?? "Básico";
 

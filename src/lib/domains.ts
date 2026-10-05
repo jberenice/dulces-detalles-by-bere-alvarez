@@ -18,7 +18,7 @@ export const ROOT_DOMAIN = normalizeRoot(process.env.NEXT_PUBLIC_ROOT_DOMAIN);
 
 /** Subdominios que no pueden ser tiendas (deben coincidir con is_reserved_slug en 0011_domains.sql) */
 export const RESERVED_SLUGS = new Set([
-  "www", "app", "api", "admin", "administracion", "mail", "correo", "email", "smtp", "imap", "pop", "ftp", "ns", "ns1", "ns2", "dns",
+  "www", "send", "app", "api", "admin", "administracion", "mail", "correo", "email", "smtp", "imap", "pop", "ftp", "ns", "ns1", "ns2", "dns",
   "tienda", "tiendas", "dashboard", "panel", "login", "registro", "demo", "soporte", "ayuda", "help", "blog", "static", "cdn",
   "assets", "img", "media", "dev", "staging", "test", "pruebas", "status", "docs", "cuenta", "pagos", "legal", "dulcesdetalles",
 ]);
