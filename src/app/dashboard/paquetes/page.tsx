@@ -1,7 +1,7 @@
 "use client";
 import { useMemo, useState } from "react";
 import Link from "next/link";
-import { Boxes, Cake, Check, Copy, Gift, Pencil, Plus, Store, Tags, Trash2, TrendingUp, X } from "lucide-react";
+import { Boxes, Cake, Check, Copy, Ribbon, Gift, Pencil, Plus, Store, Tags, Trash2, TrendingUp, X } from "lucide-react";
 import { toast } from "sonner";
 import { createClient } from "@/lib/supabase/client";
 import { useCatalog } from "@/hooks/useCatalog";
@@ -19,7 +19,7 @@ import { SearchInput, matches } from "@/components/ui/SearchInput";
 import { money, num } from "@/lib/format";
 import { cn } from "@/lib/cn";
 import { KIND_LABEL, cakeOptions, cupcakeOptions, dessertPrice, fixedPieces, kindOf, packageStats, rangeText, type PackageStats } from "@/lib/packages";
-import type { Dessert, FlavorGroup, Package, PackageKind } from "@/lib/types";
+import type { Dessert, Extra, FlavorGroup, Package, PackageKind } from "@/lib/types";
 
 type Draft = Omit<Package, "id" | "created_at" | "price"> & { id?: string; amount: string };
 
@@ -66,7 +66,8 @@ export default function PackagesPage() {
   const { data, costs, ingredientsById } = catalog;
   const packsQ = useAsync(async () => must(await sb.from("packages").select("*").order("position").order("name")) as Package[]);
   const seasonsQ = useAsync(async () => ((await sb.from("seasons").select("id, name, emoji").order("start_date")).data ?? []) as { id: string; name: string; emoji: string | null }[]);
-  const [kind, setKind] = useState<PackageKind>("cupcakes");
+  const [tab, setTab] = useState<PackageKind | "extras">("cupcakes");
+  const kind: PackageKind = tab === "extras" ? "cupcakes" : tab;
   const [form, setForm] = useState<Draft | null>(null);
   const [saving, setSaving] = useState(false);
   const [q, setQ] = useState("");
@@ -74,6 +75,7 @@ export default function PackagesPage() {
   const allDesserts = useMemo(() => data?.desserts ?? [], [data]);
   const desserts = useMemo(() => allDesserts.filter((d) => d.active), [allDesserts]);
   const groups = data?.groups ?? [];
+  const extras = useMemo(() => data?.extras ?? [], [data]);
   const boxes = useMemo(() => (data?.ingredients ?? []).filter((i) => i.kind === "empaque"), [data]);
   const stats = (p: Package | Draft) => packageStats({ ...p, price: "amount" in p ? priceOf(p) : p.price }, allDesserts, costs, ingredientsById);
 
@@ -125,7 +127,12 @@ export default function PackagesPage() {
       price_mode: k === "pastel" ? "total" : form.price_mode,
       items: items.map((i) => (k === "postres" ? { dessert_id: i.dessert_id, qty: Number(i.qty) } : { dessert_id: i.dessert_id })),
       packaging_id: form.packaging_id || null,
-      extra_cost: Number(form.extra_cost) || 0,
+      // "Otro costo extra" se reemplazó por el catálogo de extras
+      extra_cost: 0,
+      ...(() => {
+        const offered = (form.extras ?? []).filter((id) => extras.some((x) => x.id === id));
+        return offered.length || "extras" in form ? { extras: offered } : {};
+      })(),
       store_visible: form.store_visible,
       active: form.active,
       min_notice_days: form.min_notice_days === null || (form.min_notice_days as unknown) === "" ? null : Number(form.min_notice_days),
@@ -134,7 +141,7 @@ export default function PackagesPage() {
     setSaving(true);
     const { error } = form.id ? await sb.from("packages").update(payload).eq("id", form.id) : await sb.from("packages").insert({ ...payload, position: all.length });
     setSaving(false);
-    if (error) return toast.error(/excluded/.test(error.message) ? "Falta ejecutar la migración 0016 en Supabase" : /kind|groups|cake_items/.test(error.message) ? "Falta ejecutar la migración 0015 en Supabase" : error.message);
+    if (error) return toast.error(/extras/.test(error.message) ? "Falta ejecutar la migración 0017 en Supabase" : /excluded/.test(error.message) ? "Falta ejecutar la migración 0016 en Supabase" : /kind|groups|cake_items/.test(error.message) ? "Falta ejecutar la migración 0015 en Supabase" : error.message);
     toast.success("Paquete guardado 🎁");
     setForm(null);
     packsQ.reload();
@@ -165,19 +172,27 @@ export default function PackagesPage() {
         eyebrow="Pedidos especiales"
         title="Paquetes y cajas"
         subtitle="Arma cajas con precio especial. Te decimos cuánto ganas y cuánto se ahorra tu clienta."
-        actions={<Button onClick={() => setForm(blank(kind))}><Plus className="h-4 w-4" /> {newLabel}</Button>}
+        actions={tab !== "extras" && <Button onClick={() => setForm({ ...blank(kind), extras: extras.filter((x) => x.available).map((x) => x.id) })}><Plus className="h-4 w-4" /> {newLabel}</Button>}
       />
 
       <Tabs
-        value={kind}
-        onChange={(k) => { setKind(k); setQ(""); }}
+        value={tab}
+        onChange={(k) => { setTab(k); setQ(""); }}
         className="mb-3"
-        options={(["cupcakes", "pastel", "postres"] as PackageKind[]).map((k) => {
-          const I = KIND_ICON[k];
-          return { value: k, label: <><I className="h-4 w-4" /> {KIND_LABEL[k]}</>, count: count(k) };
-        })}
+        options={[
+          ...(["cupcakes", "pastel", "postres"] as PackageKind[]).map((k) => {
+            const I = KIND_ICON[k];
+            return { value: k as PackageKind | "extras", label: <><I className="h-4 w-4" /> {KIND_LABEL[k]}</>, count: count(k) };
+          }),
+          { value: "extras" as const, label: <><Ribbon className="h-4 w-4" /> Extras</>, count: extras.length },
+        ]}
       />
-      <p className="mb-5 text-sm text-cocoa-400">{KIND_HINT[kind]}</p>
+      <p className="mb-5 text-sm text-cocoa-400">{tab === "extras" ? "Lo que vendes aparte para acompañar: listón, moño, tarjeta, carrito… Tu clienta los agrega en la tienda y se suman a su cuenta." : KIND_HINT[kind]}</p>
+
+      {tab === "extras" ? (
+        loading ? <Skeleton className="h-60" /> : <ExtrasManager extras={extras} onChanged={catalog.reload} />
+      ) : (
+      <>
 
       {kind === "cupcakes" && !loading && <GroupsManager desserts={desserts} groups={groups} onChanged={catalog.reload} />}
 
@@ -199,7 +214,7 @@ export default function PackagesPage() {
                   ? "Ej. “Pastel mini + 5 cupcakes”: ella elige el sabor del pastel y sus cupcakes."
                   : "Ej. “Mesa de postres”: 12 cupcakes + 1 pay + 20 galletas."
             }
-            action={<Button onClick={() => setForm(blank(kind))}><Plus className="h-4 w-4" /> {newLabel}</Button>}
+            action={<Button onClick={() => setForm({ ...blank(kind), extras: extras.filter((x) => x.available).map((x) => x.id) })}><Plus className="h-4 w-4" /> {newLabel}</Button>}
           />
         </Card>
       ) : (
@@ -239,7 +254,7 @@ export default function PackagesPage() {
                   <p className="mt-1 line-clamp-2 text-xs text-cocoa-400">{detail}</p>
                   <div className="mt-auto grid grid-cols-3 gap-2 pt-5">
                     <Stat label="Precio">
-                      <span className="text-rose-500">{money(s.price)}</span>
+                      <span className="text-rose-500">{money(s.total)}</span>
                       {s.regular.max > s.price + 0.5 && <span className="block text-[11px] font-normal text-cocoa-300 line-through">{rangeText(s.regular, money)}</span>}
                     </Stat>
                     <Stat label="Costo">{rangeText(s.cost, money)}</Stat>
@@ -254,6 +269,9 @@ export default function PackagesPage() {
             );
           })}
         </div>
+      )}
+
+      </>
       )}
 
       <Modal
@@ -274,6 +292,7 @@ export default function PackagesPage() {
             setForm={setForm}
             desserts={desserts}
             groups={groups}
+            extras={extras}
             costs={costs}
             boxes={boxes}
             seasons={seasonsQ.data ?? []}
@@ -429,6 +448,117 @@ function GroupPicker({ group, groups, desserts, onSave }: { group: FlavorGroup; 
   );
 }
 
+/* ------------------------------------------------------------------ extras */
+
+type ExtraDraft = { id?: string; name: string; description: string; price: string; cost: string; available: boolean };
+
+/** Catálogo de extras: lo que vendes aparte (listón, moño, tarjeta, carrito…) */
+function ExtrasManager({ extras, onChanged }: { extras: Extra[]; onChanged: () => void }) {
+  const sb = createClient();
+  const confirm = useConfirm();
+  const [form, setForm] = useState<ExtraDraft | null>(null);
+  const [saving, setSaving] = useState(false);
+
+  async function save() {
+    if (!form) return;
+    const name = form.name.trim();
+    const price = Number(form.price);
+    if (!name) return toast.error("Ponle nombre al extra");
+    if (!(price >= 0) || form.price === "") return toast.error("Escribe el precio para tu clienta");
+    const payload = { name: name.slice(0, 60), description: form.description.trim().slice(0, 200) || null, price, cost: Number(form.cost) || 0, available: form.available };
+    setSaving(true);
+    const { error } = form.id ? await sb.from("extras").update(payload).eq("id", form.id) : await sb.from("extras").insert({ ...payload, position: extras.length });
+    setSaving(false);
+    if (error) return toast.error(/extras/.test(error.message) ? "Falta ejecutar la migración 0017 en Supabase" : error.message);
+    toast.success("Extra guardado");
+    setForm(null);
+    onChanged();
+  }
+  async function toggle(x: Extra, available: boolean) {
+    const { error } = await sb.from("extras").update({ available }).eq("id", x.id);
+    if (error) return toast.error(error.message);
+    onChanged();
+  }
+  async function remove(x: Extra) {
+    if (!(await confirm({ title: `¿Eliminar “${x.name}”?`, message: "Los pedidos que ya lo tienen lo conservan. Si solo se te acabó, mejor márcalo como no disponible.", confirmText: "Eliminar", danger: true }))) return;
+    const { error } = await sb.from("extras").delete().eq("id", x.id);
+    if (error) return toast.error(error.message);
+    onChanged();
+  }
+  const blankExtra = (): ExtraDraft => ({ name: "", description: "", price: "", cost: "", available: true });
+
+  return (
+    <Card className="overflow-hidden">
+      <CardHeader
+        title="Catálogo de extras"
+        subtitle="Ponles precio y activa los que tienes disponibles. En cada paquete eliges cuáles se ofrecen."
+        icon={<Ribbon className="h-5 w-5" />}
+        action={<Button size="sm" onClick={() => setForm(blankExtra())}><Plus className="h-4 w-4" /> Nuevo extra</Button>}
+      />
+      {extras.length === 0 ? (
+        <EmptyState
+          icon={<Ribbon className="h-8 w-8" />}
+          title="Aún no tienes extras"
+          description="Ej. Listón $15, Moño $25, Tarjeta con mensaje $20, Carrito Hot Wheels $60."
+          action={<Button onClick={() => setForm(blankExtra())}><Plus className="h-4 w-4" /> Crear mi primer extra</Button>}
+        />
+      ) : (
+        <ul className="divide-y divide-cocoa-800/5">
+          {extras.map((x) => {
+            const gain = Number(x.price) - Number(x.cost);
+            return (
+              <li key={x.id} className={cn("flex flex-wrap items-center gap-3 px-5 py-3.5", !x.available && "bg-cream-50")}>
+                <div className="min-w-0 flex-1">
+                  <button onClick={() => setForm({ id: x.id, name: x.name, description: x.description ?? "", price: String(x.price), cost: Number(x.cost) ? String(x.cost) : "", available: x.available })} className={cn("text-left font-semibold hover:text-rose-500", x.available ? "text-cocoa-700" : "text-cocoa-400 line-through")}>
+                    {x.name}
+                  </button>
+                  <p className="text-xs text-cocoa-400">
+                    {x.description ? `${x.description} · ` : ""}
+                    {Number(x.cost) > 0 ? <>te cuesta {money(x.cost)} · ganas <b className={gain >= 0 ? "text-mint-700" : "text-rose-600"}>{money(gain)}</b></> : "sin costo registrado"}
+                  </p>
+                </div>
+                <span className="font-display text-xl font-semibold text-rose-500 tabular-nums">{money(x.price)}</span>
+                <Toggle checked={x.available} onChange={(v) => toggle(x, v)} label={x.available ? "Disponible" : "No disponible"} />
+                <ActionMenu
+                  actions={[
+                    { label: "Editar", icon: <Pencil className="h-4 w-4" />, onClick: () => setForm({ id: x.id, name: x.name, description: x.description ?? "", price: String(x.price), cost: Number(x.cost) ? String(x.cost) : "", available: x.available }) },
+                    { label: "Eliminar", icon: <Trash2 className="h-4 w-4" />, onClick: () => remove(x), danger: true },
+                  ]}
+                />
+              </li>
+            );
+          })}
+        </ul>
+      )}
+
+      <Modal
+        open={!!form}
+        onClose={() => setForm(null)}
+        title={form?.id ? "Editar extra" : "Nuevo extra"}
+        size="md"
+        footer={
+          <>
+            <Button variant="ghost" onClick={() => setForm(null)}>Cancelar</Button>
+            <Button onClick={save} loading={saving}>Guardar</Button>
+          </>
+        }
+      >
+        {form && (
+          <div className="space-y-4">
+            <Input label="Nombre" maxLength={60} value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} placeholder="Ej. Carrito Hot Wheels" autoFocus />
+            <Input label="Descripción (se ve en la tienda)" maxLength={200} value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} placeholder="Ej. Modelo sorpresa" />
+            <div className="grid gap-4 sm:grid-cols-2">
+              <Input label="Precio para tu clienta" type="number" min={0} step="any" prefix="$" value={form.price} onChange={(e) => setForm({ ...form, price: e.target.value })} />
+              <Input label="Lo que te cuesta (opcional)" type="number" min={0} step="any" prefix="$" value={form.cost} onChange={(e) => setForm({ ...form, cost: e.target.value })} hint="Para calcular tu ganancia" />
+            </div>
+            <Toggle checked={form.available} onChange={(v) => setForm({ ...form, available: v })} label="Disponible (se muestra en la tienda)" />
+          </div>
+        )}
+      </Modal>
+    </Card>
+  );
+}
+
 /* ------------------------------------------------------------------ editor */
 
 function PackageEditor({
@@ -436,6 +566,7 @@ function PackageEditor({
   setForm,
   desserts,
   groups,
+  extras,
   costs,
   boxes,
   seasons,
@@ -445,6 +576,7 @@ function PackageEditor({
   setForm: (fn: (f: Draft | null) => Draft | null) => void;
   desserts: Dessert[];
   groups: FlavorGroup[];
+  extras: Extra[];
   costs: ReturnType<typeof useCatalog>["costs"];
   boxes: NonNullable<ReturnType<typeof useCatalog>["data"]>["ingredients"];
   seasons: { id: string; name: string; emoji: string | null }[];
@@ -641,11 +773,40 @@ function PackageEditor({
         </div>
 
         <div className="grid gap-4 sm:grid-cols-2">
-          <Select label="Caja o empaque (opcional)" value={form.packaging_id ?? ""} onChange={(e) => set({ packaging_id: e.target.value || null })}>
-            <option value="">Sin caja extra</option>
+          <Select label="Caja o empaque" value={form.packaging_id ?? ""} onChange={(e) => set({ packaging_id: e.target.value || null })} hint="Se le cobra a tu clienta: se suma al precio del paquete.">
+            <option value="">Sin caja</option>
             {boxes.map((b) => <option key={b.id} value={b.id}>{b.name} · {money(b.unit_cost)}</option>)}
           </Select>
-          <Input label="Otro costo extra (moño, tarjeta…)" type="number" min={0} step="any" prefix="$" value={form.extra_cost} onChange={(e) => set({ extra_cost: e.target.value as unknown as number })} />
+          <div>
+            <span className="label">Extras que puede agregar</span>
+            {extras.length ? (
+              <div className="flex flex-wrap gap-1.5">
+                {extras.map((x) => {
+                  const on = (form.extras ?? []).includes(x.id);
+                  return (
+                    <button
+                      key={x.id}
+                      type="button"
+                      aria-pressed={on}
+                      onClick={() => set({ extras: on ? (form.extras ?? []).filter((id) => id !== x.id) : [...(form.extras ?? []), x.id] })}
+                      className={cn(
+                        "rounded-full border-2 px-3 py-1.5 text-sm font-bold transition",
+                        on ? "border-rose-400 bg-rose-50 text-rose-600" : "border-cocoa-800/10 bg-white text-cocoa-400 hover:border-rose-200",
+                        !x.available && "opacity-60",
+                      )}
+                      title={x.available ? undefined : "No disponible por ahora (actívalo en la pestaña Extras)"}
+                    >
+                      {x.name} <span className="font-normal text-cocoa-400">+{money(x.price)}</span>
+                      {!x.available && <span className="ml-1 text-[11px] font-normal">(agotado)</span>}
+                    </button>
+                  );
+                })}
+              </div>
+            ) : (
+              <p className="rounded-2xl bg-cream-100 px-3 py-2.5 text-xs text-cocoa-500">Crea tu catálogo (listón, moño, tarjeta…) en la pestaña <b>Extras</b>.</p>
+            )}
+            {Number(form.extra_cost) > 0 && <p className="mt-1.5 text-xs text-amber-700">Antes tenía {money(Number(form.extra_cost))} de “otro costo extra”; al guardar se quita y se usan los extras del catálogo.</p>}
+          </div>
         </div>
 
         <div className="grid gap-3 sm:grid-cols-3">
@@ -678,8 +839,14 @@ function Summary({ stats: s, variable, contents }: { stats: PackageStats; variab
     <div className="space-y-3 lg:sticky lg:top-0 lg:self-start">
       <div className="rounded-3xl bg-cream-100 p-4 ring-1 ring-cocoa-800/5">
         <p className="text-[11px] font-bold tracking-wider text-cocoa-400 uppercase">Para tu clienta</p>
-        <p className="mt-1 font-display text-3xl font-semibold text-rose-500 tabular-nums">{money(s.price)}</p>
+        <p className="mt-1 font-display text-3xl font-semibold text-rose-500 tabular-nums">{money(s.total)}</p>
         <p className="text-sm text-cocoa-500">{contents ?? <>{num(s.pieces, 0)} piezas · <b>{money(s.perPiece)}</b> c/u</>}</p>
+        {s.boxPrice > 0 && (
+          <div className="mt-3 border-t border-dashed border-cocoa-800/10 pt-2">
+            {row("Paquete", money(s.price))}
+            {row("Caja o empaque", `+${money(s.boxPrice)}`)}
+          </div>
+        )}
         {s.regular.max > 0 && (
           <div className="mt-3 border-t border-dashed border-cocoa-800/10 pt-2">
             {row("Sueltas costarían", rangeText(s.regular, money))}
@@ -692,7 +859,7 @@ function Summary({ stats: s, variable, contents }: { stats: PackageStats; variab
       <div className={cn("rounded-3xl p-4 ring-1", loss ? "bg-rose-50 ring-rose-200" : "bg-mint-50 ring-mint-200/60")}>
         <p className={cn("text-[11px] font-bold tracking-wider uppercase", loss ? "text-rose-600" : "text-mint-600")}>Para ti</p>
         {row("Costo de los postres", rangeText({ min: s.cost.min - s.boxCost, max: s.cost.max - s.boxCost }, money))}
-        {s.boxCost > 0 && row("Caja y extras", money(s.boxCost))}
+        {s.extraCost > 0 && row("Otros costos", money(s.extraCost))}
         {row("Ganancia", rangeText(s.profit, money), loss ? "text-rose-600" : "text-mint-700")}
         {row("Margen", rangeText(s.margin, (n) => `${num(n, 0)}%`), marginTone(s.margin.min))}
         {variable && Math.abs(s.cost.max - s.cost.min) > 0.01 && (

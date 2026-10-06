@@ -54,7 +54,12 @@ export type StorePackage = {
   options: { dessert_id: string; name: string; image_url: string | null; qty: number | null; price: number | null; group?: string | null }[];
   /** Sabores de pastel mini (solo pastel) */
   cake_options?: { dessert_id: string; name: string; image_url: string | null; price: number | null }[];
+  /** Caja o empaque (ya viene incluida en price) */
+  box_price?: number | null;
+  /** Extras que se ofrecen con este paquete */
+  extras?: string[];
 };
+export type StoreExtra = { id: string; name: string; description: string | null; image_url: string | null; price: number };
 export type StoreData = {
   store: {
     slug: string;
@@ -83,6 +88,7 @@ export type StoreData = {
   };
   products: StoreProduct[];
   packages?: StorePackage[];
+  extras?: StoreExtra[];
   seasons?: StoreSeason[];
   reviews?: StoreReview[];
   rating?: { avg: number | null; count: number } | null;
@@ -164,7 +170,12 @@ export function Storefront({ data, slug, preview = false }: { data: StoreData; s
   const [cart, setCart] = useState<Record<string, CartLine>>({});
   const [packCart, setPackCart] = useState<Record<string, PackLine>>({});
   const [box, setBox] = useState<StorePackage | null>(null);
-  const [boxChoices, setBoxChoices] = useState<Record<string, number>>({});
+  // Cada caja que pide la clienta lleva sus propios sabores
+  const [boxes, setBoxes] = useState<Record<string, number>[]>([{}]);
+  const [boxIdx, setBoxIdx] = useState(0);
+  const [boxExtras, setBoxExtras] = useState<Record<string, number>>({});
+  const [extrasCart, setExtrasCart] = useState<Record<string, number>>({});
+  const storeExtras = useMemo(() => data.extras ?? [], [data.extras]);
   const [cat, setCat] = useState("Todo");
   const [open, setOpen] = useState(false);
   const [detail, setDetail] = useState<StoreProduct | null>(null);
@@ -195,6 +206,8 @@ export function Storefront({ data, slug, preview = false }: { data: StoreData; s
       }
       const rawPacks = localStorage.getItem(`${storageKey}-cajas`);
       if (rawPacks) setPackCart(JSON.parse(rawPacks) as Record<string, PackLine>);
+      const rawExtras = localStorage.getItem(`${storageKey}-extras`);
+      if (rawExtras) setExtrasCart(JSON.parse(rawExtras) as Record<string, number>);
     } catch {}
   }, [storageKey, preview]);
   useEffect(() => {
@@ -202,8 +215,9 @@ export function Storefront({ data, slug, preview = false }: { data: StoreData; s
     try {
       localStorage.setItem(storageKey, JSON.stringify(cart));
       localStorage.setItem(`${storageKey}-cajas`, JSON.stringify(packCart));
+      localStorage.setItem(`${storageKey}-extras`, JSON.stringify(extrasCart));
     } catch {}
-  }, [cart, packCart, storageKey, preview]);
+  }, [cart, packCart, extrasCart, storageKey, preview]);
 
   // Los modales se abren fuera de la tienda (portal): les pasamos los colores por <body>
   useEffect(() => {
@@ -256,7 +270,18 @@ export function Storefront({ data, slug, preview = false }: { data: StoreData; s
     })
     .filter(Boolean) as { key: string; k: StorePackage; qty: number; choices: BoxChoice[]; unit: number; label: string }[];
   const count = lines.reduce((a, l) => a + l.qty, 0) + packLines.reduce((a, l) => a + l.qty, 0);
-  const subtotal = lines.reduce((a, l) => a + l.qty * l.unit, 0) + packLines.reduce((a, l) => a + l.qty * l.unit, 0);
+  const extraLines = storeExtras
+    .filter((x) => (extrasCart[x.id] ?? 0) > 0)
+    .map((x) => ({ x, qty: extrasCart[x.id], unit: Number(x.price) }));
+  const subtotal =
+    lines.reduce((a, l) => a + l.qty * l.unit, 0) + packLines.reduce((a, l) => a + l.qty * l.unit, 0) + extraLines.reduce((a, l) => a + l.qty * l.unit, 0);
+  const addExtra = (id: string, d = 1) =>
+    setExtrasCart((c) => {
+      const n = Math.max(0, Math.min(99, (c[id] ?? 0) + d));
+      const next = { ...c, [id]: n };
+      if (!n) delete next[id];
+      return next;
+    });
   // El cupón se recalcula si cambia el carrito (el servidor vuelve a validar al enviar)
   const discount = coupon ? Math.min(coupon.discount, subtotal) : 0;
   const zone = zones.find((z) => z.name === f.zone);
@@ -292,15 +317,30 @@ export function Storefront({ data, slug, preview = false }: { data: StoreData; s
   function openBox(k: StorePackage) {
     if (preview) return toast.info("Vista previa: aquí tu clienta arma su caja");
     setBox(k);
-    setBoxChoices({});
-    setDetailQty(1);
+    setBoxes([{}]);
+    setBoxIdx(0);
+    setBoxExtras({});
   }
-  const boxSplit = box ? splitChoice(box, Object.entries(boxChoices).map(([dessert_id, qty]) => ({ dessert_id, qty }))) : { cakes: 0, cups: 0 };
-  const boxTotal = boxSplit.cups;
+  const toChoices = (x: Record<string, number>) => Object.entries(x).map(([dessert_id, qty]) => ({ dessert_id, qty }));
+  const boxChoices = boxes[boxIdx] ?? {};
   const boxCakes = box ? cakesOf(box) : 0;
-  const boxReady = !!box && boxTotal === box.pieces && boxSplit.cakes === boxCakes;
+  const isBoxReady = (x: Record<string, number>) => {
+    if (!box) return false;
+    const sp = splitChoice(box, toChoices(x));
+    return sp.cups === box.pieces && sp.cakes === boxCakes;
+  };
+  const boxSplit = box ? splitChoice(box, toChoices(boxChoices)) : { cakes: 0, cups: 0 };
+  const boxTotal = boxSplit.cups;
+  const boxReady = isBoxReady(boxChoices);
+  const pendingBox = boxes.findIndex((x) => !isBoxReady(x));
+  const boxExtrasTotal = Object.entries(boxExtras).reduce((a, [id, n]) => a + n * Number(storeExtras.find((x) => x.id === id)?.price ?? 0), 0);
+  const setBoxCount = (n: number) => {
+    setBoxes((b) => (n > b.length ? [...b, ...Array.from({ length: n - b.length }, () => ({}))] : b.slice(0, n)));
+    setBoxIdx((i) => (n > boxes.length ? boxes.length : Math.min(i, n - 1)));
+  };
+  const setCurrentBox = (fn: (x: Record<string, number>) => Record<string, number>) => setBoxes((b) => b.map((x, i) => (i === boxIdx ? fn(x) : x)));
   const setFlavor = (id: string, d: number) =>
-    setBoxChoices((x) => {
+    setCurrentBox((x) => {
       if (!box) return x;
       const { cakes, cups } = splitChoice(box, Object.entries(x).map(([dessert_id, qty]) => ({ dessert_id, qty })));
       const isCake = isCakePack(box) && (box.cake_options ?? []).some((o) => o.dessert_id === id);
@@ -353,7 +393,7 @@ export function Storefront({ data, slug, preview = false }: { data: StoreData; s
 
   async function checkout(e: React.FormEvent) {
     e.preventDefault();
-    if (!lines.length && !packLines.length) return;
+    if (!lines.length && !packLines.length) return toast.error("Agrega al menos un postre o una caja");
     if (f.type === "envio" && !f.address.trim()) return toast.error("Escribe la dirección de entrega");
     if (f.type === "envio" && zones.length && !zone) return toast.error("Elige tu zona de entrega");
     if (!f.date) return toast.error("Elige la fecha de entrega");
@@ -373,6 +413,7 @@ export function Storefront({ data, slug, preview = false }: { data: StoreData; s
       p_items: [
         ...lines.map((l) => ({ dessert_id: l.p.id, quantity: l.qty, options: l.options })),
         ...packLines.map((l) => ({ package_id: l.k.id, quantity: l.qty, choices: l.choices })),
+        ...extraLines.map((l) => ({ extra_id: l.x.id, quantity: l.qty })),
       ],
       p_zone: f.type === "envio" && zone ? zone.name : null,
       ...(coupon ? { p_coupon: coupon.code } : {}),
@@ -387,6 +428,7 @@ export function Storefront({ data, slug, preview = false }: { data: StoreData; s
       [
         ...lines.map((l) => `• ${l.qty} × ${l.p.name}${l.label ? ` (${l.label})` : ""} — ${money(l.qty * l.unit)}`),
         ...packLines.map((l) => `• ${l.qty} × 🎁 ${l.k.name} (${l.label}) — ${money(l.qty * l.unit)}`),
+        ...extraLines.map((l) => `• ${l.qty} × 🎀 ${l.x.name} — ${money(l.qty * l.unit)}`),
       ].join("\n") +
       `\n\n${res.discount ? `Cupón ${res.coupon}: -${money(res.discount)}\n` : ""}${shipping ? `Envío: ${money(shipping)}\n` : ""}*Total: ${money(res.total)}*\n\n` +
       `📅 ${f.date ? dateLong(f.date) : "Fecha por confirmar"}${f.time ? ` a las ${f.time}` : ""}\n` +
@@ -399,6 +441,7 @@ export function Storefront({ data, slug, preview = false }: { data: StoreData; s
     fetch("/api/push/pedido", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ order_id: res.order_id }) }).catch(() => {});
     setCart({});
     setPackCart({});
+    setExtrasCart({});
     setCoupon(null);
     setCouponInput("");
     if (popup && !popup.closed) popup.location.href = wa;
@@ -1036,14 +1079,17 @@ export function Storefront({ data, slug, preview = false }: { data: StoreData; s
             description={box ? (isCakePack(box) ? `Elige tu pastel mini y ${box.pieces} cupcakes · ${money(box.price)}` : `Elige ${box.pieces} piezas · ${money(box.price)} la caja`) : undefined} size="md"
             footer={box && (
               <div className="flex w-full flex-col-reverse gap-3 sm:flex-row sm:items-center sm:justify-end">
-                <QtyStepper label={isCakePack(box) ? "Paquetes" : "Cajas"} value={detailQty} max={50} onChange={setDetailQty} />
+                <QtyStepper label={isCakePack(box) ? "Paquetes" : "Cajas"} value={boxes.length} max={20} onChange={setBoxCount} />
                 <button
                   className={cn("flex h-12 w-full items-center justify-center gap-2 rounded-2xl px-6 font-bold disabled:opacity-50 sm:w-auto", btnPrimary)}
                   disabled={!boxReady}
                   onClick={() => {
-                    addPack(box.id, Object.entries(boxChoices).map(([dessert_id, qty]) => ({ dessert_id, qty })), detailQty);
+                    // Si falta armar otra caja, el botón lleva a ella
+                    if (pendingBox >= 0) return setBoxIdx(pendingBox);
+                    for (const x of boxes) addPack(box.id, toChoices(x));
+                    for (const [id, n] of Object.entries(boxExtras)) addExtra(id, n);
                     setBox(null);
-                    toast.success("Caja agregada a tu pedido 🎁");
+                    toast.success(boxes.length === 1 ? "Caja agregada a tu pedido 🎁" : `${boxes.length} cajas agregadas a tu pedido 🎁`);
                   }}
                 >
                   <Gift className="h-4 w-4" />{" "}
@@ -1051,7 +1097,9 @@ export function Storefront({ data, slug, preview = false }: { data: StoreData; s
                     ? "Elige tu pastel mini"
                     : boxTotal !== box.pieces
                       ? box.pieces - boxTotal === 1 ? "Falta 1 pieza" : `Faltan ${box.pieces - boxTotal} piezas`
-                      : `Agregar ${detailQty === 1 ? "" : `${detailQty} `}· ${money(Number(box.price) * detailQty)}`}
+                      : pendingBox >= 0
+                        ? `Sigue con la ${isCakePack(box) ? "#" : "caja "}${pendingBox + 1} →`
+                        : `Agregar${boxes.length === 1 ? "" : ` ${boxes.length}`} · ${money(Number(box.price) * boxes.length + boxExtrasTotal)}`}
                 </button>
               </div>
             )}
@@ -1063,6 +1111,33 @@ export function Storefront({ data, slug, preview = false }: { data: StoreData; s
                   <img src={box.image_url} alt={box.name} className="mb-4 aspect-[16/9] w-full rounded-3xl object-cover" />
                 )}
                 {box.description && <p className="mb-4 text-[15px] leading-relaxed text-cocoa-500">{box.description}</p>}
+                {boxes.length > 1 && (
+                  <div className="mb-4">
+                    <div className="flex gap-1.5 overflow-x-auto pb-1 scrollbar-none">
+                      {boxes.map((x, i) => {
+                        const ok = isBoxReady(x);
+                        return (
+                          <button
+                            key={i}
+                            type="button"
+                            onClick={() => setBoxIdx(i)}
+                            className={cn(
+                              "flex shrink-0 items-center gap-1.5 rounded-full px-3.5 py-1.5 text-sm font-bold ring-1 transition",
+                              i === boxIdx ? "bg-[var(--st-primary)] text-[var(--st-on-primary)] ring-[var(--st-primary)]" : ok ? "bg-[var(--st-soft)] text-[var(--st-primary)] ring-[var(--st-primary)]/30" : "bg-white text-cocoa-500 ring-cocoa-800/10",
+                            )}
+                          >
+                            {ok && <Check className="h-3.5 w-3.5" />} {isCakePack(box) ? "Paquete" : "Caja"} {i + 1}
+                          </button>
+                        );
+                      })}
+                    </div>
+                    {boxIdx > 0 && !Object.keys(boxChoices).length && isBoxReady(boxes[boxIdx - 1]) && (
+                      <button type="button" onClick={() => setCurrentBox(() => ({ ...boxes[boxIdx - 1] }))} className="mt-2 text-xs font-bold text-[var(--st-primary)] hover:underline">
+                        Repetir los sabores de la {isCakePack(box) ? "#" : "caja "}{boxIdx}
+                      </button>
+                    )}
+                  </div>
+                )}
                 {isCakePack(box) && (
                   <>
                     <StepTitle n={1} done={boxSplit.cakes === boxCakes}>
@@ -1094,6 +1169,20 @@ export function Storefront({ data, slug, preview = false }: { data: StoreData; s
                     </div>
                   ))}
                 </div>
+                {(() => {
+                  const offered = storeExtras.filter((x) => (box.extras ?? []).includes(x.id));
+                  if (!offered.length) return null;
+                  return (
+                    <div className="mt-6">
+                      <p className="mb-2 flex items-center gap-2 font-semibold text-cocoa-700"><Sparkles className="h-4 w-4 text-[var(--st-primary)]" /> Agrega un detalle</p>
+                      <ul className="space-y-2">
+                        {offered.map((x) => (
+                          <ExtraRow key={x.id} x={x} n={boxExtras[x.id] ?? 0} onChange={(d) => setBoxExtras((e) => { const n = Math.max(0, Math.min(99, (e[x.id] ?? 0) + d)); const next = { ...e, [x.id]: n }; if (!n) delete next[x.id]; return next; })} />
+                        ))}
+                      </ul>
+                    </div>
+                  );
+                })()}
                 {Number(box.min_notice_days ?? 0) > store.min_notice_days && (
                   <p className="mt-4 inline-flex items-center gap-1.5 rounded-full bg-cream-200 px-3 py-1 text-xs font-semibold text-cocoa-500">
                     <CalendarDays className="h-3.5 w-3.5" /> Pídela con {box.min_notice_days} días de anticipación
@@ -1163,6 +1252,16 @@ export function Storefront({ data, slug, preview = false }: { data: StoreData; s
                     </li>
                   ))}
                 </ul>
+                {storeExtras.length > 0 && (
+                  <div>
+                    <p className="mb-2 flex items-center gap-2 font-semibold text-cocoa-700"><Sparkles className="h-4 w-4 text-[var(--st-primary)]" /> ¿Le agregamos un detalle?</p>
+                    <ul className="space-y-2">
+                      {storeExtras.map((x) => (
+                        <ExtraRow key={x.id} x={x} n={extrasCart[x.id] ?? 0} onChange={(d) => addExtra(x.id, d)} />
+                      ))}
+                    </ul>
+                  </div>
+                )}
                 <div className="grid gap-4 sm:grid-cols-2">
                   <Input label="Tu nombre" required maxLength={120} value={f.name} onChange={(e) => setF({ ...f, name: e.target.value })} />
                   <Input label="WhatsApp" type="tel" required maxLength={20} value={f.phone} onChange={(e) => setF({ ...f, phone: e.target.value })} placeholder="998 123 4567" />
@@ -1305,5 +1404,22 @@ function DecorDivider({ tile, wide = false }: { tile: Tile; wide?: boolean }) {
         maskImage: mask,
       }}
     />
+  );
+}
+
+function ExtraRow({ x, n, onChange }: { x: StoreExtra; n: number; onChange: (d: number) => void }) {
+  return (
+    <li className={cn("flex items-center gap-3 rounded-2xl p-2.5 pl-3.5 ring-1 transition", n ? "bg-[var(--st-soft)] ring-[var(--st-primary)]" : "ring-cocoa-800/8")}>
+      <span className="min-w-0 flex-1">
+        <span className="block font-semibold text-cocoa-700">{x.name}</span>
+        {x.description && <span className="block text-xs text-cocoa-400">{x.description}</span>}
+      </span>
+      <span className="text-sm font-bold text-[var(--st-primary)] tabular-nums">+{money(x.price)}</span>
+      <span className="flex items-center gap-1 rounded-full bg-white p-1 shadow-sm">
+        <button type="button" onClick={() => onChange(-1)} disabled={!n} className="grid h-8 w-8 place-items-center rounded-full text-[var(--st-primary)] disabled:opacity-30" aria-label={`Quitar ${x.name}`}><Minus className="h-4 w-4" /></button>
+        <span className="w-6 text-center font-bold tabular-nums">{n}</span>
+        <button type="button" onClick={() => onChange(1)} className="grid h-8 w-8 place-items-center rounded-full text-[var(--st-primary)]" aria-label={`Agregar ${x.name}`}><Plus className="h-4 w-4" /></button>
+      </span>
+    </li>
   );
 }

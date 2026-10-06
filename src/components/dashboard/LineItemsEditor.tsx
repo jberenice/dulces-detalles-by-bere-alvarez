@@ -1,16 +1,17 @@
 "use client";
 import { useMemo } from "react";
-import { CakeSlice, Gift, Minus, Plus, Trash2, PenLine } from "lucide-react";
+import { CakeSlice, Gift, Minus, Plus, Ribbon, Trash2, PenLine } from "lucide-react";
 import { Combobox } from "@/components/ui/Combobox";
 import { money, num } from "@/lib/format";
 import type { CostBreakdown } from "@/lib/costing";
 import { roundPrice } from "@/lib/costing";
-import type { Dessert, FlavorGroup, Ingredient, LineItem, Package, PackageComponent } from "@/lib/types";
-import { boxCostOf, cakeOptions, componentsCost, countChoice, cupcakeOptions, describePackage, fixedComponents, kindOf } from "@/lib/packages";
+import type { Dessert, Extra, FlavorGroup, Ingredient, LineItem, Package, PackageComponent } from "@/lib/types";
+import { boxCostOf, cakeOptions, componentsCost, countChoice, cupcakeOptions, describePackage, fixedComponents, kindOf, packageTotal } from "@/lib/packages";
 import { cn } from "@/lib/cn";
 import type { calcTotals } from "@/lib/totals";
 
-export type EditableLine = LineItem & { key: string };
+/** extra_id solo vive en el editor (para elegir del catálogo); se guarda como concepto con precio y costo */
+export type EditableLine = LineItem & { key: string; extra_id?: string };
 export const lineKey = () => Math.random().toString(36).slice(2);
 
 export function priceFor(d: Dessert, c?: CostBreakdown) {
@@ -58,6 +59,7 @@ export function LineItemsEditor({
   costs,
   packages = [],
   groups = [],
+  extras = [],
   ingredientsById,
 }: {
   items: EditableLine[];
@@ -66,6 +68,7 @@ export function LineItemsEditor({
   costs: Map<string, CostBreakdown>;
   packages?: Package[];
   groups?: FlavorGroup[];
+  extras?: Extra[];
   ingredientsById?: Map<string, Ingredient>;
 }) {
   const options = useMemo(
@@ -80,7 +83,7 @@ export function LineItemsEditor({
 
   const dessertsById = useMemo(() => new Map(desserts.map((d) => [d.id, d])), [desserts]);
   const packOptions = useMemo(
-    () => packages.filter((p) => p.active).map((p) => ({ value: p.id, label: p.name, hint: `${p.pieces} pz · ${money(p.price)}` })),
+    () => packages.filter((p) => p.active).map((p) => ({ value: p.id, label: p.name, hint: `${p.pieces} pz · ${money(packageTotal(p, ingredientsById))}` })),
     [packages],
   );
 
@@ -97,7 +100,8 @@ export function LineItemsEditor({
     const p = packages.find((x) => x.id === id);
     if (!p) return;
     const comps = p.mode === "fijo" ? fixedComponents(p, dessertsById) : [];
-    update(key, { package_id: id, dessert_id: null, unit_price: Number(p.price), ...withComponents(p, comps) });
+    // La caja o empaque se le cobra a la clienta: va sumada al precio del paquete
+    update(key, { package_id: id, dessert_id: null, unit_price: packageTotal(p, ingredientsById), ...withComponents(p, comps) });
   }
 
   function setFlavor(l: EditableLine, p: Package, dessertId: string, delta: number) {
@@ -113,6 +117,16 @@ export function LineItemsEditor({
     const cakeIds = new Set((p.cake_items ?? []).map((c) => c.dessert_id));
     const ordered = comps.filter((c) => c.qty > 0).sort((a, b) => Number(cakeIds.has(b.dessert_id)) - Number(cakeIds.has(a.dessert_id)));
     update(l.key, withComponents(p, ordered));
+  }
+
+  const extraOptions = useMemo(
+    () => extras.filter((x) => x.available).map((x) => ({ value: x.id, label: x.name, hint: money(x.price) })),
+    [extras],
+  );
+  function pickExtra(key: string, id: string) {
+    const x = extras.find((e) => e.id === id);
+    if (!x) return;
+    update(key, { extra_id: id, dessert_id: null, description: `Extra: ${x.name}`, unit_price: Number(x.price), unit_cost: Number(x.cost) || 0 });
   }
 
   function pickDessert(key: string, id: string) {
@@ -145,10 +159,12 @@ export function LineItemsEditor({
                   onPick={(id) => pickPackage(l.key, id)}
                   onFlavor={(p, id, delta) => setFlavor(l, p, id, delta)}
                 />
+              ) : l.extra_id !== undefined ? (
+                <Combobox value={l.extra_id} onChange={(v) => pickExtra(l.key, v)} options={extraOptions} placeholder="Elige un extra (listón, moño…)" />
               ) : l.dessert_id !== null ? (
                 <Combobox value={l.dessert_id} onChange={(v) => pickDessert(l.key, v)} options={options} placeholder="Elige un postre de tu recetario" />
               ) : null}
-              {!isPackageLine(l) && (l.dessert_id === null || !!l.dessert_id) && (
+              {!isPackageLine(l) && (l.extra_id === undefined || !!l.extra_id) && (l.dessert_id === null || !!l.dessert_id) && (
                 <input
                   className="field !py-2 text-sm"
                   value={l.description}
@@ -210,6 +226,14 @@ export function LineItemsEditor({
             <Gift className="h-4 w-4" /> <Plus className="-ml-1 h-3 w-3" /> Paquete o caja
           </button>
         )}
+        {extraOptions.length > 0 && (
+          <button
+            onClick={() => setItems((p) => [...p, { key: lineKey(), extra_id: "", dessert_id: null, description: "", quantity: 1, unit_price: 0, unit_cost: 0 }])}
+            className="inline-flex items-center gap-1.5 rounded-xl bg-amber-50 px-3 py-2 text-sm font-bold text-amber-700 hover:bg-amber-100"
+          >
+            <Ribbon className="h-4 w-4" /> <Plus className="-ml-1 h-3 w-3" /> Extra
+          </button>
+        )}
         <button
           onClick={() => setItems((p) => [...p, { key: lineKey(), dessert_id: null, description: "", quantity: 1, unit_price: 0, unit_cost: 0 }])}
           className="inline-flex items-center gap-1.5 rounded-xl bg-cream-200 px-3 py-2 text-sm font-bold text-cocoa-600 hover:bg-cream-300"
@@ -218,7 +242,7 @@ export function LineItemsEditor({
         </button>
       </div>
       {items.length > 0 && (
-        <p className="mt-3 text-xs text-cocoa-400">{num(items.reduce((a, i) => a + (Number(i.quantity) || 0) * (isPackageLine(i) && chosenPieces(i) ? chosenPieces(i) : 1), 0), 0)} piezas en total</p>
+        <p className="mt-3 text-xs text-cocoa-400">{num(items.filter((i) => i.extra_id === undefined && !i.description.startsWith("Extra: ")).reduce((a, i) => a + (Number(i.quantity) || 0) * (isPackageLine(i) && chosenPieces(i) ? chosenPieces(i) : 1), 0), 0)} piezas en total</p>
       )}
     </div>
   );

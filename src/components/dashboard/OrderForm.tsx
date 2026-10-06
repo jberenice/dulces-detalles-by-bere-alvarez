@@ -169,7 +169,7 @@ export function OrderForm({ orderId }: { orderId?: string }) {
           <Card>
             <CardHeader title="Postres" icon={<ShoppingBag className="h-5 w-5" />} />
             <div className="p-5 sm:p-6">
-              <LineItemsEditor items={items} setItems={setItems} desserts={catalog.data?.desserts ?? []} costs={catalog.costs} packages={catalog.data?.packages ?? []} groups={catalog.data?.groups ?? []} ingredientsById={catalog.ingredientsById} />
+              <LineItemsEditor items={items} setItems={setItems} desserts={catalog.data?.desserts ?? []} costs={catalog.costs} packages={catalog.data?.packages ?? []} groups={catalog.data?.groups ?? []} extras={catalog.data?.extras ?? []} ingredientsById={catalog.ingredientsById} />
             </div>
           </Card>
           <Card className="p-5 sm:p-6">

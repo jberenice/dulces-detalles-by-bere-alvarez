@@ -227,6 +227,8 @@ export type Package = {
   groups?: string[];
   /** Cupcakes apagados dentro de esta caja (migración 0016) */
   excluded?: string[];
+  /** Extras que se ofrecen con este paquete (migración 0017) */
+  extras?: string[];
   /** Sabores de pastel mini para elegir (paquete pastel + cupcakes) */
   cake_items?: PackageItem[];
   /** Cuántos pasteles mini lleva */
@@ -331,4 +333,16 @@ export type OrderPayment = {
   method: string | null;
   note: string | null;
   paid_at: string;
+};
+
+/** Extra que se vende aparte: listón, moño, tarjeta, carrito… (migración 0017) */
+export type Extra = {
+  id: string;
+  name: string;
+  description: string | null;
+  image_url: string | null;
+  price: number;
+  cost: number;
+  available: boolean;
+  position: number;
 };

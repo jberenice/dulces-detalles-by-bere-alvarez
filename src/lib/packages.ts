@@ -51,19 +51,35 @@ const range = (vals: number[]): Range => (vals.length ? { min: Math.min(...vals)
 
 export type PackageStats = {
   pieces: number;
+  /** Precio del paquete (sin la caja) */
   price: number;
+  /** Caja o empaque que se le cobra a la clienta */
+  boxPrice: number;
+  /** Lo que paga la clienta: paquete + caja */
+  total: number;
   perPiece: number;
   /** Lo que costaría comprar las piezas sueltas */
   regular: Range;
   /** Lo que se ahorra la clienta */
   savings: Range;
-  /** Costo de los postres + caja + extra */
+  /** Costo de los postres + caja + otros costos */
   cost: Range;
   boxCost: number;
+  /** Otros costos tuyos (campo anterior a 0017) */
+  extraCost: number;
   profit: Range;
   /** Margen sobre el precio (%) */
   margin: Range;
 };
+
+/** Precio de la caja o empaque: se le cobra a la clienta encima del precio del paquete */
+export function packagingPrice(p: Pick<Package, "packaging_id">, ingredientsById: Map<string, Ingredient>) {
+  return p.packaging_id ? Math.round(Number(ingredientsById.get(p.packaging_id)?.unit_cost ?? 0) * 100) / 100 : 0;
+}
+
+/** Lo que paga la clienta por un paquete: su precio + la caja */
+export const packageTotal = (p: Pick<Package, "price" | "packaging_id">, ingredientsById?: Map<string, Ingredient>) =>
+  Math.round((Number(p.price) + (ingredientsById ? packagingPrice(p, ingredientsById) : 0)) * 100) / 100;
 
 /** Costo de la caja o empaque y del extra */
 export function boxCostOf(p: Pick<Package, "packaging_id" | "extra_cost">, ingredientsById: Map<string, Ingredient>) {
@@ -104,16 +120,23 @@ export function packageStats(p: StatsInput, desserts: Dessert[], costs: Map<stri
     cost = { min: cupCost.min * nCups + cakeCost.min * nCakes + boxCost, max: cupCost.max * nCups + cakeCost.max * nCakes + boxCost };
   }
   const pieces = piecesOf(p);
-  const profit = { min: price - cost.max, max: price - cost.min };
+  const boxPrice = packagingPrice(p, ingredientsById);
+  const total = price + boxPrice;
+  // La caja se cobra aparte, así que la ganancia sale de lo que paga la clienta menos todos los costos
+  const profit = { min: total - cost.max, max: total - cost.min };
   return {
     pieces,
     price,
-    perPiece: pieces ? price / pieces : 0,
+    boxPrice,
+    total,
+    perPiece: pieces ? total / pieces : 0,
     regular,
-    savings: { min: regular.min - price, max: regular.max - price },
+    savings: { min: regular.min - total, max: regular.max - total },
     cost,
     boxCost,
+    extraCost: Number(p.extra_cost) || 0,
     profit,
+    // El margen se mide sobre el precio del paquete (la caja solo pasa de la clienta al proveedor)
     margin: { min: price ? (profit.min / price) * 100 : 0, max: price ? (profit.max / price) * 100 : 0 },
   };
 }
