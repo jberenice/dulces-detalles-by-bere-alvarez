@@ -4,7 +4,8 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { rejectCrossSite } from "@/lib/same-origin";
 import { brandFromProfile, brandedEmail, esc, paragraphs } from "@/lib/email-template";
 import { dateLong, folio, money } from "@/lib/format";
-import { isToken, orderByToken, orderPdfName, renderOrderPdf } from "@/lib/order-pdf.server";
+import { isToken, orderByToken, orderPdfName } from "@/lib/order-token.server";
+import { logError } from "@/lib/error-log.server";
 import { enforceIpLimit } from "@/lib/ip-limit.server";
 
 export const runtime = "nodejs";
@@ -60,22 +61,32 @@ export async function POST(request: Request) {
     .join("");
   const when = order.delivery_date ? `${dateLong(order.delivery_date)}${order.delivery_time ? ` a las ${order.delivery_time}` : ""}` : "por confirmar";
 
+  // El PDF se adjunta si se pudo generar; si no, el correo va con el enlace para descargarlo
+  let attachment: { filename: string; content: string } | null = null;
   try {
+    // Carga diferida: si la librería del PDF falla, el correo se envía igual con el enlace
+    const { renderOrderPdf } = await import("@/lib/order-pdf.server");
     const pdf = await renderOrderPdf(order, profile, origin);
+    attachment = { filename: orderPdfName(order, profile.business_name), content: Buffer.from(pdf).toString("base64") };
+  } catch (e) {
+    await logError({ source: "servidor", message: `PDF del pedido para correo: ${e instanceof Error ? e.message : String(e)}`, stack: e instanceof Error ? e.stack : null, path: "POST /api/tienda/pedido-correo" }).catch(() => {});
+  }
+
+  try {
     const html = brandedEmail({
       brand,
       preheader: `Tu pedido ${f} por ${money(Number(order.total))}`,
       title: `¡Gracias por tu pedido${first ? `, ${first}` : ""}!`,
       body:
-        paragraphs(`Recibimos tu pedido ${f}. Te enviamos la copia en PDF adjunta. Te confirmaremos disponibilidad y forma de pago por WhatsApp.`, brand.primary) +
+        paragraphs(`Recibimos tu pedido ${f}. ${attachment ? "Te enviamos la copia en PDF adjunta." : "Puedes descargar tu nota en PDF con el botón de abajo."} Te confirmaremos disponibilidad y forma de pago por WhatsApp.`, brand.primary) +
         `<table role="presentation" cellpadding="0" cellspacing="0" style="width:100%;margin:8px 0 16px;background:${brand.background};border-radius:16px"><tr><td style="padding:16px 18px">
           <table role="presentation" cellpadding="0" cellspacing="0" style="width:100%;font-size:14px">${items}
             <tr><td style="padding-top:10px;border-top:1px solid rgba(0,0,0,.08)"><b>Total</b></td><td style="padding-top:10px;border-top:1px solid rgba(0,0,0,.08);text-align:right"><b>${esc(money(Number(order.total)))}</b></td></tr>
           </table>
           <p style="margin:12px 0 0;font-size:13px">📅 Entrega: ${esc(when)}<br/>${order.delivery_type === "envio" ? "🚚 Envío a domicilio" : "🏠 Recoger en tienda"}</p>
         </td></tr></table>`,
-      cta: { label: "Ver mi pedido en PDF", url: link },
-      note: "Guarda este correo: el enlace es personal y solo tú puedes abrirlo.",
+      cta: { label: "Ver mi pedido", url: `${origin}/seguimiento/${order.public_token}` },
+      note: `<a href="${esc(link)}" style="color:${brand.primary};font-weight:bold">Descargar mi nota en PDF</a> · Guarda este correo: los enlaces son personales.`,
       site: origin,
     });
     const base = process.env.RESEND_FROM ?? "Dulces Detalles <onboarding@resend.dev>";
@@ -87,7 +98,7 @@ export async function POST(request: Request) {
       replyTo: profile.email || undefined,
       subject: `Tu pedido ${f} en ${name}`,
       html,
-      attachments: [{ filename: orderPdfName(order, profile.business_name), content: Buffer.from(pdf).toString("base64") }],
+      ...(attachment ? { attachments: [attachment] } : {}),
     });
     if (error) throw new Error(error.message);
     return NextResponse.json({ ok: true, sent: true });
