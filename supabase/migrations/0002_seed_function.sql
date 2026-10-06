@@ -811,38 +811,6 @@ begin
     (p_uid, v_d, (select id from public.ingredients where user_id = p_uid and kind = 'ingrediente' and name = 'cajeta horneable' limit 1), 'Relleno crema pastelera chocolate', 270.0, 11),
     (p_uid, v_d, (select id from public.ingredients where user_id = p_uid and kind = 'empaque' and name = 'vaso 500ml' limit 1), null, 10.0, 12);
 
-  insert into public.desserts (user_id, name, category, yield_units, unit_label, labor_hours, profit_pct, wear_pct, apply_iva, sale_price, store_visible)
-  values (p_uid, 'Pastel Oliver', 'Pasteles', 1, 'pastel', 10.0, 70.0, 5, true, 3005, true) returning id into v_d;
-  insert into public.dessert_items (user_id, dessert_id, ingredient_id, section, quantity, position) values
-    (p_uid, v_d, (select id from public.ingredients where user_id = p_uid and kind = 'ingrediente' and name = 'Margarina' limit 1), null, 480.0, 0),
-    (p_uid, v_d, (select id from public.ingredients where user_id = p_uid and kind = 'ingrediente' and name = 'Azúcar refinada' limit 1), null, 600.0, 1),
-    (p_uid, v_d, (select id from public.ingredients where user_id = p_uid and kind = 'ingrediente' and name = 'Huevos' limit 1), null, 9.0, 2),
-    (p_uid, v_d, (select id from public.ingredients where user_id = p_uid and kind = 'ingrediente' and name = 'Harina' limit 1), null, 750.0, 3),
-    (p_uid, v_d, (select id from public.ingredients where user_id = p_uid and kind = 'ingrediente' and name = 'Vainilla' limit 1), null, 15.0, 4),
-    (p_uid, v_d, (select id from public.ingredients where user_id = p_uid and kind = 'ingrediente' and name = 'Leche' limit 1), null, 360.0, 5),
-    (p_uid, v_d, (select id from public.ingredients where user_id = p_uid and kind = 'ingrediente' and name = 'Royal' limit 1), null, 35.0, 6),
-    (p_uid, v_d, (select id from public.ingredients where user_id = p_uid and kind = 'ingrediente' and name = 'Azúcar estándar' limit 1), 'Jarabe vainilla', 60.0, 7),
-    (p_uid, v_d, (select id from public.ingredients where user_id = p_uid and kind = 'ingrediente' and name = 'Agua' limit 1), 'Jarabe vainilla', 60.0, 8),
-    (p_uid, v_d, (select id from public.ingredients where user_id = p_uid and kind = 'ingrediente' and name = 'Vainilla' limit 1), 'Jarabe vainilla', 5.0, 9),
-    (p_uid, v_d, (select id from public.ingredients where user_id = p_uid and kind = 'ingrediente' and name = 'Chocolate blanco alpezzi' limit 1), 'Relleno buttercream y cobertura ganache blanco', 480.0, 10),
-    (p_uid, v_d, (select id from public.ingredients where user_id = p_uid and kind = 'ingrediente' and name = 'Crema para batir' limit 1), 'Relleno buttercream y cobertura ganache blanco', 145.0, 11),
-    (p_uid, v_d, (select id from public.ingredients where user_id = p_uid and kind = 'ingrediente' and name = 'Margarina' limit 1), 'Relleno buttercream y cobertura ganache blanco', 120.0, 12),
-    (p_uid, v_d, (select id from public.ingredients where user_id = p_uid and kind = 'ingrediente' and name = 'Manteca' limit 1), 'Relleno buttercream y cobertura ganache blanco', 120.0, 13),
-    (p_uid, v_d, (select id from public.ingredients where user_id = p_uid and kind = 'ingrediente' and name = 'Azúcar glass' limit 1), 'Relleno buttercream y cobertura ganache blanco', 120.0, 14),
-    (p_uid, v_d, (select id from public.ingredients where user_id = p_uid and kind = 'ingrediente' and name = 'Vainilla' limit 1), 'Relleno buttercream y cobertura ganache blanco', 7.0, 15),
-    (p_uid, v_d, (select id from public.ingredients where user_id = p_uid and kind = 'ingrediente' and name = 'Margarina' limit 1), 'Relleno buttercream y cobertura ganache blanco', 112.5, 16),
-    (p_uid, v_d, (select id from public.ingredients where user_id = p_uid and kind = 'ingrediente' and name = 'Manteca' limit 1), 'Relleno buttercream y cobertura ganache blanco', 112.5, 17),
-    (p_uid, v_d, (select id from public.ingredients where user_id = p_uid and kind = 'ingrediente' and name = 'Azúcar glass' limit 1), 'Relleno buttercream y cobertura ganache blanco', 225.0, 18),
-    (p_uid, v_d, (select id from public.ingredients where user_id = p_uid and kind = 'ingrediente' and name = 'Vainilla' limit 1), 'Relleno buttercream y cobertura ganache blanco', 5.0, 19),
-    (p_uid, v_d, (select id from public.ingredients where user_id = p_uid and kind = 'ingrediente' and name = 'RKT' limit 1), 'Relleno buttercream y cobertura ganache blanco', 100.0, 20),
-    (p_uid, v_d, (select id from public.ingredients where user_id = p_uid and kind = 'ingrediente' and name = 'Malavisco' limit 1), 'Relleno buttercream y cobertura ganache blanco', 120.0, 21),
-    (p_uid, v_d, (select id from public.ingredients where user_id = p_uid and kind = 'ingrediente' and name = 'Margarina' limit 1), 'Relleno buttercream y cobertura ganache blanco', 15.0, 22),
-    (p_uid, v_d, (select id from public.ingredients where user_id = p_uid and kind = 'ingrediente' and name = 'CMC' limit 1), 'Relleno buttercream y cobertura ganache blanco', 7.2, 23),
-    (p_uid, v_d, (select id from public.ingredients where user_id = p_uid and kind = 'ingrediente' and name = 'Fondant' limit 1), 'Relleno buttercream y cobertura ganache blanco', 1800.0, 24),
-    (p_uid, v_d, (select id from public.ingredients where user_id = p_uid and kind = 'empaque' and name = 'base mdf' limit 1), null, 1.0, 25),
-    (p_uid, v_d, (select id from public.ingredients where user_id = p_uid and kind = 'empaque' and name = 'base 15cm' limit 1), null, 1.0, 26),
-    (p_uid, v_d, (select id from public.ingredients where user_id = p_uid and kind = 'empaque' and name = 'base 15cm' limit 1), null, 1.0, 27),
-    (p_uid, v_d, (select id from public.ingredients where user_id = p_uid and kind = 'empaque' and name = 'soportes para pastel' limit 1), null, 1.0, 28);
 
   -- Cajas de ejemplo (si ya se ejecutó 0013_packages.sql)
   if to_regprocedure('public.seed_starter_packages(uuid)') is not null then

@@ -1,5 +1,5 @@
 "use client";
-import { FestiveGarland, FestiveParticles, useFestive } from "./Festive";
+import { FestiveColors, FestiveGarland, FestiveParticles, useFestive } from "./Festive";
 
 /** Adornos de temporada de la página principal (según la fecha; ?tema=… para verlos antes) */
 export function LandingFestiveDecor() {
@@ -9,6 +9,7 @@ export function LandingFestiveDecor() {
     <>
       <FestiveGarland theme={fest} className="absolute inset-x-0 top-0 z-10" />
       <FestiveParticles theme={fest} count={16} contained />
+      <FestiveColors theme={fest} />
     </>
   );
 }

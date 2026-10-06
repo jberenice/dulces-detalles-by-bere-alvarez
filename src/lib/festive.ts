@@ -26,6 +26,8 @@ export type FestiveTheme = {
   to: [number, number];
   /** Paleta de la temporada (para quien elija usar los colores de la temporada) */
   colors: { primary: string; accent: string; background: string; surface: string; text: string };
+  /** Colores para botones e íconos del panel y la página principal (con buen contraste para texto blanco) */
+  ui: { primary: string; accent: string };
   /** Lo que cae de arriba */
   particles: string[];
   /** Guirnalda */
@@ -133,6 +135,7 @@ const balloon = (x: number, y: number, c: string) =>
 const T: FestiveTheme[] = [
   {
     id: "navidad",
+    ui: { primary: "#c0392b", accent: "#2e7d4f" },
     name: "Navidad",
     emoji: "🎄",
     from: [12, 1],
@@ -146,6 +149,7 @@ const T: FestiveTheme[] = [
   },
   {
     id: "anonuevo",
+    ui: { primary: "#8a6508", accent: "#2b2b3a" },
     name: "Año Nuevo",
     emoji: "🥂",
     from: [12, 26],
@@ -159,6 +163,7 @@ const T: FestiveTheme[] = [
   },
   {
     id: "reyes",
+    ui: { primary: "#7b2d8e", accent: "#a87b10" },
     name: "Día de Reyes",
     emoji: "👑",
     from: [1, 1],
@@ -172,6 +177,7 @@ const T: FestiveTheme[] = [
   },
   {
     id: "sanvalentin",
+    ui: { primary: "#d81b60", accent: "#b83b6b" },
     name: "14 de febrero",
     emoji: "💘",
     from: [2, 1],
@@ -185,6 +191,7 @@ const T: FestiveTheme[] = [
   },
   {
     id: "primavera",
+    ui: { primary: "#a16c00", accent: "#4f8a3a" },
     name: "Primavera (flores amarillas)",
     emoji: "🌼",
     from: [3, 14],
@@ -198,6 +205,7 @@ const T: FestiveTheme[] = [
   },
   {
     id: "nino",
+    ui: { primary: "#1e6fd0", accent: "#d17a00" },
     name: "Día del Niño",
     emoji: "🎈",
     from: [4, 20],
@@ -211,6 +219,7 @@ const T: FestiveTheme[] = [
   },
   {
     id: "madres",
+    ui: { primary: "#c2185b", accent: "#5f8f2e" },
     name: "Día de las Madres",
     emoji: "💐",
     from: [5, 1],
@@ -224,6 +233,7 @@ const T: FestiveTheme[] = [
   },
   {
     id: "maestro",
+    ui: { primary: "#c62828", accent: "#2e7d32" },
     name: "Día del Maestro",
     emoji: "🍎",
     from: [5, 11],
@@ -237,6 +247,7 @@ const T: FestiveTheme[] = [
   },
   {
     id: "padre",
+    ui: { primary: "#1f4e79", accent: "#a8742f" },
     name: "Día del Padre",
     emoji: "👔",
     from: [6, 1],
@@ -250,6 +261,7 @@ const T: FestiveTheme[] = [
   },
   {
     id: "independencia",
+    ui: { primary: "#006847", accent: "#ce1126" },
     name: "Fiestas patrias",
     emoji: "🇲🇽",
     from: [9, 1],
@@ -263,6 +275,7 @@ const T: FestiveTheme[] = [
   },
   {
     id: "halloween",
+    ui: { primary: "#d0560f", accent: "#6a1b9a" },
     name: "Halloween",
     emoji: "🎃",
     from: [10, 1],
@@ -276,6 +289,7 @@ const T: FestiveTheme[] = [
   },
   {
     id: "muertos",
+    ui: { primary: "#c2367a", accent: "#d0651a" },
     name: "Día de Muertos",
     emoji: "💀",
     from: [11, 1],
@@ -321,4 +335,29 @@ export function resolveFestive(setting: FestiveSetting | null | undefined, date 
   if (setting === "off") return null;
   if (setting && setting !== "auto") return festiveById(setting);
   return festiveFor(date);
+}
+
+/**
+ * Variables CSS para pintar botones, íconos y acentos del panel / página principal con los colores de la temporada.
+ * Reemplaza las escalas "rose" (color principal) y "mint" (acento) de la app.
+ */
+export function festiveVars(t: FestiveTheme): Record<string, string> {
+  const scale = (name: string, c: string) => ({
+    [`--color-${name}-50`]: `color-mix(in srgb, ${c} 8%, white)`,
+    [`--color-${name}-100`]: `color-mix(in srgb, ${c} 16%, white)`,
+    [`--color-${name}-200`]: `color-mix(in srgb, ${c} 30%, white)`,
+    [`--color-${name}-300`]: `color-mix(in srgb, ${c} 50%, white)`,
+    [`--color-${name}-400`]: `color-mix(in srgb, ${c} 78%, white)`,
+    [`--color-${name}-500`]: c,
+    [`--color-${name}-600`]: `color-mix(in srgb, ${c} 85%, black)`,
+    [`--color-${name}-700`]: `color-mix(in srgb, ${c} 68%, black)`,
+  });
+  return {
+    // tonos con buen contraste para texto blanco en botones
+    ...scale("rose", t.ui.primary),
+    ...scale("mint", t.ui.accent),
+    // fondo de la bienvenida del panel
+    "--shadow-rose": `0 10px 24px -10px color-mix(in srgb, ${t.ui.primary} 55%, transparent)`,
+    "--festive-hero": `color-mix(in srgb, ${t.ui.primary} 30%, #1c1210)`,
+  };
 }

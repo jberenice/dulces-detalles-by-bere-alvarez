@@ -1,5 +1,5 @@
 "use client";
-import { FestiveGarland, usePanelFestive } from "@/components/festive/Festive";
+import { FestiveGarland, PanelFestiveColors, usePanelFestive } from "@/components/festive/Festive";
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
@@ -210,7 +210,7 @@ export function Shell({ children }: { children: React.ReactNode }) {
       </nav>
       <div className="border-t border-cocoa-800/5 p-3">
         <Link href="/dashboard/cotizaciones/nueva" className="mb-2 flex items-center justify-center gap-2 rounded-2xl bg-mint-500 py-3 text-sm font-bold text-white shadow-[0_10px_24px_-12px_rgb(106_166_138/0.9)] transition hover:bg-mint-600">
-          <Plus className="h-4 w-4" /> Nueva cotización
+          <Plus className="h-4 w-4" /> Nueva cotización <FestiveEmoji />
         </Link>
         <button onClick={signOutDevice} className="flex w-full items-center gap-3 rounded-2xl px-3 py-2.5 text-sm font-semibold text-cocoa-400 hover:bg-rose-50 hover:text-rose-500">
           <LogOut className="h-[18px] w-[18px]" /> Cerrar sesión
@@ -257,6 +257,7 @@ export function Shell({ children }: { children: React.ReactNode }) {
       </header>
 
       <PanelGarland />
+      <PanelFestiveColors />
       <main className="mx-auto w-full max-w-[1320px] min-w-0 overflow-x-clip px-4 pt-6 pb-28 sm:px-6 lg:px-10 lg:pt-10 lg:pb-12">
         {locked ? <UpgradeCard min={locked.min} feature={locked.feature} /> : children}
       </main>
@@ -302,4 +303,10 @@ function PanelGarland() {
   const fest = usePanelFestive();
   if (!fest) return null;
   return <FestiveGarland theme={fest} scale={0.75} className="relative -mb-6 lg:-mb-8" />;
+}
+
+/** Emoji de la temporada junto a los botones principales */
+function FestiveEmoji() {
+  const fest = usePanelFestive();
+  return fest ? <span aria-hidden>{fest.emoji}</span> : null;
 }

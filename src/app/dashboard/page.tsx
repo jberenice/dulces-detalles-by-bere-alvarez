@@ -93,18 +93,22 @@ export default function DashboardHome() {
   }, [data]);
 
   const hour = now.getHours();
+  const fest = usePanelFestive();
   const greeting = hour < 12 ? "Buenos días" : hour < 19 ? "Buenas tardes" : "Buenas noches";
   const firstName = (profile.owner_name ?? "").split(" ")[0];
 
   return (
     <>
       {/* Bienvenida */}
-      <section className="sprinkles relative mb-6 overflow-hidden rounded-[32px] bg-cocoa-800 px-6 py-7 text-cream-100 sm:px-9 sm:py-9">
+      <section
+        className="sprinkles relative mb-6 overflow-hidden rounded-[32px] bg-cocoa-800 px-6 py-7 text-cream-100 transition-colors sm:px-9 sm:py-9"
+        style={fest ? { backgroundColor: "var(--festive-hero, var(--color-cocoa-800))" } : undefined}
+      >
         <div className="absolute -top-20 -right-16 h-64 w-64 rounded-full bg-rose-500/30 blur-3xl" />
         <div className="absolute -bottom-24 left-1/3 h-56 w-56 rounded-full bg-mint-400/20 blur-3xl" />
         <div className="relative flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
           <div className="animate-fade-up">
-            <p className="font-script text-2xl text-rose-300">{greeting}{firstName ? `, ${firstName}` : ""}</p>
+            <p className="font-script text-2xl text-rose-300">{fest ? `${fest.emoji} ` : ""}{greeting}{firstName ? `, ${firstName}` : ""}</p>
             <h1 className="mt-1 text-3xl font-semibold text-white sm:text-4xl">¿Qué vamos a endulzar hoy?</h1>
             <p className="mt-2 max-w-lg text-[15px] text-cream-200/75">
               {data ? (
@@ -118,7 +122,7 @@ export default function DashboardHome() {
             </p>
           </div>
           <div className="flex flex-wrap gap-2">
-            <ButtonLink href="/dashboard/cotizaciones/nueva"><FileText className="h-4 w-4" /> Cotizar</ButtonLink>
+            <ButtonLink href="/dashboard/cotizaciones/nueva"><FileText className="h-4 w-4" /> Cotizar{fest ? ` ${fest.emoji}` : ""}</ButtonLink>
             <ButtonLink href="/dashboard/pedidos/nuevo" variant="secondary"><ShoppingBag className="h-4 w-4" /> Pedido</ButtonLink>
             <ButtonLink href="/dashboard/postres/nuevo" variant="secondary" className="max-sm:hidden"><CakeSlice className="h-4 w-4" /> Postre</ButtonLink>
           </div>

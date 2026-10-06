@@ -4,12 +4,17 @@ import { PartyPopper } from "lucide-react";
 import { Card, CardHeader } from "@/components/ui/Card";
 import { cn } from "@/lib/cn";
 import { FESTIVE_THEMES, type FestiveSetting } from "@/lib/festive";
-import { readPanelFestive, savePanelFestive } from "./Festive";
+import { readFestiveColors, readPanelFestive, saveFestiveColors, savePanelFestive } from "./Festive";
+import { Toggle } from "@/components/ui/Field";
 
 /** Ajuste: adornos de temporada en tu panel (se guarda en este dispositivo) */
 export function PanelFestiveSetting() {
   const [v, setV] = useState<FestiveSetting>("auto");
-  useEffect(() => setV(readPanelFestive()), []);
+  const [colors, setColors] = useState(true);
+  useEffect(() => {
+    setV(readPanelFestive());
+    setColors(readFestiveColors());
+  }, []);
   const choose = (x: FestiveSetting) => {
     setV(x);
     savePanelFestive(x);
@@ -34,6 +39,11 @@ export function PanelFestiveSetting() {
           </button>
         ))}
       </div>
+      {v !== "off" && (
+        <div className="border-t border-cocoa-800/5 px-5 py-4 sm:px-6">
+          <Toggle checked={colors} onChange={(x) => { setColors(x); saveFestiveColors(x); }} label="Pintar botones e íconos con los colores de la temporada" />
+        </div>
+      )}
     </Card>
   );
 }

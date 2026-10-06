@@ -2,7 +2,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { X } from "lucide-react";
 import { cn } from "@/lib/cn";
-import { festiveById, resolveFestive, type FestiveSetting, type FestiveTheme } from "@/lib/festive";
+import { festiveById, festiveVars, resolveFestive, type FestiveSetting, type FestiveTheme } from "@/lib/festive";
 
 /**
  * Tema de temporada del lado del navegador (usa la fecha de quien visita).
@@ -164,4 +164,47 @@ export function usePanelFestive() {
   }, []);
   const theme = useFestive(setting ?? "off");
   return setting === null ? null : theme;
+}
+
+const COLORS_KEY = "dd-festivo-colores";
+export const readFestiveColors = () => {
+  try {
+    return localStorage.getItem(COLORS_KEY) !== "0";
+  } catch {
+    return true;
+  }
+};
+export const saveFestiveColors = (v: boolean) => {
+  try {
+    localStorage.setItem(COLORS_KEY, v ? "1" : "0");
+    window.dispatchEvent(new Event("dd-festivo"));
+  } catch {}
+};
+
+/** Pinta botones, íconos y acentos con los colores de la temporada mientras el componente está montado */
+export function FestiveColors({ theme }: { theme: FestiveTheme }) {
+  useEffect(() => {
+    const root = document.documentElement;
+    const vars = festiveVars(theme);
+    Object.entries(vars).forEach(([k, v]) => root.style.setProperty(k, v));
+    root.dataset.festive = theme.id;
+    return () => {
+      Object.keys(vars).forEach((k) => root.style.removeProperty(k));
+      delete root.dataset.festive;
+    };
+  }, [theme]);
+  return null;
+}
+
+/** Colores de temporada del panel (si están activados en Ajustes) */
+export function PanelFestiveColors() {
+  const fest = usePanelFestive();
+  const [on, setOn] = useState(true);
+  useEffect(() => {
+    const load = () => setOn(readFestiveColors());
+    load();
+    window.addEventListener("dd-festivo", load);
+    return () => window.removeEventListener("dd-festivo", load);
+  }, []);
+  return fest && on ? <FestiveColors theme={fest} /> : null;
 }
