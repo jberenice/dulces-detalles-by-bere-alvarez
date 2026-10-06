@@ -5,7 +5,7 @@
 export const LEGAL = {
   brand: "Dulces Detalles by Bere Álvarez",
   owner: "Berenice Álvarez",
-  email: "j.berenice.alvarez.92@gmail.com",
+  email: "dulcesdetallesbyberealvarez@gmail.com",
   phone: "983 197 3655",
   address: "[Calle, número, colonia, código postal, ciudad y estado]",
   updatedAt: "5 de octubre de 2026",

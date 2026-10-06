@@ -1,4 +1,5 @@
 "use client";
+import { BizLogo } from "./BizLogo";
 import { Fragment, useEffect, useMemo, useState } from "react";
 import { CakeSlice, CalendarDays, Check, FileText, Mail, ChevronLeft, ChevronRight, Clock, Facebook, Gift, Instagram, Loader2, ShieldAlert, Ticket, Wand2, Quote as QuoteIcon, MapPin, Megaphone, MessageCircle, Minus, Plus, ShoppingBag, Sparkles, Star, Truck, X } from "lucide-react";
 import { toast } from "sonner";
@@ -870,7 +871,7 @@ export function Storefront({ data, slug, preview = false }: { data: StoreData; s
   };
 
   const announcementVisible = !!store.announcement && theme.sections.find((s) => s.id === "anuncio")?.visible !== false;
-  const logo = store.logo_url || "/logo-transparent.svg";
+  const logo = store.logo_url || null;
 
   // ---------- Portada ----------
   const hero =
@@ -886,7 +887,7 @@ export function Storefront({ data, slug, preview = false }: { data: StoreData; s
           <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/25 to-black/5" />
           <div className="absolute inset-x-0 bottom-0 flex items-end gap-4 p-5 @2xl:p-8">
             {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src={logo} alt="" className="h-20 w-20 shrink-0 rounded-full bg-white object-cover shadow-lg ring-4 ring-white/80 @2xl:h-24 @2xl:w-24" />
+            <BizLogo src={logo} name={store.business_name} className="h-20 w-20 shrink-0 bg-white text-[80px] shadow-lg ring-4 ring-white/80 @2xl:h-24 @2xl:w-24 @2xl:text-[96px]" />
             <div className="min-w-0 text-white">
               <h1 className="text-3xl leading-tight font-semibold !text-white @2xl:text-5xl">{store.title}</h1>
               {store.description && <p className="mt-1 line-clamp-2 text-sm opacity-90 @2xl:text-base">{store.description}</p>}
@@ -897,7 +898,7 @@ export function Storefront({ data, slug, preview = false }: { data: StoreData; s
     ) : theme.hero === "minimal" ? (
       <header className="flex items-center gap-4 px-4 pt-6 pb-2">
         {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img src={logo} alt="" className="h-16 w-16 shrink-0 rounded-full bg-[var(--st-surface)] object-cover ring-1 ring-[var(--st-line)]" />
+        <BizLogo src={logo} name={store.business_name} className="h-16 w-16 shrink-0 bg-[var(--st-surface)] text-[64px] ring-1 ring-[var(--st-line)]" />
         <div className="min-w-0">
           <h1 className="truncate text-2xl leading-tight font-semibold @2xl:text-3xl">{store.title}</h1>
           {store.description && <p className="line-clamp-2 text-sm text-[var(--st-muted)]">{store.description}</p>}
@@ -915,7 +916,7 @@ export function Storefront({ data, slug, preview = false }: { data: StoreData; s
         <div className="relative mx-auto -mt-16 max-w-3xl px-4 text-center @2xl:-mt-20">
           <div className="mx-auto h-32 w-32 overflow-hidden rounded-full bg-[var(--st-surface)] shadow-lg ring-4 ring-[var(--st-surface)] @2xl:h-40 @2xl:w-40">
             {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src={logo} alt={store.business_name} className="h-full w-full rounded-full object-cover" />
+            <BizLogo src={logo} name={store.business_name} className="h-full w-full text-[128px] @2xl:text-[160px]" />
           </div>
           <h1 className="mt-4 text-3xl font-semibold @2xl:text-4xl">{store.title}</h1>
           {store.description && <p className="mx-auto mt-2 max-w-xl text-[15px] leading-relaxed text-[var(--st-muted)]">{store.description}</p>}

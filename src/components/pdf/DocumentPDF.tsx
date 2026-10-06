@@ -17,7 +17,7 @@ export type PdfDoc = {
     instagram?: string | null;
     facebook?: string | null;
     bank?: string | null;
-    logo: string;
+    logo: string | null;
   };
   client?: { name: string; phone?: string | null; email?: string | null; address?: string | null } | null;
   meta: { label: string; value: string }[];
@@ -32,6 +32,16 @@ export type PdfDoc = {
   terms?: string | null;
   link?: string | null;
 };
+
+/** Iniciales del negocio para cuando no tiene logo */
+const initialsOf = (name: string) =>
+  name
+    .replace(/\b(by|de|del|la|las|los|y)\b/gi, " ")
+    .split(/\s+/)
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((w) => w[0]!.toUpperCase())
+    .join("") || "•";
 
 const C = {
   rose: "#eb5473",
@@ -51,6 +61,8 @@ const s = StyleSheet.create({
   page: { fontFamily: "Helvetica", fontSize: 9.5, color: C.ink, paddingBottom: 70, backgroundColor: "#ffffff" },
   header: { backgroundColor: C.cream, paddingHorizontal: 40, paddingTop: 30, paddingBottom: 22, flexDirection: "row", justifyContent: "space-between", alignItems: "center" },
   logo: { width: 92, height: 92, objectFit: "contain" },
+  initials: { width: 80, height: 80, borderRadius: 40, backgroundColor: "#eb5473", alignItems: "center", justifyContent: "center" },
+  initialsText: { fontFamily: "Times-BoldItalic", fontSize: 30, color: "#ffffff" },
   bizBlock: { alignItems: "flex-end", maxWidth: 260 },
   bizName: { fontFamily: "Times-BoldItalic", fontSize: 18, color: C.cocoa },
   bizLine: { fontSize: 8.5, color: C.cocoaSoft, marginTop: 2 },
@@ -104,7 +116,13 @@ export function DocumentPDF({ doc }: { doc: PdfDoc }) {
       <Page size="LETTER" style={s.page}>
         <View style={s.header}>
           {/* eslint-disable-next-line jsx-a11y/alt-text */}
-          <Image src={doc.business.logo} style={s.logo} />
+          {doc.business.logo ? (
+            <Image src={doc.business.logo} style={s.logo} />
+          ) : (
+            <View style={s.initials}>
+              <Text style={s.initialsText}>{initialsOf(doc.business.name)}</Text>
+            </View>
+          )}
           <View style={s.bizBlock}>
             <Text style={s.bizName}>{doc.business.name}</Text>
             {doc.business.owner ? <Text style={s.bizLine}>{doc.business.owner}</Text> : null}

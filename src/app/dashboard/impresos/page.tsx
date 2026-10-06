@@ -115,7 +115,8 @@ export default function PrintDesignerPage() {
 
   const data: PrintData = {
     business: profile.store_title || profile.business_name,
-    logo: profile.logo_url || (typeof window !== "undefined" ? `${window.location.origin}/logo-transparent.png` : null),
+    // Solo el logo de la repostería (si no tiene, el diseño sale sin logo)
+    logo: profile.logo_url || null,
     qr,
     url,
     whatsapp: profile.whatsapp ?? "",

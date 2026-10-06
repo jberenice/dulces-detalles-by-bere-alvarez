@@ -9,7 +9,9 @@ export const verifyCode = (token?: string | null) => (token ? token.replace(/-/g
 export type BusinessLike = Pick<Profile, "business_name" | "owner_name" | "whatsapp" | "phone" | "email" | "address" | "instagram" | "facebook" | "bank_info" | "logo_url">;
 
 function businessOf(p: BusinessLike, origin?: string) {
-  const logo = p.logo_url && !p.logo_url.endsWith(".webp") ? p.logo_url : `${origin ?? siteUrl()}/logo-transparent.png`;
+  // El PDF solo admite PNG o JPG. Sin logo propio se ponen las iniciales del negocio (nunca el logo de otra tienda)
+  const logo = p.logo_url && /\.(png|jpe?g)(\?|$)/i.test(p.logo_url) ? p.logo_url : null;
+  void origin;
   return {
     name: p.business_name,
     owner: p.owner_name,

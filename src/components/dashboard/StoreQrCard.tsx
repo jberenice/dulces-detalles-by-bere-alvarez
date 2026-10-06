@@ -59,7 +59,8 @@ export function StoreQrCard({ url, enabled, slug }: { url: string; enabled: bool
     ctx.roundRect(90, 300, W - 180, 900, 48);
     ctx.fill();
     try {
-      const logo = await loadImg(profile.logo_url || "/logo-transparent.png");
+      if (!profile.logo_url) throw new Error("sin logo");
+      const logo = await loadImg(profile.logo_url);
       const s = 220;
       ctx.save();
       ctx.beginPath();

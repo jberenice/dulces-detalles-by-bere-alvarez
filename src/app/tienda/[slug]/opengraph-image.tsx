@@ -64,7 +64,9 @@ export default async function OgImage({ params }: { params: { slug: string } | P
   const pick = data?.products.find((p) => p.featured && p.image_url) ?? data?.products.find((p) => p.image_url);
   const [photo, logo] = await Promise.all([toDataUri(pick?.image_url ?? store?.banner_url, 640), toDataUri(store?.logo_url, 240)]);
   const site = (process.env.NEXT_PUBLIC_SITE_URL ?? "").replace(/\/$/, "");
-  const fallbackLogo = site ? `${site}/logo-transparent.png` : null;
+  // Sin logo propio no se usa el de otra marca
+  const fallbackLogo: string | null = null;
+  void site;
   const title = store?.title ?? "Tienda en línea";
   const count = data?.products.length ?? 0;
 

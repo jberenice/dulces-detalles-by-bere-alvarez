@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { BizLogo } from "@/components/store/BizLogo";
 import { notFound } from "next/navigation";
 import { Ban, Check, ChefHat, Clock, Download, MessageCircle, Package, PartyPopper, Store, Truck } from "lucide-react";
 import { createAdminClient } from "@/lib/supabase/admin";
@@ -75,7 +76,6 @@ export default async function TrackingPage({ params }: { params: Promise<{ token
   const items = [...o.order_items].sort((a, b) => (a.position ?? 0) - (b.position ?? 0));
   const balance = Math.max(Number(o.total) - Number(o.deposit), 0);
   const code = folio("P", o.folio);
-  const logo = biz.logo_url || "/logo-transparent.svg";
 
   return (
     <main className="min-h-dvh bg-[var(--st-bg)] px-4 py-8 text-[var(--st-text)]" style={themeVars(theme)}>
@@ -83,7 +83,7 @@ export default async function TrackingPage({ params }: { params: Promise<{ token
       <div className="mx-auto max-w-lg">
         <header className="text-center">
           {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src={logo} alt={biz.business_name} className="mx-auto h-20 w-20 rounded-full bg-white object-cover shadow-md ring-4 ring-white" />
+          <BizLogo src={biz.logo_url} name={biz.business_name} className="mx-auto h-20 w-20 bg-white text-[80px] shadow-md ring-4 ring-white" />
           <p className="mt-3 text-sm font-semibold text-[var(--st-muted)]">{biz.business_name}</p>
           <h1 className="mt-1 font-display text-3xl font-semibold" style={{ fontFamily: "var(--st-heading)" }}>
             {name ? `¡Hola, ${name}!` : "Tu pedido"}
