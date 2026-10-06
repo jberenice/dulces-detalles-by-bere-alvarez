@@ -1,4 +1,5 @@
 "use client";
+import { FestiveGarland, usePanelFestive } from "@/components/festive/Festive";
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
@@ -255,6 +256,7 @@ export function Shell({ children }: { children: React.ReactNode }) {
         <NotificationBell />
       </header>
 
+      <PanelGarland />
       <main className="mx-auto w-full max-w-[1320px] min-w-0 overflow-x-clip px-4 pt-6 pb-28 sm:px-6 lg:px-10 lg:pt-10 lg:pb-12">
         {locked ? <UpgradeCard min={locked.min} feature={locked.feature} /> : children}
       </main>
@@ -293,4 +295,11 @@ export function Shell({ children }: { children: React.ReactNode }) {
       </nav>
     </div>
   );
+}
+
+/** Guirnalda de temporada arriba del contenido del panel */
+function PanelGarland() {
+  const fest = usePanelFestive();
+  if (!fest) return null;
+  return <FestiveGarland theme={fest} scale={0.75} className="relative -mb-6 lg:-mb-8" />;
 }

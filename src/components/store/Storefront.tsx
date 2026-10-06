@@ -1,4 +1,5 @@
 "use client";
+import { FestiveGarland, FestiveParticles, useFestive } from "@/components/festive/Festive";
 import { BizLogo } from "./BizLogo";
 import { Fragment, useEffect, useMemo, useState } from "react";
 import { CakeSlice, CalendarDays, Check, FileText, Mail, ChevronLeft, ChevronRight, Clock, Facebook, Gift, Instagram, Loader2, ShieldAlert, Ticket, Wand2, Quote as QuoteIcon, MapPin, Megaphone, MessageCircle, Minus, Plus, ShoppingBag, Sparkles, Star, Truck, X } from "lucide-react";
@@ -166,7 +167,9 @@ export function Storefront({ data, slug, preview = false }: { data: StoreData; s
   const [couponInput, setCouponInput] = useState("");
   const [checkingCoupon, setCheckingCoupon] = useState(false);
   const theme: StoreTheme = useMemo(() => normalizeTheme(store.theme), [store.theme]);
-  const vars = useMemo(() => themeVars(theme), [theme]);
+  // Fechas especiales (Navidad, 14 de febrero, Día de Muertos…)
+  const fest = useFestive(theme.festive);
+  const vars = useMemo(() => themeVars(fest && theme.festiveColors ? { ...theme, ...fest.colors } : theme), [theme, fest]);
   const decor = useMemo(() => decorTiles(theme), [theme]);
   const storageKey = `dd-cart-${slug}`;
   const [cart, setCart] = useState<Record<string, CartLine>>({});
@@ -934,17 +937,21 @@ export function Storefront({ data, slug, preview = false }: { data: StoreData; s
           <Megaphone className="h-4 w-4 shrink-0" /> {store.announcement}
         </div>
       )}
+      {fest && !seasons.length && (
+        <div className="flex items-center justify-center gap-2 bg-[var(--st-accent)] px-4 py-2 text-center text-[13px] font-semibold text-[var(--st-on-accent)]">{fest.store}</div>
+      )}
       {seasons.filter((x) => x.banner || x.name).slice(0, 2).map((x) => (
         <div key={x.id} className="flex items-center justify-center gap-2 bg-[var(--st-accent)] px-4 py-2 text-center text-[13px] font-semibold text-[var(--st-on-accent)]">
           <span>{x.emoji || "✨"}</span>
           <span>{x.banner || `Temporada de ${x.name}`} · hasta el {dateLong(x.end_date).replace(/^[a-záéíóúñ]+, /i, "")}</span>
         </div>
       ))}
-      <div className={cn("relative", decor.edge && theme.hero === "minimal" && "pt-8")}>
-        {decor.edge && <DecorEdge tile={decor.edge} />}
+      <div className={cn("relative", (decor.edge || fest) && theme.hero === "minimal" && "pt-10")}>
+        {fest ? <FestiveGarland theme={fest} className="absolute inset-x-0 top-0 z-10" /> : decor.edge && <DecorEdge tile={decor.edge} />}
         {hero}
       </div>
 
+      {fest && <FestiveParticles theme={fest} count={preview ? 10 : 14} contained={preview} />}
       <main className="mx-auto max-w-6xl pb-32">
         {theme.sections
           .filter((s) => s.visible && s.id !== "anuncio")

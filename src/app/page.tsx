@@ -8,6 +8,7 @@ import { SocialLinks } from "@/components/legal/SocialLinks";
 import { Pricing } from "@/components/marketing/Pricing";
 import { WhatsAppFloat } from "@/components/marketing/WhatsAppFloat";
 import { DEMO_VIDEO_ID, FAQ, TESTIMONIALS } from "@/lib/marketing";
+import { LandingFestiveBadge, LandingFestiveDecor } from "@/components/festive/LandingFestive";
 
 const FEATURES = [
   { icon: Calculator, title: "Costeo exacto", text: "Ingredientes, empaques, gastos fijos, desgaste y ganancia: el precio justo de cada postre.", tone: "bg-mint-50 text-mint-600" },
@@ -51,8 +52,10 @@ export default async function Landing({ searchParams }: { searchParams: Promise<
       <section className="sprinkles relative">
         <div className="absolute top-10 -left-32 h-96 w-96 rounded-full bg-rose-200/40 blur-3xl" />
         <div className="absolute -right-24 bottom-0 h-96 w-96 rounded-full bg-mint-200/50 blur-3xl" />
+        <LandingFestiveDecor />
         <div className="relative mx-auto grid max-w-6xl items-center gap-10 px-4 pt-12 pb-20 sm:px-6 lg:grid-cols-[1.1fr_1fr] lg:pt-20 lg:pb-28">
           <div className="animate-fade-up text-center lg:text-left">
+            <LandingFestiveBadge />
             <p className="font-script text-2xl text-rose-500 sm:text-3xl">by Bere Álvarez</p>
             <h1 className="mt-2 text-[34px] leading-[1.08] font-semibold sm:text-6xl">
               Cotiza, costea y vende tus <span className="text-rose-500 italic">postres</span> con el cariño de siempre.

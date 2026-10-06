@@ -1,4 +1,5 @@
 /** Personalización de la minitienda: colores, tipografía, acomodo y orden de secciones. */
+import { FESTIVE_IDS, type FestiveSetting } from "./festive";
 
 export type SectionId = "anuncio" | "destacados" | "catalogo" | "pastel" | "resenas" | "nosotros" | "horario" | "contacto";
 export type StoreTheme = {
@@ -15,6 +16,10 @@ export type StoreTheme = {
   radius: "redondo" | "suave" | "recto";
   /** Decoración repostera: bordes chorreados, helado, galleta… */
   decor: "ninguna" | "chorreado" | "helado" | "galleta" | "chispas" | "capacillo";
+  /** Fechas especiales: automático según la fecha, apagado o un tema fijo */
+  festive: FestiveSetting;
+  /** Usar los colores de la temporada mientras dura */
+  festiveColors: boolean;
   sections: { id: SectionId; visible: boolean }[];
 };
 
@@ -90,6 +95,8 @@ export const DEFAULT_THEME: StoreTheme = {
   columns: 3,
   radius: "redondo",
   decor: "ninguna",
+  festive: "auto",
+  festiveColors: false,
   sections: DEFAULT_SECTIONS,
 };
 
@@ -130,6 +137,8 @@ export function normalizeTheme(raw: unknown): StoreTheme {
     columns: t.columns === 2 ? 2 : 3,
     radius: pick(t.radius, ["redondo", "suave", "recto"] as const, "redondo"),
     decor: pick(t.decor, ["ninguna", "chorreado", "helado", "galleta", "chispas", "capacillo"] as const, "ninguna"),
+    festive: pick(t.festive, ["auto", "off", ...FESTIVE_IDS] as FestiveSetting[], "auto"),
+    festiveColors: t.festiveColors === true,
     sections,
   };
 }

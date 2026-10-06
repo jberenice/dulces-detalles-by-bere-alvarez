@@ -1,4 +1,5 @@
 "use client";
+import { FestiveParticles, FestiveRibbon, usePanelFestive } from "@/components/festive/Festive";
 import { useMemo } from "react";
 import Link from "next/link";
 import { AlertTriangle, ArrowRight, BellRing, Cake, CalendarClock, CakeSlice, FileText, Gift, HandCoins, MessageCircle, Plus, ShoppingBag, Sparkles, Star, Store, TrendingUp, Wallet, Wheat } from "lucide-react";
@@ -165,6 +166,8 @@ export default function DashboardHome() {
         </div>
       )}
 
+      <HomeFestive />
+
       {data && (data.requests > 0 || data.newReviews > 0) && (
         <div className="mb-6 grid gap-3 sm:grid-cols-2">
           {data.requests > 0 && (
@@ -326,6 +329,18 @@ export default function DashboardHome() {
           </Link>
         ))}
       </div>
+    </>
+  );
+}
+
+/** Aviso y adornos de temporada en el inicio del panel */
+function HomeFestive() {
+  const fest = usePanelFestive();
+  if (!fest) return null;
+  return (
+    <>
+      <FestiveRibbon theme={fest} href="/dashboard/temporadas" cta="Preparar temporada" />
+      <FestiveParticles theme={fest} count={12} seconds={12} />
     </>
   );
 }

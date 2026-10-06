@@ -42,6 +42,7 @@ import { StoreQrCard } from "@/components/dashboard/StoreQrCard";
 import { CustomCakeSettingsCard, cleanCake } from "@/components/dashboard/CustomCakeSettings";
 import { DESIGNS, PRESETS, SECTION_LABELS, applyDesign, normalizeTheme, type StoreTheme } from "@/lib/storeTheme";
 import { DECOR_OPTIONS, decorTiles } from "@/lib/storeDecor";
+import { FESTIVE_THEMES } from "@/lib/festive";
 import { cn } from "@/lib/cn";
 import type { DeliveryZone, Dessert, Profile } from "@/lib/types";
 
@@ -304,6 +305,46 @@ export default function StoreSettingsPage() {
                     );
                   })}
                 </div>
+              </Card>
+
+              <Card className="p-5 sm:p-6">
+                <h3 className="text-lg font-semibold">Fechas especiales</h3>
+                <p className="text-sm text-cocoa-400">
+                  Adornos de temporada en tu tienda: guirnalda, cosas que caen (copos, pétalos, corazones…) y un aviso. En automático cambian solos según la fecha.
+                </p>
+                <div className="mt-4 grid grid-cols-2 gap-2 sm:grid-cols-3 xl:grid-cols-4">
+                  {(
+                    [
+                      { id: "auto", label: "Automático", hint: "Según la fecha", emoji: "📅" },
+                      { id: "off", label: "Ninguno", hint: "Sin adornos", emoji: "⛔" },
+                      ...FESTIVE_THEMES.map((f) => ({ id: f.id, label: f.name, hint: `${f.from[1]}/${f.from[0]} – ${f.id === "padre" ? "3er domingo de junio" : `${f.to[1]}/${f.to[0]}`}`, emoji: f.emoji })),
+                    ] as { id: StoreTheme["festive"]; label: string; hint: string; emoji: string }[]
+                  ).map((o) => {
+                    const f = FESTIVE_THEMES.find((x) => x.id === o.id);
+                    const g = f?.garland();
+                    return (
+                      <Option key={o.id} active={theme.festive === o.id} onClick={() => t({ festive: o.id })} className="!p-2">
+                        <div className="relative h-12 overflow-hidden rounded-lg bg-cream-50 ring-1 ring-cocoa-800/10" style={f ? { background: f.colors.background } : undefined}>
+                          {g ? (
+                            <div style={{ height: g.height * 0.7, backgroundImage: g.image, backgroundSize: `${g.width * 0.7}px ${g.height * 0.7}px`, backgroundRepeat: "repeat-x" }} />
+                          ) : (
+                            <span className="grid h-full place-items-center text-xl">{o.emoji}</span>
+                          )}
+                        </div>
+                        <p className="mt-1.5 truncate text-sm font-bold text-cocoa-700">{f ? `${o.emoji} ${o.label}` : o.label}</p>
+                        <p className="truncate text-[11px] text-cocoa-400">{o.hint}</p>
+                      </Option>
+                    );
+                  })}
+                </div>
+                {theme.festive !== "off" && (
+                  <div className="mt-4">
+                    <Toggle checked={theme.festiveColors} onChange={(v) => t({ festiveColors: v })} label="Usar también los colores de la temporada (mientras dura)" />
+                  </div>
+                )}
+                <p className="mt-3 text-xs text-cocoa-400">
+                  Tip: para ver cómo se verá un tema antes de su fecha, abre tu tienda agregando <code className="rounded bg-cream-100 px-1">?tema=navidad</code> al final de la dirección (o anonuevo, reyes, sanvalentin, primavera, nino, madres, maestro, padre, independencia, halloween, muertos).
+                </p>
               </Card>
 
               <Card className="p-5 sm:p-6">

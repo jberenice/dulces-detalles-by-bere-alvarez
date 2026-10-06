@@ -1,4 +1,5 @@
 "use client";
+import { PanelFestiveSetting } from "@/components/festive/PanelFestiveSetting";
 import { useEffect, useState } from "react";
 import { BellRing, Building2, Calculator, FileText, KeyRound, Save } from "lucide-react";
 import { toast } from "sonner";
@@ -101,6 +102,7 @@ export default function SettingsPage() {
               </div>
             </div>
           </Card>
+          <PanelFestiveSetting />
           <Card>
             <CardHeader title="Cotizaciones" icon={<FileText className="h-5 w-5" />} />
             <div className="grid gap-4 p-5 sm:p-6">
