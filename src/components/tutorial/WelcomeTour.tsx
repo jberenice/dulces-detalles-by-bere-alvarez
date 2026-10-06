@@ -86,7 +86,7 @@ export function WelcomeTour() {
               <Icon className="h-11 w-11" />
             </span>
           ) : (
-            <Image src="/logo-transparent.png" alt="Dulces Detalles" width={140} height={140} className="mx-auto" />
+            <Image src="/logo-transparent.svg" unoptimized alt="Dulces Detalles" width={140} height={140} className="mx-auto" />
           )}
           <h2 className="mt-5 text-2xl font-semibold sm:text-3xl">{s.title}</h2>
           <p className="mx-auto mt-2 max-w-sm text-[15px] leading-relaxed text-cocoa-500">{s.text}</p>

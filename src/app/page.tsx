@@ -33,7 +33,7 @@ export default async function Landing({ searchParams }: { searchParams: Promise<
       <header className="sticky top-0 z-40 border-b border-cocoa-800/5 bg-cream-100/85 backdrop-blur-xl">
         <div className="mx-auto flex max-w-6xl items-center justify-between gap-3 px-4 py-2.5 sm:px-6 sm:py-3">
           <Link href="/" className="flex min-w-0 items-center gap-2">
-            <Image src="/logo-transparent.png" alt="Dulces Detalles" width={44} height={44} className="h-11 w-11 shrink-0" priority />
+            <Image src="/logo-transparent.svg" unoptimized alt="Dulces Detalles" width={44} height={44} className="h-11 w-11 shrink-0" priority />
             <span className="truncate font-script text-xl font-bold whitespace-nowrap text-cocoa-600 max-[359px]:hidden sm:text-2xl">Dulces Detalles</span>
           </Link>
           <nav className="flex shrink-0 items-center gap-2">
@@ -73,7 +73,7 @@ export default async function Landing({ searchParams }: { searchParams: Promise<
           </div>
           <div className="relative mx-auto w-full max-w-md">
             <div className="absolute inset-6 rounded-full bg-white/70 blur-2xl" />
-            <Image src="/logo-transparent.png" alt="Dulces Detalles by Bere Álvarez" width={520} height={520} className="relative animate-float drop-shadow-2xl" priority />
+            <Image src="/logo-transparent.svg" unoptimized alt="Dulces Detalles by Bere Álvarez" width={520} height={520} className="relative animate-float drop-shadow-2xl" priority />
             <div className="card absolute -bottom-2 -left-2 hidden w-52 p-4 sm:block">
               <p className="text-[11px] font-bold tracking-wider text-cocoa-300 uppercase">Pastel 3 leches</p>
               <p className="font-display text-2xl font-semibold text-rose-500">$625</p>

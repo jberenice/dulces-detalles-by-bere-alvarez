@@ -42,6 +42,10 @@ const securityHeaders = [
 
 const nextConfig: NextConfig = {
   poweredByHeader: false,
+  experimental: {
+    // El CSS va dentro del HTML: el navegador ya no espera 2 archivos .css antes de pintar la página
+    inlineCss: true,
+  },
   // El PDF del pedido para la clienta se genera en el servidor
   serverExternalPackages: ["@react-pdf/renderer"],
   images: {
@@ -55,6 +59,8 @@ const nextConfig: NextConfig = {
     return [
       { source: "/:path*", headers: securityHeaders },
       // Las páginas privadas y las cotizaciones compartidas no se guardan en caché ni se indexan
+      // Logos de la app: se guardan en caché una semana (no se descargan en cada visita)
+      { source: "/:file(logo|logo-transparent).:ext(svg|png)", headers: [{ key: "Cache-Control", value: "public, max-age=604800, stale-while-revalidate=86400" }] },
       { source: "/dashboard/:path*", headers: [{ key: "Cache-Control", value: "no-store" }, { key: "X-Robots-Tag", value: "noindex, nofollow" }] },
       {
         source: "/sw.js",

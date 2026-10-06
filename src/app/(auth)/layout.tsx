@@ -14,7 +14,7 @@ export default function AuthLayout({ children }: { children: React.ReactNode }) 
           ← Volver al inicio
         </Link>
         <div className="relative z-10 mx-auto flex max-w-md flex-col items-center text-center">
-          <Image src="/logo-transparent.png" alt="Dulces Detalles" width={340} height={340} className="animate-float drop-shadow-xl" priority />
+          <Image src="/logo-transparent.svg" unoptimized alt="Dulces Detalles" width={340} height={340} className="animate-float drop-shadow-xl" priority />
           <p className="mt-2 font-script text-3xl text-rose-500">Cada postre, un detalle</p>
           <p className="mt-3 text-[15px] leading-relaxed text-cocoa-500">
             Cotiza en segundos, conoce el costo real de cada receta y lleva tus pedidos y tu tienda en línea desde un solo lugar.
@@ -29,7 +29,7 @@ export default function AuthLayout({ children }: { children: React.ReactNode }) 
       <main className="flex items-center justify-center px-5 py-10 sm:px-10">
         <div className="w-full max-w-[420px] animate-fade-up">
           <div className="mb-8 flex justify-center lg:hidden">
-            <Image src="/logo-transparent.png" alt="Dulces Detalles" width={150} height={150} priority />
+            <Image src="/logo-transparent.svg" unoptimized alt="Dulces Detalles" width={150} height={150} priority />
           </div>
           {children}
           <SiteFooter compact className="mt-6 pb-0" />

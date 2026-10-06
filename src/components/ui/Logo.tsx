@@ -4,13 +4,13 @@ import { cn } from "@/lib/cn";
 export function Logo({ size = 56, className, src }: { size?: number; className?: string; src?: string | null }) {
   return (
     <Image
-      src={src || "/logo-transparent.png"}
+      src={src || "/logo-transparent.svg"}
       alt="Dulces Detalles by Bere Álvarez"
       width={size}
       height={size}
       className={cn("object-contain", className)}
       priority
-      unoptimized={!!src}
+      unoptimized
     />
   );
 }

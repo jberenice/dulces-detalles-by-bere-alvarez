@@ -74,7 +74,7 @@ export function PublicQuote({ data, token }: { data: PublicQuoteData; token: str
       <article className="mx-auto max-w-3xl overflow-hidden rounded-[32px] bg-white shadow-lift animate-fade-up">
         <header className="flex flex-col items-center gap-4 bg-cream-100 px-6 py-7 text-center sm:flex-row sm:justify-between sm:px-10 sm:text-left">
           {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src={b.logo_url || "/logo-transparent.png"} alt={b.business_name} className="h-24 w-24 rounded-full bg-white object-cover shadow-sm" />
+          <img src={b.logo_url || "/logo-transparent.svg"} alt={b.business_name} className="h-24 w-24 rounded-full bg-white object-cover shadow-sm" />
           <div className="sm:text-right">
             <p className="font-display text-2xl font-semibold text-cocoa-700 italic">{b.business_name}</p>
             <p className="text-sm text-cocoa-400">{[b.whatsapp, b.email].filter(Boolean).join(" · ")}</p>

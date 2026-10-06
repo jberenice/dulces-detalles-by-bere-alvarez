@@ -162,7 +162,7 @@ export function Shell({ children }: { children: React.ReactNode }) {
     <div className="flex h-full flex-col">
       <div className="flex items-center gap-1 pt-6 pr-2 pb-5 pl-5">
       <Link href="/dashboard" className="flex min-w-0 flex-1 items-center gap-3">
-        <Image src={profile.logo_url || "/logo-transparent.png"} alt="" width={48} height={48} className="h-12 w-12 shrink-0 rounded-full bg-white object-cover ring-1 ring-cocoa-800/5" unoptimized={!!profile.logo_url} />
+        <Image src={profile.logo_url || "/logo-transparent.svg"} alt="" width={48} height={48} className="h-12 w-12 shrink-0 rounded-full bg-white object-cover ring-1 ring-cocoa-800/5" unoptimized />
         <div className="min-w-0 leading-tight">
           <p className="line-clamp-2 font-display text-[15px] leading-tight font-semibold break-words text-cocoa-700" title={profile.business_name}>{profile.business_name}</p>
           <p className="truncate text-xs text-cocoa-400">{profile.owner_name ?? profile.email}</p>
@@ -249,7 +249,7 @@ export function Shell({ children }: { children: React.ReactNode }) {
           <Menu className="h-6 w-6" />
         </button>
         <Link href="/dashboard" className="flex min-w-0 items-center gap-2">
-          <Image src="/logo-transparent.png" alt="Dulces Detalles" width={40} height={40} className="shrink-0" />
+          <Image src="/logo-transparent.svg" unoptimized alt="Dulces Detalles" width={40} height={40} className="shrink-0" />
           <span className="truncate font-script text-xl font-bold whitespace-nowrap text-cocoa-600 max-[359px]:hidden">Dulces Detalles</span>
         </Link>
         <NotificationBell />

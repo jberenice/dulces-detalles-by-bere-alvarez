@@ -870,7 +870,7 @@ export function Storefront({ data, slug, preview = false }: { data: StoreData; s
   };
 
   const announcementVisible = !!store.announcement && theme.sections.find((s) => s.id === "anuncio")?.visible !== false;
-  const logo = store.logo_url || "/logo-transparent.png";
+  const logo = store.logo_url || "/logo-transparent.svg";
 
   // ---------- Portada ----------
   const hero =

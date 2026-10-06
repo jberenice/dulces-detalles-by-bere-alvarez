@@ -75,7 +75,7 @@ export default async function TrackingPage({ params }: { params: Promise<{ token
   const items = [...o.order_items].sort((a, b) => (a.position ?? 0) - (b.position ?? 0));
   const balance = Math.max(Number(o.total) - Number(o.deposit), 0);
   const code = folio("P", o.folio);
-  const logo = biz.logo_url || "/logo-transparent.png";
+  const logo = biz.logo_url || "/logo-transparent.svg";
 
   return (
     <main className="min-h-dvh bg-[var(--st-bg)] px-4 py-8 text-[var(--st-text)]" style={themeVars(theme)}>
