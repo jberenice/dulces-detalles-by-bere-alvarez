@@ -8,10 +8,11 @@ import { money } from "@/lib/format";
 import { cn } from "@/lib/cn";
 
 /** Cada plan es un postre con su propio glaseado que se derrite */
-const DESSERT: Record<PlanId, { icon: typeof Cake; glaze: string; shine: string; label: string }> = {
-  basico: { icon: Cookie, glaze: "#9ad7b9", shine: "#dcf3e7", label: "Galleta de menta" },
-  profesional: { icon: CakeSlice, glaze: "#eb5473", shine: "#f7bccb", label: "Rebanada de fresa" },
-  premium: { icon: Cake, glaze: "#6f4318", shine: "#c9a585", label: "Pastel de chocolate" },
+// Variables CSS de la app: en fechas especiales toman los colores de la temporada
+const DESSERT: Record<PlanId, { icon: typeof Cake; glaze: string; shine: string; ink: string; label: string }> = {
+  basico: { icon: Cookie, glaze: "var(--color-mint-300)", shine: "var(--color-mint-100)", ink: "var(--color-mint-600)", label: "Galleta de menta" },
+  profesional: { icon: CakeSlice, glaze: "var(--color-rose-500)", shine: "var(--color-rose-200)", ink: "var(--color-rose-500)", label: "Rebanada de fresa" },
+  premium: { icon: Cake, glaze: "var(--color-cocoa-600)", shine: "var(--color-cocoa-300)", ink: "var(--color-cocoa-600)", label: "Pastel de chocolate" },
 };
 
 // Gotas del glaseado: posición (0–400), ancho, largo y ritmo — distintas por plan para que no se vean iguales
@@ -54,16 +55,15 @@ function MeltingGlaze({ plan, shown }: { plan: PlanId; shown: boolean }) {
     >
       <svg viewBox={`0 0 400 ${VB}`} preserveAspectRatio="none" className="absolute inset-0 h-full w-full overflow-visible">
         {/* capa base con orilla ondulada */}
-        <path fill={d.glaze} d={`M0 0H400V${BAND} C370 ${BAND + 8} 340 ${BAND - 4} 300 ${BAND + 4} S220 ${BAND - 2} 180 ${BAND + 6} S90 ${BAND - 4} 50 ${BAND + 4} S10 ${BAND} 0 ${BAND + 2}Z`} />
+        <path style={{ fill: d.glaze }} d={`M0 0H400V${BAND} C370 ${BAND + 8} 340 ${BAND - 4} 300 ${BAND + 4} S220 ${BAND - 2} 180 ${BAND + 6} S90 ${BAND - 4} 50 ${BAND + 4} S10 ${BAND} 0 ${BAND + 2}Z`} />
         {/* brillo */}
-        <path fill={d.shine} opacity={0.55} d="M24 12 C80 7 140 16 196 11 S300 7 372 13" stroke={d.shine} strokeWidth={3} strokeLinecap="round" />
+        <path style={{ fill: d.shine, stroke: d.shine }} opacity={0.55} d="M24 12 C80 7 140 16 196 11 S300 7 372 13" strokeWidth={3} strokeLinecap="round" />
         {/* gotas que se estiran lentamente */}
         {drips.map((g, i) => (
           <path
             key={i}
-            fill={d.glaze}
             d={`M${g.x - g.w / 2} ${BAND - 4} C${g.x - g.w / 2} ${BAND + g.len} ${g.x + g.w / 2} ${BAND + g.len} ${g.x + g.w / 2} ${BAND - 4}Z`}
-            style={{ transformBox: "fill-box", transformOrigin: "top", animation: shown ? `melt ${g.dur}s ease-in-out ${g.delay + 1}s infinite` : undefined }}
+            style={{ fill: d.glaze, transformBox: "fill-box", transformOrigin: "top", animation: shown ? `melt ${g.dur}s ease-in-out ${g.delay + 1}s infinite` : undefined }}
           />
         ))}
       </svg>
@@ -91,12 +91,12 @@ function MeltingGlaze({ plan, shown }: { plan: PlanId; shown: boolean }) {
 }
 
 const SPRINKLES = [
-  { dx: "-34px", dy: "-26px", rot: "140deg", c: "#eb5473" },
-  { dx: "30px", dy: "-30px", rot: "-120deg", c: "#7fcaa6" },
-  { dx: "-40px", dy: "8px", rot: "200deg", c: "#f4e4c2" },
-  { dx: "38px", dy: "10px", rot: "-160deg", c: "#eb5473" },
-  { dx: "-12px", dy: "-40px", rot: "90deg", c: "#6aa68a" },
-  { dx: "14px", dy: "34px", rot: "-80deg", c: "#f7bccb" },
+  { dx: "-34px", dy: "-26px", rot: "140deg", c: "var(--color-rose-500)" },
+  { dx: "30px", dy: "-30px", rot: "-120deg", c: "var(--color-mint-400)" },
+  { dx: "-40px", dy: "8px", rot: "200deg", c: "var(--color-cream-300)" },
+  { dx: "38px", dy: "10px", rot: "-160deg", c: "var(--color-rose-500)" },
+  { dx: "-12px", dy: "-40px", rot: "90deg", c: "var(--color-mint-500)" },
+  { dx: "14px", dy: "34px", rot: "-80deg", c: "var(--color-rose-200)" },
 ];
 
 function DessertBadge({ plan, dark }: { plan: PlanId; dark?: boolean }) {
@@ -118,7 +118,7 @@ function DessertBadge({ plan, dark }: { plan: PlanId; dark?: boolean }) {
             dark ? "bg-cocoa-900 ring-cocoa-800" : "bg-white ring-white",
           )}
         >
-          <Icon className="h-8 w-8" style={{ color: d.glaze === "#9ad7b9" ? "#528a70" : d.glaze }} strokeWidth={1.8} />
+          <Icon className="h-8 w-8" style={{ color: d.ink }} strokeWidth={1.8} />
         </span>
       </div>
     </div>

@@ -190,7 +190,7 @@ export function Shell({ children }: { children: React.ReactNode }) {
                         active ? "bg-rose-500 text-white shadow-rose" : "text-cocoa-500 hover:bg-cream-200 hover:text-cocoa-700",
                       )}
                     >
-                      <Icon className={cn("h-[18px] w-[18px] shrink-0", active ? "text-white" : "text-cocoa-300 group-hover:text-rose-400")} />
+                      <Icon className={cn("h-[18px] w-[18px] shrink-0", active ? "text-white" : "nav-ico text-cocoa-300 group-hover:text-rose-400")} />
                       <span className="min-w-0 flex-1 truncate">{it.label}</span>
                       {needLabel && (
                         <span

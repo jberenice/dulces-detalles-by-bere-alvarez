@@ -29,7 +29,7 @@ export default async function Landing({ searchParams }: { searchParams: Promise<
   if (sp.code) redirect(`/auth/callback?code=${encodeURIComponent(sp.code)}`);
 
   return (
-    <div className="overflow-x-hidden">
+    <div className="overflow-x-clip">
       {/* Navegación */}
       <header className="sticky top-0 z-40 border-b border-cocoa-800/5 bg-cream-100/85 backdrop-blur-xl">
         <div className="mx-auto flex max-w-6xl items-center justify-between gap-3 px-4 py-2.5 sm:px-6 sm:py-3">

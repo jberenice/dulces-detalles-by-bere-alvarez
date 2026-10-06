@@ -232,3 +232,8 @@
     display: none;
   }
 }
+
+/* En fechas especiales los íconos del menú también toman el color de la temporada */
+:root[data-festive] .nav-ico {
+  color: var(--color-rose-400);
+}

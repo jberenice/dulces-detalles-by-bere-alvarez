@@ -341,6 +341,13 @@ export function resolveFestive(setting: FestiveSetting | null | undefined, date 
  * Variables CSS para pintar botones, íconos y acentos del panel / página principal con los colores de la temporada.
  * Reemplaza las escalas "rose" (color principal) y "mint" (acento) de la app.
  */
+/** Mezcla un poco del color de la temporada en una escala existente (cremas y chocolates) */
+function tint(name: string, base: Record<number, string>, c: string, pct: Record<number, number>) {
+  const out: Record<string, string> = {};
+  for (const [k, v] of Object.entries(base)) out[`--color-${name}-${k}`] = `color-mix(in srgb, ${c} ${pct[Number(k)]}%, ${v})`;
+  return out;
+}
+
 export function festiveVars(t: FestiveTheme): Record<string, string> {
   const scale = (name: string, c: string) => ({
     [`--color-${name}-50`]: `color-mix(in srgb, ${c} 8%, white)`,
@@ -356,6 +363,14 @@ export function festiveVars(t: FestiveTheme): Record<string, string> {
     // tonos con buen contraste para texto blanco en botones
     ...scale("rose", t.ui.primary),
     ...scale("mint", t.ui.accent),
+    // fondos crema y textos chocolate con un toque de la temporada (todo lo demás de la app)
+    ...tint("cream", { 50: "#fffdf8", 100: "#fffaef", 200: "#fbf1dc", 300: "#f4e4c2" }, t.ui.primary, { 50: 4, 100: 6, 200: 10, 300: 14 }),
+    ...tint(
+      "cocoa",
+      { 100: "#f3e8dc", 200: "#e3cdb8", 300: "#c9a585", 400: "#a87b55", 500: "#8a5a2e", 600: "#6f4318", 700: "#5a3512", 800: "#3f250d", 900: "#2a1909" },
+      t.ui.primary,
+      { 100: 12, 200: 16, 300: 22, 400: 26, 500: 26, 600: 24, 700: 22, 800: 20, 900: 16 },
+    ),
     // fondo de la bienvenida del panel
     "--shadow-rose": `0 10px 24px -10px color-mix(in srgb, ${t.ui.primary} 55%, transparent)`,
     "--festive-hero": `color-mix(in srgb, ${t.ui.primary} 30%, #1c1210)`,
