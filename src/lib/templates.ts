@@ -15,7 +15,7 @@ export type TemplateKey =
 
 export const TEMPLATE_VARS: { key: string; label: string; example: string }[] = [
   { key: "cliente", label: "Nombre del cliente", example: "Laura" },
-  { key: "folio", label: "Folio", example: "C-0012" },
+  { key: "folio", label: "Folio", example: "C-00012" },
   { key: "total", label: "Total", example: "$1,250.00" },
   { key: "fecha", label: "Fecha de entrega / evento", example: "sábado 18 de octubre" },
   { key: "hora", label: "Hora", example: "a las 14:00" },

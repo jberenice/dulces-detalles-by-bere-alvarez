@@ -41,6 +41,8 @@ const securityHeaders = [
 
 const nextConfig: NextConfig = {
   poweredByHeader: false,
+  // El PDF del pedido para la clienta se genera en el servidor
+  serverExternalPackages: ["@react-pdf/renderer"],
   images: {
     remotePatterns: [{ protocol: "https", hostname: "**.supabase.co" }],
   },

@@ -39,7 +39,7 @@ export const addDays = (d: Date, days: number) => {
   return r;
 };
 
-export const folio = (prefix: string, n: number | null | undefined) => `${prefix}-${String(n ?? 0).padStart(4, "0")}`;
+export const folio = (prefix: string, n: number | null | undefined) => `${prefix}-${String(n ?? 0).padStart(5, "0")}`;
 
 /** Normaliza un teléfono mexicano para wa.me (agrega 52 si son 10 dígitos) */
 export function waPhone(phone: string | null | undefined) {

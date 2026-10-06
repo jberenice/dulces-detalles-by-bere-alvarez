@@ -56,7 +56,7 @@ export async function POST(request: Request) {
   const { data: subs } = await admin.from("push_subscriptions").select("id, endpoint, p256dh, auth").eq("user_id", order.user_id);
   const money = new Intl.NumberFormat("es-MX", { style: "currency", currency: "MXN" }).format(Number(order.total) || 0);
   const { sent, gone } = await sendPush((subs ?? []) as PushSub[], {
-    title: `🛍️ ¡Nuevo pedido de tu tienda! P-${String(order.folio).padStart(4, "0")}`,
+    title: `🛍️ ¡Nuevo pedido de tu tienda! P-${String(order.folio).padStart(5, "0")}`,
     body: `${order.customer_name ?? "Cliente"} · ${money}${order.delivery_date ? ` · entrega ${order.delivery_date.split("-").reverse().join("/")}` : ""}`,
     url: `/dashboard/pedidos/${order.id}`,
     tag: `pedido-${order.id}`,

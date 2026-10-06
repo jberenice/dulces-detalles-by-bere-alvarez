@@ -155,7 +155,7 @@ export async function GET(request: Request) {
         const first = (o.clients?.name ?? o.customer_name ?? "").split(" ")[0];
         const items = o.order_items.map((i) => `• ${Number(i.quantity)} × ${i.description}`).join("\n");
         const body =
-          paragraphs(`¡Hola${first ? " " + first : ""}! Te recordamos con cariño que mañana, ${longDate(o.delivery_date)}${o.delivery_time ? ` a las ${o.delivery_time}` : ""}, ${o.delivery_type === "envio" ? "entregamos" : "tienes lista para recoger"} tu orden P-${String(o.folio).padStart(4, "0")}:\n${items}`, brand.primary) +
+          paragraphs(`¡Hola${first ? " " + first : ""}! Te recordamos con cariño que mañana, ${longDate(o.delivery_date)}${o.delivery_time ? ` a las ${o.delivery_time}` : ""}, ${o.delivery_type === "envio" ? "entregamos" : "tienes lista para recoger"} tu orden P-${String(o.folio).padStart(5, "0")}:\n${items}`, brand.primary) +
           `<table role="presentation" cellpadding="0" cellspacing="0" style="width:100%;margin:8px 0 16px;background:${brand.background};border-radius:16px"><tr><td style="padding:16px 18px">
              <p style="margin:0;font-size:12px;letter-spacing:2px;text-transform:uppercase;opacity:.7">Saldo pendiente</p>
              <p style="margin:4px 0 0;font-family:Georgia,serif;font-size:28px;color:${brand.primary}">${money(due)}</p>
@@ -168,7 +168,7 @@ export async function GET(request: Request) {
           preheader: `Saldo de tu pedido: ${money(due)}`,
           title: "Tu pedido es mañana 🧁",
           body,
-          cta: p.whatsapp ? { label: "Enviar comprobante por WhatsApp", url: `https://wa.me/${p.whatsapp.replace(/\D/g, "").replace(/^(\d{10})$/, "52$1")}?text=${encodeURIComponent(`¡Hola! Te envío el comprobante del pedido P-${String(o.folio).padStart(4, "0")}`)}` } : null,
+          cta: p.whatsapp ? { label: "Enviar comprobante por WhatsApp", url: `https://wa.me/${p.whatsapp.replace(/\D/g, "").replace(/^(\d{10})$/, "52$1")}?text=${encodeURIComponent(`¡Hola! Te envío el comprobante del pedido P-${String(o.folio).padStart(5, "0")}`)}` } : null,
           site,
         });
         // Se "aparta" el pedido antes de enviar para que dos ejecuciones del cron no manden el correo dos veces
@@ -216,7 +216,7 @@ export async function GET(request: Request) {
               const items = esc(o.order_items.map((i) => `${Number(i.quantity)}× ${i.description}`).join(", "));
               const due = Number(o.total) - Number(o.deposit);
               return `<a href="${site}/dashboard/pedidos/${o.id}" style="display:block;text-decoration:none;color:#3f250d;background:#fffaef;border-radius:16px;padding:14px 16px;margin-bottom:8px">
-                <b>P-${String(o.folio).padStart(4, "0")} · ${who}</b><br/>
+                <b>P-${String(o.folio).padStart(5, "0")} · ${who}</b><br/>
                 <span style="font-size:13px;color:#a87b55">${o.delivery_date !== today ? esc(longDate(o.delivery_date)) + " · " : ""}${o.delivery_time ? esc(o.delivery_time) + " h · " : ""}${o.delivery_type === "envio" ? "Envío" : "Recoge"}</span><br/>
                 <span style="font-size:14px">${items}</span>
                 ${due > 0 ? `<br/><span style="font-size:13px;color:#eb5473">Por cobrar: ${money(due)}</span>` : ""}

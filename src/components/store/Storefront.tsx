@@ -1,6 +1,6 @@
 "use client";
 import { Fragment, useEffect, useMemo, useState } from "react";
-import { CakeSlice, CalendarDays, Check, ChevronLeft, ChevronRight, Clock, Facebook, Gift, Instagram, Loader2, ShieldAlert, Ticket, Wand2, Quote as QuoteIcon, MapPin, Megaphone, MessageCircle, Minus, Plus, ShoppingBag, Sparkles, Star, Truck, X } from "lucide-react";
+import { CakeSlice, CalendarDays, Check, FileText, Mail, ChevronLeft, ChevronRight, Clock, Facebook, Gift, Instagram, Loader2, ShieldAlert, Ticket, Wand2, Quote as QuoteIcon, MapPin, Megaphone, MessageCircle, Minus, Plus, ShoppingBag, Sparkles, Star, Truck, X } from "lucide-react";
 import { toast } from "sonner";
 import { createClient } from "@/lib/supabase/client";
 import { SiteFooter } from "@/components/legal/SiteFooter";
@@ -182,7 +182,7 @@ export function Storefront({ data, slug, preview = false }: { data: StoreData; s
   const [sel, setSel] = useState<Record<string, string>>({});
   const [detailQty, setDetailQty] = useState(1);
   const [photo, setPhoto] = useState(0);
-  const [done, setDone] = useState<{ folio: number; total: number; wa: string } | null>(null);
+  const [done, setDone] = useState<{ folio: number; total: number; wa: string; token: string | null; email: string | null } | null>(null);
   const today = store.today ?? toISODate(new Date());
   const unavailable = useMemo(() => store.unavailable_dates ?? [], [store.unavailable_dates]);
   const zones = useMemo(() => (store.zones ?? []).filter((z) => z?.name), [store.zones]);
@@ -397,6 +397,8 @@ export function Storefront({ data, slug, preview = false }: { data: StoreData; s
     if (f.type === "envio" && !f.address.trim()) return toast.error("Escribe la dirección de entrega");
     if (f.type === "envio" && zones.length && !zone) return toast.error("Elige tu zona de entrega");
     if (!f.date) return toast.error("Elige la fecha de entrega");
+    const email = f.email.trim();
+    if (email && !/^[^\s@,;<>]+@[^\s@,;<>]+\.[^\s@,;<>]+$/.test(email)) return toast.error("Revisa tu correo electrónico");
     setSending(true);
     // Se abre la ventana antes de esperar al servidor: los celulares bloquean ventanas abiertas después
     const popup = window.open("", "_blank");
@@ -404,7 +406,7 @@ export function Storefront({ data, slug, preview = false }: { data: StoreData; s
       p_slug: slug,
       p_name: f.name,
       p_phone: f.phone,
-      p_email: f.email,
+      p_email: email,
       p_delivery_date: f.date || null,
       p_delivery_time: f.time || null,
       p_delivery_type: f.type,
@@ -436,7 +438,11 @@ export function Storefront({ data, slug, preview = false }: { data: StoreData; s
       `👤 ${f.name} · ${f.phone}` +
       (f.notes ? `\n📝 ${f.notes}` : "");
     const wa = waLink(store.whatsapp, text);
-    setDone({ folio: res.folio, total: res.total, wa });
+    setDone({ folio: res.folio, total: res.total, wa, token: res.token ?? null, email: email || null });
+    // Copia del pedido en PDF al correo de la clienta (si lo escribió)
+    if (email && res.token) {
+      fetch("/api/tienda/pedido-correo", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ token: res.token }) }).catch(() => {});
+    }
     // Aviso push a la repostería (si tiene la app con notificaciones activas)
     fetch("/api/push/pedido", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ order_id: res.order_id }) }).catch(() => {});
     setCart({});
@@ -1214,9 +1220,17 @@ export function Storefront({ data, slug, preview = false }: { data: StoreData; s
                 <span className="mx-auto grid h-16 w-16 place-items-center rounded-full bg-mint-100 text-mint-600"><Check className="h-8 w-8" /></span>
                 <p className="mt-4 font-display text-2xl font-semibold">Folio {folio("P", done.folio)}</p>
                 <p className="mt-2 text-cocoa-500">Recibimos tu pedido por {money(done.total)}. Termina de enviarlo por WhatsApp para confirmar tu fecha y forma de pago.</p>
-                <a href={done.wa} target="_blank" rel="noopener noreferrer" className="mt-6 inline-flex items-center gap-2 rounded-2xl bg-mint-500 px-6 py-3 font-bold text-white">
-                  <MessageCircle className="h-5 w-5" /> Abrir WhatsApp
-                </a>
+                <div className="mt-6 flex flex-col items-center gap-3">
+                  <a href={done.wa} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-2 rounded-2xl bg-mint-500 px-6 py-3 font-bold text-white">
+                    <MessageCircle className="h-5 w-5" /> Abrir WhatsApp
+                  </a>
+                  {done.token && (
+                    <a href={`/p/${done.token}`} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-2 rounded-2xl px-5 py-2.5 text-sm font-bold text-[var(--st-primary)] ring-1 ring-[var(--st-primary)]/30 hover:bg-[var(--st-soft)]">
+                      <FileText className="h-4 w-4" /> Descargar mi pedido en PDF
+                    </a>
+                  )}
+                  {done.email && <p className="flex items-center gap-1.5 text-sm text-cocoa-400"><Mail className="h-4 w-4" /> También te enviamos una copia a {done.email}</p>}
+                </div>
               </div>
             ) : (
               <form onSubmit={checkout} className="space-y-5">
@@ -1265,6 +1279,18 @@ export function Storefront({ data, slug, preview = false }: { data: StoreData; s
                 <div className="grid gap-4 sm:grid-cols-2">
                   <Input label="Tu nombre" required maxLength={120} value={f.name} onChange={(e) => setF({ ...f, name: e.target.value })} />
                   <Input label="WhatsApp" type="tel" required maxLength={20} value={f.phone} onChange={(e) => setF({ ...f, phone: e.target.value })} placeholder="998 123 4567" />
+                  <Input
+                    className="sm:col-span-2"
+                    label="Correo electrónico (opcional)"
+                    type="email"
+                    inputMode="email"
+                    autoComplete="email"
+                    maxLength={120}
+                    value={f.email}
+                    onChange={(e) => setF({ ...f, email: e.target.value })}
+                    placeholder="tucorreo@gmail.com"
+                    hint="Te enviamos una copia de tu pedido en PDF."
+                  />
                   <div className="sm:col-span-2">
                     <p className="label">Fecha de entrega {f.date && <span className="font-normal text-cocoa-400">· {dateLong(f.date)}</span>}</p>
                     <DeliveryCalendar value={f.date} onChange={(v) => setF({ ...f, date: v })} today={today} minNotice={minNotice} unavailable={unavailable} />

@@ -60,7 +60,7 @@ export async function exportExcel() {
   const ingById = byId(d.ingredients);
   const quoteById = byId(d.quotes);
   const orderById = byId(d.orders);
-  const folio = (p: string, n: unknown) => (n ? `${p}-${String(n).padStart(4, "0")}` : "");
+  const folio = (p: string, n: unknown) => (n ? `${p}-${String(n).padStart(5, "0")}` : "");
 
   const sheets: SheetDef[] = [
     {
