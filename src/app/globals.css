@@ -73,6 +73,10 @@
 }
 
 @layer base {
+  /* En una cuadrícula, un texto largo (truncado) no debe ensanchar la columna ni la página en el celular */
+  .grid > * {
+    min-width: 0;
+  }
   html {
     -webkit-tap-highlight-color: transparent;
     scroll-behavior: smooth;
@@ -104,7 +108,7 @@
 
 @layer components {
   .card {
-    @apply rounded-3xl border border-cocoa-800/5 bg-white shadow-soft;
+    @apply min-w-0 rounded-3xl border border-cocoa-800/5 bg-white shadow-soft;
   }
   .label {
     @apply mb-1.5 block text-[13px] font-semibold text-cocoa-600;

@@ -255,7 +255,7 @@ export function Shell({ children }: { children: React.ReactNode }) {
         <NotificationBell />
       </header>
 
-      <main className="mx-auto w-full max-w-[1320px] px-4 pt-6 pb-28 sm:px-6 lg:px-10 lg:pt-10 lg:pb-12">
+      <main className="mx-auto w-full max-w-[1320px] min-w-0 overflow-x-clip px-4 pt-6 pb-28 sm:px-6 lg:px-10 lg:pt-10 lg:pb-12">
         {locked ? <UpgradeCard min={locked.min} feature={locked.feature} /> : children}
       </main>
 

@@ -228,7 +228,7 @@ export default function DashboardHome() {
         </Link>
       )}
 
-      <div className="grid gap-6 xl:grid-cols-[1.6fr_1fr]">
+      <div className="grid grid-cols-[minmax(0,1fr)] gap-6 xl:grid-cols-[minmax(0,1.6fr)_minmax(0,1fr)]">
         <Card>
           <CardHeader title="Ventas de los últimos 30 días" subtitle="Por fecha de entrega" action={<Link href="/dashboard/reportes" className="text-sm font-bold text-rose-500 hover:underline">Reportes</Link>} />
           <div className="px-3 pt-4 pb-4 sm:px-5">{loading ? <Skeleton className="h-[260px]" /> : <SalesAreaChart data={series} />}</div>
