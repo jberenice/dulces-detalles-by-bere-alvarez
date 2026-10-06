@@ -73,7 +73,7 @@ export default async function Landing({ searchParams }: { searchParams: Promise<
           </div>
           <div className="relative mx-auto w-full max-w-md">
             <div className="absolute inset-6 rounded-full bg-white/70 blur-2xl" />
-            <Image src="/logo-transparent.svg" unoptimized alt="Dulces Detalles by Bere Álvarez" width={520} height={520} className="relative animate-float drop-shadow-2xl" priority />
+            <Image src="/logo-transparent.svg" unoptimized alt="Dulces Detalles by Bere Álvarez" width={520} height={520} priority fetchPriority="high" className="relative animate-float drop-shadow-2xl" />
             <div className="card absolute -bottom-2 -left-2 hidden w-52 p-4 sm:block">
               <p className="text-[11px] font-bold tracking-wider text-cocoa-300 uppercase">Pastel 3 leches</p>
               <p className="font-display text-2xl font-semibold text-rose-500">$625</p>

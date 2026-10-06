@@ -1,12 +1,14 @@
 "use client";
 import { useEffect, useState } from "react";
-import { Download, Mail, MessageCircle, Link2, Share2 } from "lucide-react";
+import { Check, Download, FileText, Mail, MessageCircle, Link2, Share2 } from "lucide-react";
 import { toast } from "sonner";
 import { Modal } from "@/components/ui/Modal";
 import { Button } from "@/components/ui/Button";
 import { Input, Textarea } from "@/components/ui/Field";
 import { Tabs } from "@/components/ui/Tabs";
 import { blobToBase64, downloadBlob, shareViaWhatsApp } from "@/lib/pdf";
+import { waLink } from "@/lib/format";
+import { cn } from "@/lib/cn";
 
 export function SendDialog({
   open,
@@ -40,6 +42,10 @@ export function SendDialog({
   const [subject, setSubject] = useState(emailSubject);
   const [msg, setMsg] = useState(emailText);
   const [busy, setBusy] = useState(false);
+  // "enlace": un solo mensaje con el texto y el enlace al PDF · "pdf": adjunta el archivo (WhatsApp no deja pasar el texto junto)
+  const [waMode, setWaMode] = useState<"enlace" | "pdf">("enlace");
+  const [pdfSent, setPdfSent] = useState(false);
+  const textWithLink = link && !waText.includes(link) ? `${waText}\n\n📄 ${link}` : waText;
 
   useEffect(() => {
     if (open) {
@@ -49,18 +55,54 @@ export function SendDialog({
       setWaText(whatsappText);
       setSubject(emailSubject);
       setMsg(emailText);
+      setPdfSent(false);
+      let mode: "enlace" | "pdf" = link ? "enlace" : "pdf";
+      try {
+        const saved = localStorage.getItem("dd-wa-modo");
+        if (saved === "pdf" || (saved === "enlace" && link)) mode = saved;
+      } catch {}
+      setWaMode(mode);
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open, email, phone, whatsappText, emailSubject, emailText, initialTab]);
 
+  const chooseMode = (m: "enlace" | "pdf") => {
+    setWaMode(m);
+    setPdfSent(false);
+    try {
+      localStorage.setItem("dd-wa-modo", m);
+    } catch {}
+  };
+
+  /** Abre el chat de la clienta con el mensaje escrito (en el mismo clic, para que el navegador no lo bloquee) */
+  function openChat(text: string) {
+    window.open(waLink(wa, text), "_blank", "noopener");
+  }
+
   async function sendWhatsApp() {
+    // Opción recomendada: texto + enlace al PDF en un solo mensaje
+    if (waMode === "enlace" && link) {
+      openChat(textWithLink);
+      onSent?.("whatsapp");
+      onClose();
+      return;
+    }
     setBusy(true);
     try {
       const { blob, filename } = await getPdf();
+      // WhatsApp descarta el texto cuando se comparte un archivo: lo dejamos copiado para pegarlo como comentario
+      try {
+        await navigator.clipboard.writeText(waText);
+      } catch {}
       const r = await shareViaWhatsApp({ blob, filename, phone: wa, text: waText });
-      if (r !== "cancelled") {
-        if (r === "link") toast.success("Abrimos WhatsApp y descargamos el PDF para que lo adjuntes");
+      if (r === "link") {
+        toast.success("Abrimos WhatsApp con el mensaje y descargamos el PDF para que lo adjuntes");
         onSent?.("whatsapp");
         onClose();
+      } else if (r === "shared") {
+        // Paso 2: mandar también el mensaje
+        setPdfSent(true);
+        onSent?.("whatsapp");
       }
     } catch (e) {
       toast.error((e as Error).message);
@@ -149,9 +191,15 @@ export function SendDialog({
             </Button>
           </div>
           {tab === "whatsapp" ? (
-            <Button variant="mint" onClick={sendWhatsApp} loading={busy}>
-              <MessageCircle className="h-4 w-4" /> Enviar por WhatsApp
-            </Button>
+            pdfSent ? (
+              <Button variant="mint" onClick={() => { openChat(waText); onClose(); }}>
+                <MessageCircle className="h-4 w-4" /> Paso 2: enviar el mensaje
+              </Button>
+            ) : (
+              <Button variant="mint" onClick={sendWhatsApp} loading={busy}>
+                <MessageCircle className="h-4 w-4" /> {waMode === "pdf" ? "Enviar PDF por WhatsApp" : "Enviar por WhatsApp"}
+              </Button>
+            )
           ) : (
             <Button onClick={sendEmail} loading={busy}>
               <Mail className="h-4 w-4" /> Enviar correo
@@ -173,10 +221,45 @@ export function SendDialog({
         <div className="space-y-4">
           <Input label="WhatsApp del cliente" type="tel" value={wa} onChange={(e) => setWa(e.target.value)} placeholder="998 123 4567" hint="Si son 10 dígitos agregamos la lada de México (52)." />
           <Textarea label="Mensaje" rows={6} value={waText} onChange={(e) => setWaText(e.target.value)} />
-          <p className="rounded-2xl bg-mint-50 p-3 text-xs text-mint-700">
-            En el celular se abre el menú para compartir y el PDF se adjunta directo al chat. En computadora abrimos WhatsApp Web con el mensaje y
-            descargamos el PDF para que lo arrastres.
-          </p>
+          <div>
+            <span className="label">¿Cómo lo envío?</span>
+            <div className="grid gap-2 sm:grid-cols-2">
+              {link && (
+                <button
+                  type="button"
+                  onClick={() => chooseMode("enlace")}
+                  className={cn("rounded-2xl border-2 p-3 text-left transition", waMode === "enlace" ? "border-mint-400 bg-mint-50" : "border-cocoa-800/10 hover:border-mint-200")}
+                >
+                  <p className="flex items-center gap-2 text-sm font-bold text-cocoa-700"><Link2 className="h-4 w-4 text-mint-600" /> Mensaje + enlace al PDF</p>
+                  <p className="mt-0.5 text-xs text-cocoa-400">Recomendado. Un solo mensaje: tu texto y el enlace para ver o descargar el PDF.</p>
+                </button>
+              )}
+              <button
+                type="button"
+                onClick={() => chooseMode("pdf")}
+                className={cn("rounded-2xl border-2 p-3 text-left transition", waMode === "pdf" ? "border-mint-400 bg-mint-50" : "border-cocoa-800/10 hover:border-mint-200", !link && "sm:col-span-2")}
+              >
+                <p className="flex items-center gap-2 text-sm font-bold text-cocoa-700"><FileText className="h-4 w-4 text-rose-500" /> Adjuntar el PDF</p>
+                <p className="mt-0.5 text-xs text-cocoa-400">Se envía el archivo y luego el mensaje (2 pasos).</p>
+              </button>
+            </div>
+          </div>
+          {waMode === "pdf" && (
+            pdfSent ? (
+              <div className="rounded-2xl bg-mint-50 p-3 text-sm text-mint-800">
+                <p className="flex items-center gap-2 font-bold"><Check className="h-4 w-4" /> PDF listo</p>
+                <p className="mt-1 text-xs">Ahora toca <b>“Paso 2: enviar el mensaje”</b> para mandar el texto al mismo chat. (También lo dejamos copiado por si prefieres pegarlo.)</p>
+              </div>
+            ) : (
+              <p className="rounded-2xl bg-cream-100 p-3 text-xs text-cocoa-500">
+                WhatsApp no deja enviar el texto junto con un archivo. Primero se comparte el PDF y después te damos un botón para mandar el mensaje.
+                El texto también se copia: en WhatsApp puedes pegarlo en “Añade un comentario” antes de enviar el PDF.
+              </p>
+            )
+          )}
+          {waMode === "enlace" && link && (
+            <p className="rounded-2xl bg-mint-50 p-3 text-xs text-mint-700">Se abre el chat con tu mensaje y el enlace al final. Tu clienta toca el enlace y ve o descarga el PDF.</p>
+          )}
         </div>
       ) : (
         <div className="space-y-4">

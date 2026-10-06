@@ -413,6 +413,7 @@ export default function OrderDetailPage({ params }: { params: Promise<{ id: stri
         phone={phone}
         email={email}
         whatsappText={quick[0].text}
+        link={o.public_token ? `${siteUrl()}/pedido/${o.public_token}` : undefined}
         initialTab={sendTab}
         emailSubject={`Tu pedido ${code} · ${profile.business_name}`}
         emailText={`Hola ${first},\n\n¡Gracias por tu pedido! Te comparto la nota con el detalle.\n\nEntrega: ${o.delivery_date ? dateLong(o.delivery_date) : "por confirmar"}${o.delivery_time ? ` a las ${o.delivery_time}` : ""}\nTotal: ${money(o.total)}${balance > 0 ? `\nSaldo pendiente: ${money(balance)}` : ""}\n\nCon cariño,\n${profile.owner_name ?? profile.business_name}`}
