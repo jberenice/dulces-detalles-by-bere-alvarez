@@ -229,12 +229,17 @@ export function Shell({ children }: { children: React.ReactNode }) {
       {open && (
         <div className="fixed inset-0 z-[70] lg:hidden">
           <div className="absolute inset-0 bg-cocoa-900/30 backdrop-blur-[2px]" onClick={() => setOpen(false)} />
-          <aside className="absolute inset-y-0 left-0 w-[86%] max-w-[320px] bg-white shadow-lift animate-[fade-up_.25s_ease]">
-            <button onClick={() => setOpen(false)} className="absolute top-5 right-4 rounded-xl p-2 text-cocoa-400 hover:bg-cocoa-800/5" aria-label="Cerrar menú">
-              <X className="h-5 w-5" />
-            </button>
+          <aside className="absolute inset-y-0 left-0 w-[calc(100%-64px)] max-w-[320px] bg-white shadow-lift animate-[fade-up_.25s_ease]">
             {SidebarContent}
           </aside>
+          {/* La X va afuera del menú, sobre el fondo oscuro, para no tapar el nombre del negocio */}
+          <button
+            onClick={() => setOpen(false)}
+            className="absolute top-4 right-3 grid h-11 w-11 place-items-center rounded-full bg-white text-cocoa-600 shadow-lift animate-[fade-up_.25s_ease]"
+            aria-label="Cerrar menú"
+          >
+            <X className="h-5 w-5" />
+          </button>
         </div>
       )}
 

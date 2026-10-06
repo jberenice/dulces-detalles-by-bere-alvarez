@@ -2,7 +2,7 @@
 import { use, useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { ArrowLeft, Ban, Check, ChefHat, Clock, Download, FileText, MapPin, MessageCircle, Package, Pencil, PartyPopper, Phone, CalendarPlus, Send, Share2, Store, Trash2, Truck, Wallet } from "lucide-react";
+import { ArrowLeft, Ban, Check, ChefHat, Clock, Copy, Download, FileText, MapPin, MessageCircle, Package, Pencil, PartyPopper, Phone, CalendarPlus, Send, Share2, Store, Trash2, Truck, Wallet } from "lucide-react";
 import { toast } from "sonner";
 import { createClient } from "@/lib/supabase/client";
 import { must, useAsync } from "@/hooks/useAsync";
@@ -17,7 +17,8 @@ import { getTemplate, renderTemplate } from "@/lib/templates";
 import { buildPdf, downloadBlob, orderToPdf } from "@/lib/pdf";
 import { sharePdf } from "@/lib/documents";
 import { googleCalendarUrl } from "@/lib/reminders";
-import { date, dateLong, folio, money, num, waLink } from "@/lib/format";
+import { date, dateLong, folio, money, num, siteUrl, waLink } from "@/lib/format";
+import { Toggle } from "@/components/ui/Field";
 import { ReviewRequestButton } from "@/components/dashboard/ReviewRequestButton";
 import { cn } from "@/lib/cn";
 import type { Order, OrderPayment, OrderStatus } from "@/lib/types";
@@ -40,6 +41,19 @@ export default function OrderDetailPage({ params }: { params: Promise<{ id: stri
   const [sendTab, setSendTab] = useState<"whatsapp" | "email">("whatsapp");
   const [payOpen, setPayOpen] = useState(false);
   const [busy, setBusy] = useState(false);
+  // Avisar a la clienta por WhatsApp al cambiar el estado (se recuerda en este dispositivo)
+  const [notify, setNotify] = useState(true);
+  useEffect(() => {
+    try {
+      setNotify(localStorage.getItem("dd-avisar-estado") !== "0");
+    } catch {}
+  }, []);
+  const setNotifyPref = (v: boolean) => {
+    setNotify(v);
+    try {
+      localStorage.setItem("dd-avisar-estado", v ? "1" : "0");
+    } catch {}
+  };
   const { data: o, loading, setData, reload } = useAsync(
     async () => must(await sb.from("orders").select("*, clients(id, name, phone, email, address), order_items(*)").eq("id", id).single()) as Order,
     [id],
@@ -98,6 +112,28 @@ export default function OrderDetailPage({ params }: { params: Promise<{ id: stri
   }
 
   const first = name.split(" ")[0];
+  const trackUrl = o.public_token ? `${siteUrl()}/seguimiento/${o.public_token}` : null;
+  const envio = o.delivery_type === "envio";
+  const when = o.delivery_date ? `${dateLong(o.delivery_date)}${o.delivery_time ? ` a las ${o.delivery_time}` : ""}` : null;
+  /** Mensaje de WhatsApp para cada estado, con el enlace para seguir su pedido */
+  const statusMessage = (s: OrderStatus) => {
+    const hi = `¡Hola${first && first !== "Cliente" ? ` ${first}` : ""}! `;
+    const body: Partial<Record<OrderStatus, string>> = {
+      confirmado: `✅ Tu pedido ${code} está *confirmado*${when ? ` para el ${when}` : ""}. ¡Gracias por tu confianza!`,
+      en_preparacion: `👩‍🍳 Ya estamos *preparando* tu pedido ${code} con mucho cariño.`,
+      listo: envio ? `📦 Tu pedido ${code} está *listo* y pronto sale a entrega.` : `📦 Tu pedido ${code} está *listo para recoger*. ¡Te esperamos!`,
+      entregado: `🎉 Tu pedido ${code} fue *entregado*. ¡Gracias por tu compra! Esperamos que lo disfrutes mucho.`,
+    };
+    if (!body[s]) return null;
+    return `${hi}${body[s]}${trackUrl ? `\n\nSigue tu pedido aquí: ${trackUrl}` : ""}\n\n${profile.business_name}`;
+  };
+  function changeStatus(s: OrderStatus, label: string) {
+    if (s === o!.status) return;
+    const msg = statusMessage(s);
+    // Se abre WhatsApp en el mismo clic (si no, el navegador bloquea la ventana)
+    if (notify && phone && msg) window.open(waLink(phone, msg), "_blank", "noopener");
+    patch({ status: s }, `Pedido: ${label.toLowerCase()}`);
+  }
   const summary = items.map((i) => `• ${num(i.quantity)} × ${i.description}`).join("\n");
   const tplVars = {
     cliente: first,
@@ -166,7 +202,7 @@ export default function OrderDetailPage({ params }: { params: Promise<{ id: stri
               const Icon = s.icon;
               return (
                 <li key={s.key}>
-                  <button onClick={() => patch({ status: s.key }, `Pedido: ${s.label.toLowerCase()}`)} className="group flex w-full flex-col items-center gap-1.5">
+                  <button onClick={() => changeStatus(s.key, s.label)} className="group flex w-full flex-col items-center gap-1.5">
                     <div className="flex w-full items-center">
                       <span className={cn("h-1 flex-1 rounded-full", i === 0 ? "opacity-0" : done ? "bg-mint-400" : "bg-cocoa-800/8")} />
                       <span className={cn("grid h-10 w-10 shrink-0 place-items-center rounded-full transition", done ? "bg-mint-500 text-white shadow-[0_8px_18px_-8px_rgb(106_166_138)]" : "bg-cream-200 text-cocoa-300 group-hover:bg-cream-300", i === stepIdx && "ring-4 ring-mint-100")}>
@@ -180,6 +216,41 @@ export default function OrderDetailPage({ params }: { params: Promise<{ id: stri
               );
             })}
           </ol>
+          <div className="mt-4 flex flex-wrap items-center justify-between gap-3 border-t border-cocoa-800/5 pt-4">
+            {phone ? (
+              <Toggle checked={notify} onChange={setNotifyPref} label={`Avisar a ${first} por WhatsApp al cambiar el estado`} />
+            ) : (
+              <p className="text-xs text-cocoa-400">Agrega el teléfono de la clienta para avisarle por WhatsApp de cada cambio.</p>
+            )}
+            {trackUrl && (
+              <div className="flex flex-wrap gap-2">
+                <button
+                  type="button"
+                  onClick={async () => {
+                    try {
+                      await navigator.clipboard.writeText(trackUrl);
+                      toast.success("Enlace de seguimiento copiado");
+                    } catch {
+                      toast.error("No se pudo copiar");
+                    }
+                  }}
+                  className="inline-flex items-center gap-1.5 rounded-xl bg-cream-200 px-3 py-2 text-xs font-bold text-cocoa-600 hover:bg-cream-300"
+                >
+                  <Copy className="h-3.5 w-3.5" /> Copiar enlace de seguimiento
+                </button>
+                {phone && (
+                  <a
+                    href={waLink(phone, `¡Hola${first && first !== "Cliente" ? ` ${first}` : ""}! Aquí puedes ver el estado de tu pedido ${code} en todo momento: ${trackUrl}`)}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="inline-flex items-center gap-1.5 rounded-xl bg-mint-50 px-3 py-2 text-xs font-bold text-mint-700 hover:bg-mint-100"
+                  >
+                    <MessageCircle className="h-3.5 w-3.5" /> Enviar seguimiento
+                  </a>
+                )}
+              </div>
+            )}
+          </div>
         </Card>
       ) : (
         <Card className="mb-6 flex items-center justify-between gap-3 bg-rose-50 p-4">
@@ -286,7 +357,10 @@ export default function OrderDetailPage({ params }: { params: Promise<{ id: stri
               {o.delivery_type === "envio" ? <Truck className="mt-0.5 h-4 w-4 shrink-0 text-cocoa-300" /> : <Store className="mt-0.5 h-4 w-4 shrink-0 text-cocoa-300" />}
               {o.delivery_type === "envio" ? `${o.delivery_zone ? o.delivery_zone + " · " : ""}${o.delivery_address || "Envío (sin dirección)"}` : "Recoge en tienda"}
             </p>
-            {o.delivery_type === "envio" && o.delivery_address && (
+            {o.delivery_type === "envio" && o.delivery_lat != null && o.delivery_lng != null && (
+              <a href={`https://www.google.com/maps?q=${o.delivery_lat},${o.delivery_lng}`} target="_blank" rel="noreferrer" className="flex items-center gap-2 font-bold text-mint-600"><MapPin className="h-4 w-4" /> Ubicación marcada por la clienta</a>
+            )}
+            {o.delivery_type === "envio" && o.delivery_address && o.delivery_lat == null && (
               <a href={`https://maps.google.com/?q=${encodeURIComponent(o.delivery_address)}`} target="_blank" rel="noreferrer" className="flex items-center gap-2 font-bold text-rose-500"><MapPin className="h-4 w-4" /> Abrir en mapas</a>
             )}
             {(() => {

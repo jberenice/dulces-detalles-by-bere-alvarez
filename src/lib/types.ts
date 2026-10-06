@@ -305,6 +305,9 @@ export type Order = {
   delivery_time: string | null;
   delivery_type: "recoger" | "envio";
   delivery_address: string | null;
+  /** Ubicación marcada en el mapa por la clienta (migración 0019) */
+  delivery_lat?: number | null;
+  delivery_lng?: number | null;
   customer_name: string | null;
   customer_phone: string | null;
   customer_email: string | null;

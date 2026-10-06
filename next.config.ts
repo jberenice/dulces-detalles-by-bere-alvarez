@@ -17,9 +17,10 @@ const csp = [
   "default-src 'self'",
   "script-src 'self' 'unsafe-inline' 'unsafe-eval' 'wasm-unsafe-eval' https://challenges.cloudflare.com",
   "style-src 'self' 'unsafe-inline'",
-  `img-src 'self' data: blob: ${supabaseOrigin} https://*.supabase.co`,
+  // tile.openstreetmap.org: mapa para marcar la ubicación de entrega
+  `img-src 'self' data: blob: ${supabaseOrigin} https://*.supabase.co https://tile.openstreetmap.org`,
   "font-src 'self' data:",
-  `connect-src 'self' ${supabaseOrigin} ${supabaseWs} https://*.supabase.co wss://*.supabase.co https://challenges.cloudflare.com`,
+  `connect-src 'self' ${supabaseOrigin} ${supabaseWs} https://*.supabase.co wss://*.supabase.co https://challenges.cloudflare.com https://nominatim.openstreetmap.org`,
   "worker-src 'self' blob:",
   "frame-src https://challenges.cloudflare.com https://www.youtube-nocookie.com",
   "frame-ancestors 'none'",
@@ -35,7 +36,7 @@ const securityHeaders = [
   { key: "X-Content-Type-Options", value: "nosniff" },
   { key: "Referrer-Policy", value: "strict-origin-when-cross-origin" },
   { key: "Strict-Transport-Security", value: "max-age=63072000; includeSubDomains; preload" },
-  { key: "Permissions-Policy", value: "camera=(), microphone=(), geolocation=(), payment=(), usb=()" },
+  { key: "Permissions-Policy", value: "camera=(), microphone=(), geolocation=(self), payment=(), usb=()" },
   { key: "Cross-Origin-Opener-Policy", value: "same-origin" },
 ];
 
@@ -64,6 +65,7 @@ const nextConfig: NextConfig = {
         ],
       },
       { source: "/c/:path*", headers: [{ key: "Cache-Control", value: "no-store" }, { key: "X-Robots-Tag", value: "noindex, nofollow" }] },
+      { source: "/seguimiento/:path*", headers: [{ key: "Cache-Control", value: "no-store" }, { key: "X-Robots-Tag", value: "noindex, nofollow" }, { key: "Referrer-Policy", value: "no-referrer" }] },
     ];
   },
 };

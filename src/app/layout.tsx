@@ -46,6 +46,9 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <CookieNotice />
         <Toaster
           position="top-center"
+          closeButton
+          visibleToasts={3}
+          duration={3500}
           toastOptions={{
             style: {
               borderRadius: "18px",

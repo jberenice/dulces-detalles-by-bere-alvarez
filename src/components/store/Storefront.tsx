@@ -6,6 +6,7 @@ import { createClient } from "@/lib/supabase/client";
 import { SiteFooter } from "@/components/legal/SiteFooter";
 import { Input, Select, Textarea } from "@/components/ui/Field";
 import { DeliveryCalendar, firstAvailable } from "./DeliveryCalendar";
+import { LocationPicker, mapsUrl, type LatLng } from "./LocationPicker";
 import { Modal } from "@/components/ui/Modal";
 import { dateLong, facebookLabel, facebookUrl, folio, money, toISODate, waLink } from "@/lib/format";
 import { normalizeTheme, themeVars, type StoreTheme } from "@/lib/storeTheme";
@@ -191,6 +192,7 @@ export function Storefront({ data, slug, preview = false }: { data: StoreData; s
     type: store.pickup ? "recoger" : "envio", address: "", notes: "", zone: "",
   });
   const [sending, setSending] = useState(false);
+  const [loc, setLoc] = useState<LatLng | null>(null);
 
   // Carrito persistente en este navegador (no en la vista previa)
   useEffect(() => {
@@ -419,6 +421,8 @@ export function Storefront({ data, slug, preview = false }: { data: StoreData; s
       ],
       p_zone: f.type === "envio" && zone ? zone.name : null,
       ...(coupon ? { p_coupon: coupon.code } : {}),
+      // Ubicación marcada en el mapa (migración 0019)
+      ...(f.type === "envio" && loc ? { p_coupon: coupon?.code ?? null, p_lat: loc.lat, p_lng: loc.lng } : {}),
     });
     setSending(false);
     if (error) {
@@ -435,8 +439,10 @@ export function Storefront({ data, slug, preview = false }: { data: StoreData; s
       `\n\n${res.discount ? `Cupón ${res.coupon}: -${money(res.discount)}\n` : ""}${shipping ? `Envío: ${money(shipping)}\n` : ""}*Total: ${money(res.total)}*\n\n` +
       `📅 ${f.date ? dateLong(f.date) : "Fecha por confirmar"}${f.time ? ` a las ${f.time}` : ""}\n` +
       `${f.type === "envio" ? `🚚 Envío${zone ? ` (${zone.name})` : ""} a: ${f.address}` : "🏠 Paso a recoger"}\n` +
+      (f.type === "envio" && loc ? `📍 Ubicación: ${mapsUrl(loc)}\n` : "") +
       `👤 ${f.name} · ${f.phone}` +
-      (f.notes ? `\n📝 ${f.notes}` : "");
+      (f.notes ? `\n📝 ${f.notes}` : "") +
+      (res.token ? `\n\n🔎 Sigue mi pedido: ${window.location.origin}/seguimiento/${res.token}` : "");
     const wa = waLink(store.whatsapp, text);
     setDone({ folio: res.folio, total: res.total, wa, token: res.token ?? null, email: email || null });
     // Copia del pedido en PDF al correo de la clienta (si lo escribió)
@@ -448,6 +454,7 @@ export function Storefront({ data, slug, preview = false }: { data: StoreData; s
     setCart({});
     setPackCart({});
     setExtrasCart({});
+    setLoc(null);
     setCoupon(null);
     setCouponInput("");
     if (popup && !popup.closed) popup.location.href = wa;
@@ -1229,6 +1236,11 @@ export function Storefront({ data, slug, preview = false }: { data: StoreData; s
                       <FileText className="h-4 w-4" /> Descargar mi pedido en PDF
                     </a>
                   )}
+                  {done.token && (
+                    <a href={`/seguimiento/${done.token}`} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-2 text-sm font-bold text-[var(--st-primary)] hover:underline">
+                      <Truck className="h-4 w-4" /> Seguir mi pedido
+                    </a>
+                  )}
                   {done.email && <p className="flex items-center gap-1.5 text-sm text-cocoa-400"><Mail className="h-4 w-4" /> También te enviamos una copia a {done.email}</p>}
                 </div>
               </div>
@@ -1316,7 +1328,13 @@ export function Storefront({ data, slug, preview = false }: { data: StoreData; s
                       ))}
                     </Select>
                   )}
-                  {f.type === "envio" && <Input className="sm:col-span-2" label="Dirección de entrega" required maxLength={300} value={f.address} onChange={(e) => setF({ ...f, address: e.target.value })} />}
+                  {f.type === "envio" && <Input className="sm:col-span-2" label="Dirección de entrega" required maxLength={300} value={f.address} onChange={(e) => setF({ ...f, address: e.target.value })} placeholder="Calle, número, colonia y referencias" />}
+                  {f.type === "envio" && (
+                    <div className="sm:col-span-2">
+                      <p className="label">Marca en el mapa dónde entregamos</p>
+                      <LocationPicker value={loc} onChange={setLoc} />
+                    </div>
+                  )}
                   <Textarea className="sm:col-span-2" label="Notas (opcional)" rows={2} maxLength={1000} value={f.notes} onChange={(e) => setF({ ...f, notes: e.target.value })} placeholder="Mensaje para el pastel, alergias, colores…" />
                 </div>
                 {store.has_coupons && (
