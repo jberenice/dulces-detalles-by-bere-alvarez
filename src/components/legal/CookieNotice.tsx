@@ -32,7 +32,7 @@ export function CookieNotice() {
         <span className="grid h-10 w-10 shrink-0 place-items-center rounded-2xl bg-cream-200 text-cocoa-500"><Cookie className="h-5 w-5" /></span>
         <p className="text-sm text-cocoa-600">
           Usamos solo cookies necesarias para tu sesión, la seguridad de tu licencia y tu carrito. Nada de publicidad.{" "}
-          <Link href="/politica-de-cookies" className="font-bold text-rose-500 hover:underline">Más información</Link>
+          <Link href="/politica-de-cookies" className="font-bold text-rose-500 hover:underline">Consultar nuestra política de cookies</Link>
         </p>
       </div>
       <div className="mt-3 flex justify-end">
