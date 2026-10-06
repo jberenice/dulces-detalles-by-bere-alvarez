@@ -44,6 +44,7 @@ Al activar la licencia se puede **precargar el recetario** con tus datos reales:
    - `supabase/migrations/0013_packages.sql` (paquetes y cajas: contenido fijo o "arma tu caja" con sabores a elegir, en cotizaciones, pedidos, producción, inventario y tienda)
    - `supabase/migrations/0014_growth.sql` (pastel personalizado desde la tienda, temporadas y cupones, reseñas con foto, tarjeta de sellos, alérgenos y caducidad, registro de errores; crea los buckets `solicitudes`, `resenas` y `respaldos`)
    - `supabase/migrations/0015_cupcake_groups.sql` (categorías de cupcakes y los 3 tipos de paquete: cajas de cupcakes, pastel con cupcakes y paquetes de postres)
+   - `supabase/migrations/0016_package_excluded.sql` (encender o apagar cupcakes de una categoría solo dentro de una caja)
    - `supabase/cron_setup.sql` (recordatorios cada hora; reemplaza tu dominio y tu CRON_SECRET antes de ejecutarlo)
    - `supabase/admin_setup.sql` → el resultado te muestra **tu código de licencia de administradora** (aleatorio)
 3. **Authentication → URL Configuration**

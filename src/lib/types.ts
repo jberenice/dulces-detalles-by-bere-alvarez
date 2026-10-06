@@ -225,6 +225,8 @@ export type Package = {
   kind?: PackageKind;
   /** Categorías de cupcakes que la clienta puede elegir */
   groups?: string[];
+  /** Cupcakes apagados dentro de esta caja (migración 0016) */
+  excluded?: string[];
   /** Sabores de pastel mini para elegir (paquete pastel + cupcakes) */
   cake_items?: PackageItem[];
   /** Cuántos pasteles mini lleva */

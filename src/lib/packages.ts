@@ -30,10 +30,11 @@ export const piecesOf = (p: Pick<Package, "mode" | "pieces" | "items" | "kind" |
   p.mode === "fijo" ? fixedPieces(p.items) : (Number(p.pieces) || 0) + (kindOf(p) === "pastel" ? Number(p.cakes) || 1 : 0);
 
 /** Cupcakes que puede elegir la clienta: los de las categorías elegidas (o, en cajas viejas, los elegidos uno por uno) */
-export function cupcakeOptions(p: Pick<Package, "groups" | "items" | "mode">, desserts: Dessert[]) {
+export function cupcakeOptions(p: Pick<Package, "groups" | "items" | "mode" | "excluded">, desserts: Dessert[]) {
   if (p.mode === "fijo") return [];
   const groups = p.groups ?? [];
-  if (groups.length) return desserts.filter((d) => d.active && d.flavor_group_id && groups.includes(d.flavor_group_id));
+  const off = new Set(p.excluded ?? []);
+  if (groups.length) return desserts.filter((d) => d.active && d.flavor_group_id && groups.includes(d.flavor_group_id) && !off.has(d.id));
   const byId = new Map(desserts.map((d) => [d.id, d]));
   return p.items.map((i) => byId.get(i.dessert_id)).filter((d): d is Dessert => !!d && d.active);
 }
@@ -70,7 +71,7 @@ export function boxCostOf(p: Pick<Package, "packaging_id" | "extra_cost">, ingre
   return box + (Number(p.extra_cost) || 0);
 }
 
-type StatsInput = Pick<Package, "mode" | "pieces" | "items" | "price" | "packaging_id" | "extra_cost" | "kind" | "groups" | "cake_items" | "cakes">;
+type StatsInput = Pick<Package, "mode" | "pieces" | "items" | "price" | "packaging_id" | "extra_cost" | "kind" | "groups" | "cake_items" | "cakes" | "excluded">;
 
 export function packageStats(p: StatsInput, desserts: Dessert[], costs: Map<string, CostBreakdown>, ingredientsById: Map<string, Ingredient>): PackageStats {
   const price = Number(p.price) || 0;

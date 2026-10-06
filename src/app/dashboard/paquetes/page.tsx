@@ -1,7 +1,7 @@
 "use client";
 import { useMemo, useState } from "react";
 import Link from "next/link";
-import { Boxes, Cake, Copy, Gift, Pencil, Plus, Store, Tags, Trash2, TrendingUp, X } from "lucide-react";
+import { Boxes, Cake, Check, Copy, Gift, Pencil, Plus, Store, Tags, Trash2, TrendingUp, X } from "lucide-react";
 import { toast } from "sonner";
 import { createClient } from "@/lib/supabase/client";
 import { useCatalog } from "@/hooks/useCatalog";
@@ -115,6 +115,11 @@ export default function PackagesPage() {
       pieces: k === "postres" ? Math.max(1, fixedPieces(items)) : Math.round(Number(form.pieces)),
       cakes: k === "pastel" ? Math.max(1, Math.min(10, Math.round(Number(form.cakes) || 1))) : 1,
       groups: k === "postres" ? [] : form.groups ?? [],
+      // Solo los apagados que siguen en las categorías elegidas (se manda si hay o si ya existía la columna)
+      ...(() => {
+        const off = k === "postres" ? [] : (form.excluded ?? []).filter((id) => desserts.some((d) => d.id === id && d.flavor_group_id && (form.groups ?? []).includes(d.flavor_group_id)));
+        return off.length || "excluded" in form ? { excluded: off } : {};
+      })(),
       cake_items: k === "pastel" ? (form.cake_items ?? []).map((i) => ({ dessert_id: i.dessert_id })) : [],
       price,
       price_mode: k === "pastel" ? "total" : form.price_mode,
@@ -129,7 +134,7 @@ export default function PackagesPage() {
     setSaving(true);
     const { error } = form.id ? await sb.from("packages").update(payload).eq("id", form.id) : await sb.from("packages").insert({ ...payload, position: all.length });
     setSaving(false);
-    if (error) return toast.error(/kind|groups|cake_items/.test(error.message) ? "Falta ejecutar la migración 0015 en Supabase" : error.message);
+    if (error) return toast.error(/excluded/.test(error.message) ? "Falta ejecutar la migración 0016 en Supabase" : /kind|groups|cake_items/.test(error.message) ? "Falta ejecutar la migración 0015 en Supabase" : error.message);
     toast.success("Paquete guardado 🎁");
     setForm(null);
     packsQ.reload();
@@ -527,7 +532,63 @@ function PackageEditor({
               {legacy && (
                 <p className="mt-2 text-xs text-amber-700">Esta caja usa sabores elegidos uno por uno ({form.items.length}). Elige categorías para que se actualice sola cuando agregues cupcakes nuevos.</p>
               )}
-              {cups.length > 0 && <p className="mt-2 text-xs text-cocoa-400">Podrá elegir: {cups.map((d) => d.name).join(", ")}</p>}
+              {chosenGroups.length > 0 && (
+                <div className="mt-3 space-y-2.5">
+                  {groups.filter((g) => chosenGroups.includes(g.id)).map((g) => {
+                    const list = desserts.filter((d) => d.flavor_group_id === g.id);
+                    const off = new Set(form.excluded ?? []);
+                    const onCount = list.filter((d) => !off.has(d.id)).length;
+                    const setAll = (enabled: boolean) =>
+                      set({ excluded: enabled ? (form.excluded ?? []).filter((id) => !list.some((d) => d.id === id)) : [...new Set([...(form.excluded ?? []), ...list.map((d) => d.id)])] });
+                    return (
+                      <div key={g.id} className="rounded-2xl bg-white p-3 ring-1 ring-cocoa-800/8">
+                        <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
+                          <p className="text-sm font-bold text-cocoa-700">
+                            {g.name} <span className="font-normal text-cocoa-400">· {onCount} de {list.length} disponibles</span>
+                          </p>
+                          {list.length > 1 && (
+                            <div className="flex gap-1 text-xs font-bold">
+                              <button type="button" onClick={() => setAll(true)} className="rounded-lg px-2 py-1 text-mint-700 hover:bg-mint-50">Todos</button>
+                              <button type="button" onClick={() => setAll(false)} className="rounded-lg px-2 py-1 text-cocoa-400 hover:bg-cream-100">Ninguno</button>
+                            </div>
+                          )}
+                        </div>
+                        {list.length ? (
+                          <div className="flex flex-wrap gap-1.5">
+                            {list.map((d) => {
+                              const on = !off.has(d.id);
+                              return (
+                                <button
+                                  key={d.id}
+                                  type="button"
+                                  aria-pressed={on}
+                                  onClick={() => set({ excluded: on ? [...(form.excluded ?? []), d.id] : (form.excluded ?? []).filter((x) => x !== d.id) })}
+                                  className={cn(
+                                    "inline-flex items-center gap-1.5 rounded-full border-2 py-1 pr-3 pl-1.5 text-sm font-bold transition",
+                                    on ? "border-mint-300 bg-mint-50 text-mint-700" : "border-dashed border-cocoa-800/15 bg-cream-50 text-cocoa-300 line-through",
+                                  )}
+                                  title={on ? "Disponible en esta caja · toca para apagarlo" : "No disponible en esta caja · toca para encenderlo"}
+                                >
+                                  <span className={cn("grid h-5 w-5 place-items-center rounded-full", on ? "bg-mint-500 text-white" : "bg-cocoa-800/10")}>
+                                    {on && <Check className="h-3 w-3" />}
+                                  </span>
+                                  {d.name}
+                                </button>
+                              );
+                            })}
+                          </div>
+                        ) : (
+                          <p className="text-xs text-cocoa-400">Esta categoría no tiene cupcakes todavía.</p>
+                        )}
+                      </div>
+                    );
+                  })}
+                  <p className="text-xs text-cocoa-400">
+                    Toca un sabor para apagarlo o encenderlo solo en esta caja. Podrá elegir <b className="text-cocoa-600">{cups.length}</b> {cups.length === 1 ? "sabor" : "sabores"}.
+                  </p>
+                </div>
+              )}
+              {!chosenGroups.length && cups.length > 0 && <p className="mt-2 text-xs text-cocoa-400">Podrá elegir: {cups.map((d) => d.name).join(", ")}</p>}
             </div>
           </div>
         )}
