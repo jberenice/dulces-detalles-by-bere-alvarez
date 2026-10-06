@@ -65,7 +65,7 @@ export function ReviewForm({ data, token }: { data: ReviewPageData; token: strin
       <div className="mx-auto max-w-md">
         <div className="text-center">
           {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src={data.logo_url || "/logo-transparent.png"} alt={data.business_name} className="mx-auto h-24 w-24 rounded-full bg-white object-contain p-1.5 shadow-md" />
+          <img src={data.logo_url || "/logo-transparent.png"} alt={data.business_name} className="mx-auto h-24 w-24 rounded-full bg-white object-cover shadow-md ring-4 ring-white" />
           <h1 className="mt-4 text-2xl font-semibold">{done ? "¡Gracias por tu reseña! 💕" : "¿Qué te pareció tu pedido?"}</h1>
           <p className="mt-1 text-[15px] text-[var(--st-muted)]">{data.business_name}</p>
         </div>

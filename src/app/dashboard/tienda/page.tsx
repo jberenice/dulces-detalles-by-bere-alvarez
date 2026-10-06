@@ -40,7 +40,8 @@ import { salesLink } from "@/lib/legal";
 import { useAsync } from "@/hooks/useAsync";
 import { StoreQrCard } from "@/components/dashboard/StoreQrCard";
 import { CustomCakeSettingsCard, cleanCake } from "@/components/dashboard/CustomCakeSettings";
-import { PRESETS, SECTION_LABELS, normalizeTheme, type StoreTheme } from "@/lib/storeTheme";
+import { DESIGNS, PRESETS, SECTION_LABELS, applyDesign, normalizeTheme, type StoreTheme } from "@/lib/storeTheme";
+import { DECOR_OPTIONS, decorTiles } from "@/lib/storeDecor";
 import { cn } from "@/lib/cn";
 import type { DeliveryZone, Dessert, Profile } from "@/lib/types";
 
@@ -254,6 +255,57 @@ export default function StoreSettingsPage() {
           {/* ---------------- DISEÑO ---------------- */}
           {tab === "diseno" && (
             <>
+              <Card className="p-5 sm:p-6">
+                <h3 className="text-lg font-semibold">Diseños listos</h3>
+                <p className="text-sm text-cocoa-400">Un toque para cambiar todo el estilo. Después puedes ajustar colores, letra y decoración a tu gusto.</p>
+                <div className="mt-4 grid grid-cols-2 gap-2 sm:grid-cols-3 2xl:grid-cols-4">
+                  {DESIGNS.map((d) => {
+                    const look = applyDesign(theme, d.id);
+                    const tile = decorTiles(look).edge;
+                    const active = theme.preset === d.theme.preset && theme.decor === d.theme.decor && theme.font === d.theme.font && theme.hero === d.theme.hero && theme.layout === d.theme.layout;
+                    return (
+                      <Option key={d.id} active={active} onClick={() => t(applyDesign(theme, d.id))} className="!p-2">
+                        <div className="relative h-24 overflow-hidden rounded-xl ring-1 ring-cocoa-800/10" style={{ background: look.background }}>
+                          {tile && <div className="absolute inset-x-0 top-0" style={{ height: tile.height * 0.55, backgroundImage: tile.image, backgroundSize: `${tile.width * 0.55}px ${tile.height * 0.55}px`, backgroundRepeat: "repeat-x" }} />}
+                          <div className="absolute inset-x-2 bottom-2 flex gap-1.5">
+                            {[0, 1, 2].map((i) => (
+                              <span key={i} className={cn("h-9 flex-1", look.radius === "redondo" ? "rounded-lg" : look.radius === "suave" ? "rounded-md" : "rounded-sm")} style={{ background: look.surface, boxShadow: `inset 0 -10px 0 ${i === 1 ? look.accent : look.primary}33` }} />
+                            ))}
+                          </div>
+                          <span
+                            className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-[60%] text-lg whitespace-nowrap"
+                            style={{ color: look.text, fontWeight: 600, fontFamily: look.font === "romantica" ? "var(--font-dancing)" : look.font === "moderna" ? "var(--font-body)" : "var(--font-display-serif)" }}
+                          >
+                            Mi tienda
+                          </span>
+                        </div>
+                        <p className="mt-2 px-1 text-sm font-bold text-cocoa-700">{d.name}</p>
+                        <p className="px-1 text-[11px] leading-snug text-cocoa-400">{d.hint}</p>
+                      </Option>
+                    );
+                  })}
+                </div>
+              </Card>
+
+              <Card className="p-5 sm:p-6">
+                <h3 className="text-lg font-semibold">Decoración</h3>
+                <p className="text-sm text-cocoa-400">Detalles reposteros en los bordes y entre secciones. Toman el color principal de tu paleta.</p>
+                <div className="mt-4 grid grid-cols-2 gap-2 sm:grid-cols-3">
+                  {DECOR_OPTIONS.map((o) => {
+                    const tile = decorTiles({ ...theme, decor: o.id }).edge;
+                    return (
+                      <Option key={o.id} active={theme.decor === o.id} onClick={() => t({ decor: o.id })}>
+                        <div className="h-10 overflow-hidden rounded-lg ring-1 ring-cocoa-800/10" style={{ background: theme.background }}>
+                          {tile && <div style={{ height: tile.height * 0.7, backgroundImage: tile.image, backgroundSize: `${tile.width * 0.7}px ${tile.height * 0.7}px`, backgroundRepeat: "repeat-x" }} />}
+                        </div>
+                        <p className="mt-2 text-sm font-bold text-cocoa-700">{o.label}</p>
+                        <p className="text-[11px] text-cocoa-400">{o.hint}</p>
+                      </Option>
+                    );
+                  })}
+                </div>
+              </Card>
+
               <Card className="p-5 sm:p-6">
                 <h3 className="text-lg font-semibold">Paleta de colores</h3>
                 <p className="text-sm text-cocoa-400">Elige una combinación lista o personaliza cada color.</p>

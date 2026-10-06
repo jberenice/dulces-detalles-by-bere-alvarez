@@ -5,8 +5,8 @@ import { Combobox } from "@/components/ui/Combobox";
 import { money, num } from "@/lib/format";
 import type { CostBreakdown } from "@/lib/costing";
 import { roundPrice } from "@/lib/costing";
-import type { Dessert, Ingredient, LineItem, Package, PackageComponent } from "@/lib/types";
-import { boxCostOf, componentsCost, describePackage, fixedComponents } from "@/lib/packages";
+import type { Dessert, FlavorGroup, Ingredient, LineItem, Package, PackageComponent } from "@/lib/types";
+import { boxCostOf, cakeOptions, componentsCost, countChoice, cupcakeOptions, describePackage, fixedComponents, kindOf } from "@/lib/packages";
 import { cn } from "@/lib/cn";
 import type { calcTotals } from "@/lib/totals";
 
@@ -30,7 +30,11 @@ export function packageLinesProblem(items: LineItem[], packages: Package[]) {
     if (!isPackageLine(l)) continue;
     const p = packages.find((x) => x.id === l.package_id);
     if (!p) return "Elige el paquete en todas las partidas de paquete";
-    if (p.mode === "surtido" && chosenPieces(l) !== p.pieces) return `“${p.name}” lleva ${p.pieces} piezas: elige los sabores (llevas ${chosenPieces(l)})`;
+    if (p.mode !== "surtido") continue;
+    const { cakes, cups } = countChoice(p, l.components ?? []);
+    const nCakes = kindOf(p) === "pastel" ? p.cakes ?? 1 : 0;
+    if (cakes !== nCakes) return `“${p.name}” lleva ${nCakes} pastel mini: elige el sabor`;
+    if (cups !== p.pieces) return `“${p.name}” lleva ${p.pieces} cupcakes: elige los sabores (llevas ${cups})`;
   }
   return null;
 }
@@ -53,6 +57,7 @@ export function LineItemsEditor({
   desserts,
   costs,
   packages = [],
+  groups = [],
   ingredientsById,
 }: {
   items: EditableLine[];
@@ -60,6 +65,7 @@ export function LineItemsEditor({
   desserts: Dessert[];
   costs: Map<string, CostBreakdown>;
   packages?: Package[];
+  groups?: FlavorGroup[];
   ingredientsById?: Map<string, Ingredient>;
 }) {
   const options = useMemo(
@@ -97,11 +103,16 @@ export function LineItemsEditor({
   function setFlavor(l: EditableLine, p: Package, dessertId: string, delta: number) {
     const comps = [...(l.components ?? [])];
     const i = comps.findIndex((c) => c.dessert_id === dessertId);
-    const total = chosenPieces(l);
-    if (delta > 0 && total >= p.pieces) return;
+    if (delta > 0) {
+      const { cakes, cups } = countChoice(p, comps);
+      const isCake = (p.cake_items ?? []).some((c) => c.dessert_id === dessertId);
+      if (isCake ? cakes >= (p.cakes ?? 1) : cups >= p.pieces) return;
+    }
     if (i >= 0) comps[i] = { ...comps[i], qty: Math.max(0, comps[i].qty + delta) };
     else if (delta > 0) comps.push({ dessert_id: dessertId, name: dessertsById.get(dessertId)?.name ?? "", qty: delta });
-    update(l.key, withComponents(p, comps.filter((c) => c.qty > 0)));
+    const cakeIds = new Set((p.cake_items ?? []).map((c) => c.dessert_id));
+    const ordered = comps.filter((c) => c.qty > 0).sort((a, b) => Number(cakeIds.has(b.dessert_id)) - Number(cakeIds.has(a.dessert_id)));
+    update(l.key, withComponents(p, ordered));
   }
 
   function pickDessert(key: string, id: string) {
@@ -129,7 +140,8 @@ export function LineItemsEditor({
                   line={l}
                   pack={packages.find((p) => p.id === l.package_id)}
                   options={packOptions}
-                  dessertsById={dessertsById}
+                  desserts={desserts}
+                  groups={groups}
                   onPick={(id) => pickPackage(l.key, id)}
                   onFlavor={(p, id, delta) => setFlavor(l, p, id, delta)}
                 />
@@ -217,45 +229,70 @@ function PackageLine({
   line,
   pack,
   options,
-  dessertsById,
+  desserts,
+  groups,
   onPick,
   onFlavor,
 }: {
   line: EditableLine;
   pack?: Package;
   options: { value: string; label: string; hint?: string }[];
-  dessertsById: Map<string, Dessert>;
+  desserts: Dessert[];
+  groups: FlavorGroup[];
   onPick: (id: string) => void;
   onFlavor: (p: Package, dessertId: string, delta: number) => void;
 }) {
-  const chosen = chosenPieces(line);
+  const comps = line.components ?? [];
+  const { cakes, cups } = pack ? countChoice(pack, comps) : { cakes: 0, cups: 0 };
+  const nCakes = pack && kindOf(pack) === "pastel" ? pack.cakes ?? 1 : 0;
+  const qty = (id: string) => comps.find((c) => c.dessert_id === id)?.qty ?? 0;
+  const chip = (d: Dessert, full: boolean) => {
+    const n = qty(d.id);
+    return (
+      <span key={d.id} className={cn("inline-flex items-center gap-1 rounded-full bg-white py-0.5 pr-1 pl-2.5 text-xs font-bold ring-1", n ? "text-cocoa-700 ring-mint-300" : "text-cocoa-400 ring-cocoa-800/10")}>
+        {d.name}
+        <button type="button" onClick={() => onFlavor(pack!, d.id, -1)} disabled={!n} className="grid h-6 w-6 place-items-center rounded-full hover:bg-cream-200 disabled:opacity-30" aria-label={`Quitar ${d.name}`}>
+          <Minus className="h-3 w-3" />
+        </button>
+        <span className="w-4 text-center tabular-nums">{n}</span>
+        <button type="button" onClick={() => onFlavor(pack!, d.id, 1)} disabled={full} className="grid h-6 w-6 place-items-center rounded-full hover:bg-cream-200 disabled:opacity-30" aria-label={`Agregar ${d.name}`}>
+          <Plus className="h-3 w-3" />
+        </button>
+      </span>
+    );
+  };
+  // Cupcakes agrupados por categoría (en el orden de tus categorías)
+  const cupSections = useMemo(() => {
+    if (!pack || pack.mode !== "surtido") return [];
+    const list = cupcakeOptions(pack, desserts);
+    if (!(pack.groups ?? []).length) return [{ name: "", items: list }];
+    return groups
+      .map((g) => ({ name: g.name, items: list.filter((d) => d.flavor_group_id === g.id) }))
+      .filter((s) => s.items.length);
+  }, [pack, desserts, groups]);
+  const cakeList = pack ? cakeOptions(pack, desserts) : [];
   return (
     <div className="space-y-2">
       <Combobox value={line.package_id ?? ""} onChange={onPick} options={options} placeholder="Elige un paquete o caja" />
       {pack?.mode === "surtido" && (
-        <div className="rounded-xl bg-mint-50/60 p-2.5 ring-1 ring-mint-200/60">
-          <p className={cn("mb-2 text-xs font-bold", chosen === pack.pieces ? "text-mint-700" : "text-amber-700")}>
-            Sabores {chosen}/{pack.pieces} {chosen === pack.pieces ? "✓" : "· reparte las piezas"}
+        <div className="space-y-2.5 rounded-xl bg-mint-50/60 p-2.5 ring-1 ring-mint-200/60">
+          {nCakes > 0 && (
+            <div>
+              <p className={cn("mb-1.5 text-xs font-bold", cakes === nCakes ? "text-mint-700" : "text-amber-700")}>
+                Pastel mini {cakes}/{nCakes} {cakes === nCakes ? "✓" : "· elige el sabor"}
+              </p>
+              <div className="flex flex-wrap gap-1.5">{cakeList.map((d) => chip(d, cakes >= nCakes))}</div>
+            </div>
+          )}
+          <p className={cn("text-xs font-bold", cups === pack.pieces ? "text-mint-700" : "text-amber-700")}>
+            Cupcakes {cups}/{pack.pieces} {cups === pack.pieces ? "✓" : "· reparte las piezas"}
           </p>
-          <div className="flex flex-wrap gap-1.5">
-            {pack.items.map((it) => {
-              const d = dessertsById.get(it.dessert_id);
-              if (!d) return null;
-              const n = line.components?.find((c) => c.dessert_id === it.dessert_id)?.qty ?? 0;
-              return (
-                <span key={it.dessert_id} className={cn("inline-flex items-center gap-1 rounded-full bg-white py-0.5 pr-1 pl-2.5 text-xs font-bold ring-1", n ? "text-cocoa-700 ring-mint-300" : "text-cocoa-400 ring-cocoa-800/10")}>
-                  {d.name}
-                  <button type="button" onClick={() => onFlavor(pack, it.dessert_id, -1)} disabled={!n} className="grid h-6 w-6 place-items-center rounded-full hover:bg-cream-200 disabled:opacity-30" aria-label={`Quitar ${d.name}`}>
-                    <Minus className="h-3 w-3" />
-                  </button>
-                  <span className="w-4 text-center tabular-nums">{n}</span>
-                  <button type="button" onClick={() => onFlavor(pack, it.dessert_id, 1)} disabled={chosen >= pack.pieces} className="grid h-6 w-6 place-items-center rounded-full hover:bg-cream-200 disabled:opacity-30" aria-label={`Agregar ${d.name}`}>
-                    <Plus className="h-3 w-3" />
-                  </button>
-                </span>
-              );
-            })}
-          </div>
+          {cupSections.map((sec) => (
+            <div key={sec.name || "_"}>
+              {sec.name && <p className="mb-1 text-[10.5px] font-bold tracking-wider text-cocoa-400 uppercase">{sec.name}</p>}
+              <div className="flex flex-wrap gap-1.5">{sec.items.map((d) => chip(d, cups >= pack.pieces))}</div>
+            </div>
+          ))}
         </div>
       )}
       {pack && line.description && <p className="text-xs text-cocoa-400">{line.description}</p>}

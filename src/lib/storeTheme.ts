@@ -13,6 +13,8 @@ export type StoreTheme = {
   layout: "cuadricula" | "lista" | "galeria";
   columns: 2 | 3;
   radius: "redondo" | "suave" | "recto";
+  /** Decoración repostera: bordes chorreados, helado, galleta… */
+  decor: "ninguna" | "chorreado" | "helado" | "galleta" | "chispas" | "capacillo";
   sections: { id: SectionId; visible: boolean }[];
 };
 
@@ -46,7 +48,38 @@ export const PRESETS: { id: string; name: string; colors: Pick<StoreTheme, "prim
   { id: "lavanda", name: "Lavanda", colors: { primary: "#7b5ea7", accent: "#e58fb0", background: "#f8f5fc", surface: "#ffffff", text: "#2e2340" } },
   { id: "frambuesa", name: "Frambuesa", colors: { primary: "#c2185b", accent: "#f4a259", background: "#fff6f8", surface: "#ffffff", text: "#3a1020" } },
   { id: "noche", name: "Noche de cacao", colors: { primary: "#f2a7b8", accent: "#7fcaa6", background: "#24160b", surface: "#33210f", text: "#fbefe3" } },
+  { id: "galleta", name: "Galleta", colors: { primary: "#a8642a", accent: "#5b3518", background: "#fdf4e7", surface: "#fffaf2", text: "#3a2410" } },
+  { id: "fresa", name: "Helado de fresa", colors: { primary: "#f06b8a", accent: "#7cc9b1", background: "#fff5f7", surface: "#ffffff", text: "#4a2330" } },
+  { id: "pistache", name: "Pistache", colors: { primary: "#6f9a3c", accent: "#d98fa5", background: "#f6faef", surface: "#ffffff", text: "#2c3a1c" } },
+  { id: "moka", name: "Moka", colors: { primary: "#8a5a3c", accent: "#e3b98a", background: "#f4ece4", surface: "#fffaf5", text: "#2e1d12" } },
+  { id: "mora", name: "Mora azul", colors: { primary: "#4b5fb3", accent: "#e889a8", background: "#f4f5fd", surface: "#ffffff", text: "#1f2547" } },
+  { id: "durazno", name: "Durazno", colors: { primary: "#ec8150", accent: "#5aa79a", background: "#fff6ef", surface: "#ffffff", text: "#432617" } },
+  { id: "algodon", name: "Algodón de azúcar", colors: { primary: "#e17bb6", accent: "#6bb7e3", background: "#fdf5ff", surface: "#ffffff", text: "#3c2042" } },
 ];
+
+/** Diseños listos: combinan paleta, decoración, letra, portada y acomodo */
+export const DESIGNS: { id: string; name: string; hint: string; theme: Pick<StoreTheme, "preset" | "decor" | "font" | "hero" | "layout" | "radius"> }[] = [
+  { id: "chorreado-fresa", name: "Glaseado de fresa", hint: "Bordes chorreados y letra romántica", theme: { preset: "frambuesa", decor: "chorreado", font: "romantica", hero: "centrado", layout: "cuadricula", radius: "redondo" } },
+  { id: "chocolateria", name: "Chocolatería", hint: "Chocolate escurriendo, elegante", theme: { preset: "chocolate", decor: "chorreado", font: "elegante", hero: "portada", layout: "lista", radius: "suave" } },
+  { id: "heladeria", name: "Heladería", hint: "Bolitas de helado y fotos grandes", theme: { preset: "fresa", decor: "helado", font: "moderna", hero: "portada", layout: "galeria", radius: "redondo" } },
+  { id: "pistache", name: "Nieve de pistache", hint: "Fresca y moderna", theme: { preset: "pistache", decor: "helado", font: "moderna", hero: "minimal", layout: "cuadricula", radius: "redondo" } },
+  { id: "galleteria", name: "Galletería", hint: "Borde de galleta con chispas de chocolate", theme: { preset: "galleta", decor: "galleta", font: "elegante", hero: "centrado", layout: "cuadricula", radius: "suave" } },
+  { id: "fiesta", name: "Fiesta de chispas", hint: "Sprinkles de colores, alegre", theme: { preset: "algodon", decor: "chispas", font: "romantica", hero: "centrado", layout: "cuadricula", radius: "redondo" } },
+  { id: "cupcakeria", name: "Cupcakería", hint: "Pliegues de capacillo", theme: { preset: "rosa", decor: "capacillo", font: "elegante", hero: "centrado", layout: "cuadricula", radius: "redondo" } },
+  { id: "cafeteria", name: "Café y postre", hint: "Tonos moka, menú en lista", theme: { preset: "moka", decor: "capacillo", font: "elegante", hero: "minimal", layout: "lista", radius: "suave" } },
+  { id: "noche", name: "Noche de cacao", hint: "Fondo oscuro con chispas", theme: { preset: "noche", decor: "chispas", font: "elegante", hero: "portada", layout: "galeria", radius: "suave" } },
+  { id: "mora", name: "Pay de mora", hint: "Azul con glaseado", theme: { preset: "mora", decor: "chorreado", font: "moderna", hero: "centrado", layout: "cuadricula", radius: "suave" } },
+  { id: "durazno", name: "Durazno y crema", hint: "Cálida, con ondas de helado", theme: { preset: "durazno", decor: "helado", font: "romantica", hero: "centrado", layout: "lista", radius: "redondo" } },
+  { id: "sencilla", name: "Sencilla", hint: "Sin decoración, directo al menú", theme: { preset: "vainilla", decor: "ninguna", font: "moderna", hero: "minimal", layout: "cuadricula", radius: "suave" } },
+];
+
+/** Aplica un diseño listo al tema (conserva secciones y columnas) */
+export function applyDesign(t: StoreTheme, id: string): StoreTheme {
+  const d = DESIGNS.find((x) => x.id === id);
+  if (!d) return t;
+  const colors = PRESETS.find((p) => p.id === d.theme.preset)?.colors ?? {};
+  return { ...t, ...colors, ...d.theme };
+}
 
 export const DEFAULT_THEME: StoreTheme = {
   preset: "rosa",
@@ -56,6 +89,7 @@ export const DEFAULT_THEME: StoreTheme = {
   layout: "cuadricula",
   columns: 3,
   radius: "redondo",
+  decor: "ninguna",
   sections: DEFAULT_SECTIONS,
 };
 
@@ -95,6 +129,7 @@ export function normalizeTheme(raw: unknown): StoreTheme {
     layout: pick(t.layout, ["cuadricula", "lista", "galeria"] as const, "cuadricula"),
     columns: t.columns === 2 ? 2 : 3,
     radius: pick(t.radius, ["redondo", "suave", "recto"] as const, "redondo"),
+    decor: pick(t.decor, ["ninguna", "chorreado", "helado", "galleta", "chispas", "capacillo"] as const, "ninguna"),
     sections,
   };
 }

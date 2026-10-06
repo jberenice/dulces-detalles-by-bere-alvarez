@@ -92,7 +92,7 @@ export function brandedEmail({
   ].filter(Boolean);
 
   const header = brand.logoUrl
-    ? `<img src="${esc(brand.logoUrl)}" alt="${esc(brand.business)}" width="88" height="88" style="display:block;margin:0 auto 10px;width:88px;height:88px;object-fit:contain;border-radius:44px;background:#ffffff">
+    ? `<img src="${esc(brand.logoUrl)}" alt="${esc(brand.business)}" width="88" height="88" style="display:block;margin:0 auto 10px;width:88px;height:88px;object-fit:cover;border-radius:44px;background:#ffffff">
        <p style="margin:0;font-family:Georgia,'Times New Roman',serif;font-size:22px;color:${text};text-align:center">${esc(brand.business)}</p>`
     : `<p style="margin:0;font-family:Georgia,'Times New Roman',serif;font-style:italic;font-size:26px;color:${primary};text-align:center">${esc(brand.business)}</p>
        <p style="margin:4px 0 0;font-size:11px;letter-spacing:3px;color:${accent};text-transform:uppercase;text-align:center">Hechos con amor de hogar</p>`;

@@ -598,7 +598,7 @@ export function renderItem(kind: PrintKind, d: PrintDesign, data: PrintData) {
       : "";
   const logoEm = (em: number) =>
     hasLogo
-      ? `<img src="${esc(data.logo!)}" alt="" style="width:${em}em;height:${em}em;object-fit:contain;display:block;flex:none;border-radius:50%;background:#fff;padding:.1em;box-sizing:border-box;box-shadow:0 0 0 .04em ${d.primary}55" />`
+      ? `<img src="${esc(data.logo!)}" alt="" style="width:${em}em;height:${em}em;object-fit:cover;display:block;flex:none;border-radius:50%;background:#fff;box-sizing:border-box;box-shadow:0 0 0 .04em ${d.primary}55" />`
       : "";
   const titleHtml = (color = d.text) =>
     `<div style="font-family:${font};font-weight:700;font-size:${titleScale}em;line-height:1.1;color:${color};overflow-wrap:anywhere;letter-spacing:${d.font === "elegante" ? ".01em" : "0"}">${esc(title)}</div>`;

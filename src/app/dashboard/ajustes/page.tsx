@@ -80,7 +80,14 @@ export default function SettingsPage() {
               <div>
                 <label className="label">Logotipo</label>
                 <ImagePicker value={p.logo_url} onChange={(v) => setP({ ...p, logo_url: v })} folder="logo" aspect="aspect-square" fit="contain" label="Subir logo" />
-                <p className="mt-2 text-xs text-cocoa-400">PNG con fondo transparente se ve mejor en el PDF.</p>
+                {p.logo_url && (
+                  <div className="mt-3 flex items-center gap-3">
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img src={p.logo_url} alt="" className="h-14 w-14 rounded-full bg-white object-cover shadow-sm ring-1 ring-cocoa-800/10" />
+                    <p className="text-xs text-cocoa-400">Así se ve en círculo (tienda, menú e impresos). Deja tu logo centrado con un poco de margen.</p>
+                  </div>
+                )}
+                <p className="mt-2 text-xs text-cocoa-400">PNG cuadrado; con fondo transparente se ve mejor en el PDF.</p>
               </div>
               <div className="grid gap-4 sm:grid-cols-2">
                 <Input label="Nombre del negocio" value={p.business_name} onChange={set("business_name")} />

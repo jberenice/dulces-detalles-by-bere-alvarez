@@ -172,7 +172,7 @@ export default function QuoteDetailPage({ params }: { params: Promise<{ id: stri
         <Card className="overflow-hidden">
           <div className="flex flex-col gap-5 bg-cream-100 px-6 py-6 sm:flex-row sm:items-center sm:justify-between sm:px-10">
             {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src={profile.logo_url || "/logo-transparent.png"} alt="" className="h-20 w-20 object-contain" />
+            <img src={profile.logo_url || "/logo-transparent.png"} alt="" className="h-20 w-20 rounded-full bg-white object-cover" />
             <div className="sm:text-right">
               <p className="font-display text-xl font-semibold text-cocoa-700 italic">{profile.business_name}</p>
               <p className="text-xs text-cocoa-400">{[profile.whatsapp, profile.email].filter(Boolean).join(" · ")}</p>

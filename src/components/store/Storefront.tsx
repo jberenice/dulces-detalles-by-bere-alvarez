@@ -9,6 +9,7 @@ import { DeliveryCalendar, firstAvailable } from "./DeliveryCalendar";
 import { Modal } from "@/components/ui/Modal";
 import { dateLong, facebookLabel, facebookUrl, folio, money, toISODate, waLink } from "@/lib/format";
 import { normalizeTheme, themeVars, type StoreTheme } from "@/lib/storeTheme";
+import { decorTiles } from "@/lib/storeDecor";
 import { cn } from "@/lib/cn";
 import type { CustomCakeSettings, DeliveryZone, VariantGroup } from "@/lib/types";
 import { CustomCakeForm } from "./CustomCakeForm";
@@ -45,8 +46,14 @@ export type StorePackage = {
   pieces: number;
   price: number;
   min_notice_days?: number | null;
-  /** fijo: lo que trae (qty) · surtido: sabores para elegir */
-  options: { dessert_id: string; name: string; image_url: string | null; qty: number | null; price: number | null }[];
+  /** cupcakes · pastel (pastel mini + cupcakes) · postres (fijo) */
+  kind?: "cupcakes" | "pastel" | "postres";
+  /** Pasteles mini por paquete (solo pastel) */
+  cakes?: number | null;
+  /** fijo: lo que trae (qty) · surtido: sabores para elegir (con su categoría) */
+  options: { dessert_id: string; name: string; image_url: string | null; qty: number | null; price: number | null; group?: string | null }[];
+  /** Sabores de pastel mini (solo pastel) */
+  cake_options?: { dessert_id: string; name: string; image_url: string | null; price: number | null }[];
 };
 export type StoreData = {
   store: {
@@ -95,7 +102,31 @@ function regularOf(k: StorePackage) {
     return k.options.reduce((a, o) => a + Number(o.qty ?? 0) * Number(o.price), 0);
   }
   const prices = k.options.map((o) => o.price).filter((x): x is number => x != null).map(Number);
-  return prices.length ? Math.max(...prices) * k.pieces : 0;
+  if (!prices.length) return 0;
+  if (!isCakePack(k)) return Math.max(...prices) * k.pieces;
+  const cakes = (k.cake_options ?? []).map((o) => o.price).filter((x): x is number => x != null).map(Number);
+  return cakes.length ? Math.max(...prices) * k.pieces + Math.max(...cakes) * cakesOf(k) : 0;
+}
+const isCakePack = (k: StorePackage) => k.kind === "pastel";
+const cakesOf = (k: StorePackage) => (isCakePack(k) ? Number(k.cakes) || 1 : 0);
+/** Cuántos pasteles mini y cupcakes lleva una elección */
+function splitChoice(k: StorePackage, choices: { dessert_id: string; qty: number }[]) {
+  const cakeIds = new Set((isCakePack(k) ? k.cake_options ?? [] : []).map((o) => o.dessert_id));
+  let cakes = 0;
+  let cups = 0;
+  for (const c of choices) (cakeIds.has(c.dessert_id) ? (cakes += c.qty) : (cups += c.qty));
+  return { cakes, cups };
+}
+/** Sabores agrupados por categoría, en el orden que llegan */
+function byGroup<T extends { group?: string | null }>(opts: T[]) {
+  const out: { name: string; items: T[] }[] = [];
+  for (const o of opts) {
+    const name = o.group ?? "";
+    const last = out[out.length - 1];
+    if (last && last.name === name) last.items.push(o);
+    else out.push({ name, items: [o] });
+  }
+  return out;
 }
 
 const lineKey = (id: string, options: Choice[]) => (options.length ? `${id}|${options.map((o) => `${o.group}=${o.option}`).join("|")}` : id);
@@ -118,7 +149,7 @@ const price = (n: number) => money(n).replace(".00", "");
  */
 export function Storefront({ data, slug, preview = false }: { data: StoreData; slug: string; preview?: boolean }) {
   const { store, products } = data;
-  const packages = useMemo(() => (data.packages ?? []).filter((k) => k.options?.length), [data.packages]);
+  const packages = useMemo(() => (data.packages ?? []).filter((k) => k.options?.length && (!isCakePack(k) || k.cake_options?.length)), [data.packages]);
   const seasons = data.seasons ?? [];
   const seasonById = useMemo(() => new Map((data.seasons ?? []).map((x) => [x.id, x])), [data.seasons]);
   const reviews = data.reviews ?? [];
@@ -128,6 +159,7 @@ export function Storefront({ data, slug, preview = false }: { data: StoreData; s
   const [checkingCoupon, setCheckingCoupon] = useState(false);
   const theme: StoreTheme = useMemo(() => normalizeTheme(store.theme), [store.theme]);
   const vars = useMemo(() => themeVars(theme), [theme]);
+  const decor = useMemo(() => decorTiles(theme), [theme]);
   const storageKey = `dd-cart-${slug}`;
   const [cart, setCart] = useState<Record<string, CartLine>>({});
   const [packCart, setPackCart] = useState<Record<string, PackLine>>({});
@@ -211,13 +243,14 @@ export function Storefront({ data, slug, preview = false }: { data: StoreData; s
       const k = packsById.get(l.id);
       if (!k || l.qty <= 0) return null;
       // Descarta cajas cuyo contenido ya no es válido (cambió el paquete)
+      const nameOf = (id: string) => k.options.find((o) => o.dessert_id === id)?.name ?? k.cake_options?.find((o) => o.dessert_id === id)?.name ?? "";
       if (k.mode === "surtido") {
-        const total = l.choices.reduce((a, c) => a + c.qty, 0);
-        if (total !== k.pieces || !l.choices.every((c) => k.options.some((o) => o.dessert_id === c.dessert_id))) return null;
+        const { cakes, cups } = splitChoice(k, l.choices);
+        if (cakes !== cakesOf(k) || cups !== k.pieces || !l.choices.every((c) => nameOf(c.dessert_id))) return null;
       }
       const label =
         k.mode === "surtido"
-          ? l.choices.map((c) => `${c.qty} ${k.options.find((o) => o.dessert_id === c.dessert_id)?.name ?? ""}`).join(", ")
+          ? l.choices.map((c) => `${c.qty} ${isCakePack(k) && k.cake_options?.some((o) => o.dessert_id === c.dessert_id) ? "Pastel mini " : ""}${nameOf(c.dessert_id)}`).join(", ")
           : k.options.map((o) => `${Number(o.qty)} ${o.name}`).join(", ");
       return { key, k, qty: l.qty, choices: l.choices, unit: Number(k.price), label };
     })
@@ -262,12 +295,23 @@ export function Storefront({ data, slug, preview = false }: { data: StoreData; s
     setBoxChoices({});
     setDetailQty(1);
   }
-  const boxTotal = Object.values(boxChoices).reduce((a, n) => a + n, 0);
+  const boxSplit = box ? splitChoice(box, Object.entries(boxChoices).map(([dessert_id, qty]) => ({ dessert_id, qty }))) : { cakes: 0, cups: 0 };
+  const boxTotal = boxSplit.cups;
+  const boxCakes = box ? cakesOf(box) : 0;
+  const boxReady = !!box && boxTotal === box.pieces && boxSplit.cakes === boxCakes;
   const setFlavor = (id: string, d: number) =>
     setBoxChoices((x) => {
       if (!box) return x;
-      const total = Object.values(x).reduce((a, n) => a + n, 0);
-      if (d > 0 && total >= box.pieces) return x;
+      const { cakes, cups } = splitChoice(box, Object.entries(x).map(([dessert_id, qty]) => ({ dessert_id, qty })));
+      const isCake = isCakePack(box) && (box.cake_options ?? []).some((o) => o.dessert_id === id);
+      // Con un solo pastel, tocar otro sabor lo cambia en lugar de bloquearse
+      if (d > 0 && isCake && cakes >= cakesOf(box)) {
+        if (cakesOf(box) !== 1) return x;
+        const next = { ...x };
+        for (const o of box.cake_options ?? []) delete next[o.dessert_id];
+        return { ...next, [id]: 1 };
+      }
+      if (d > 0 && !isCake && cups >= box.pieces) return x;
       const n = Math.max(0, (x[id] ?? 0) + d);
       const next = { ...x, [id]: n };
       if (!n) delete next[id];
@@ -578,19 +622,19 @@ export function Storefront({ data, slug, preview = false }: { data: StoreData; s
                     <div className="flex min-w-0 flex-1 flex-col py-1">
                       <h3 className="text-lg leading-tight font-semibold">{k.name}</h3>
                       <p className="mt-0.5 line-clamp-2 text-sm text-[var(--st-muted)]">
-                        {k.description || (k.mode === "surtido" ? `Elige ${k.pieces} piezas: ${k.options.map((o) => o.name).join(", ")}` : k.options.map((o) => `${Number(o.qty)} ${o.name}`).join(" + "))}
+                        {k.description || (isCakePack(k) ? `${cakesOf(k) === 1 ? "Pastel mini" : `${cakesOf(k)} pasteles mini`} + ${k.pieces} cupcakes a elegir` : k.mode === "surtido" ? `Elige ${k.pieces} piezas: ${k.options.map((o) => o.name).join(", ")}` : k.options.map((o) => `${Number(o.qty)} ${o.name}`).join(" + "))}
                       </p>
                       <div className="mt-auto flex items-end justify-between gap-2 pt-2">
                         <p className="text-lg font-bold text-[var(--st-primary)]">
                           {price(k.price)}
                           <span className="block text-[11px] font-normal text-[var(--st-muted)]">
-                            {k.mode === "surtido" ? `${k.pieces} piezas · ${price(Number(k.price) / k.pieces)} c/u` : `${k.pieces} piezas`}
+                            {isCakePack(k) ? `${cakesOf(k)} pastel${cakesOf(k) === 1 ? "" : "es"} + ${k.pieces} cupcakes` : k.mode === "surtido" ? `${k.pieces} piezas · ${price(Number(k.price) / k.pieces)} c/u` : `${k.pieces} piezas`}
                             {k.mode === "fijo" && regular > Number(k.price) + 0.5 ? <> · <s>{price(regular)}</s></> : null}
                           </span>
                         </p>
                         {k.mode === "surtido" ? (
                           <button onClick={() => openBox(k)} className={cn("relative shrink-0 rounded-full px-4 py-2 text-sm font-bold shadow-md", btnPrimary)}>
-                            Armar caja
+                            {isCakePack(k) ? "Armar" : "Armar caja"}
                             {inCart > 0 && <span className="absolute -top-1.5 -right-1.5 grid h-5 min-w-5 place-items-center rounded-full bg-[var(--st-text)] px-1 text-[10px] font-bold text-[var(--st-bg)]">{inCart}</span>}
                           </button>
                         ) : inCart ? (
@@ -786,7 +830,7 @@ export function Storefront({ data, slug, preview = false }: { data: StoreData; s
           <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/25 to-black/5" />
           <div className="absolute inset-x-0 bottom-0 flex items-end gap-4 p-5 @2xl:p-8">
             {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src={logo} alt="" className="h-20 w-20 shrink-0 rounded-full bg-white object-contain p-1.5 shadow-lg @2xl:h-24 @2xl:w-24" />
+            <img src={logo} alt="" className="h-20 w-20 shrink-0 rounded-full bg-white object-cover shadow-lg ring-4 ring-white/80 @2xl:h-24 @2xl:w-24" />
             <div className="min-w-0 text-white">
               <h1 className="text-3xl leading-tight font-semibold !text-white @2xl:text-5xl">{store.title}</h1>
               {store.description && <p className="mt-1 line-clamp-2 text-sm opacity-90 @2xl:text-base">{store.description}</p>}
@@ -797,7 +841,7 @@ export function Storefront({ data, slug, preview = false }: { data: StoreData; s
     ) : theme.hero === "minimal" ? (
       <header className="flex items-center gap-4 px-4 pt-6 pb-2">
         {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img src={logo} alt="" className="h-16 w-16 shrink-0 rounded-[calc(var(--st-radius)*0.8)] bg-[var(--st-surface)] object-contain p-1 ring-1 ring-[var(--st-line)]" />
+        <img src={logo} alt="" className="h-16 w-16 shrink-0 rounded-full bg-[var(--st-surface)] object-cover ring-1 ring-[var(--st-line)]" />
         <div className="min-w-0">
           <h1 className="truncate text-2xl leading-tight font-semibold @2xl:text-3xl">{store.title}</h1>
           {store.description && <p className="line-clamp-2 text-sm text-[var(--st-muted)]">{store.description}</p>}
@@ -813,9 +857,9 @@ export function Storefront({ data, slug, preview = false }: { data: StoreData; s
           <div className="absolute inset-0 bg-gradient-to-b from-transparent via-transparent to-[var(--st-bg)]" />
         </div>
         <div className="relative mx-auto -mt-16 max-w-3xl px-4 text-center @2xl:-mt-20">
-          <div className="mx-auto grid h-32 w-32 place-items-center rounded-full bg-[var(--st-surface)] p-2 shadow-lg ring-4 ring-[var(--st-surface)] @2xl:h-40 @2xl:w-40">
+          <div className="mx-auto h-32 w-32 overflow-hidden rounded-full bg-[var(--st-surface)] shadow-lg ring-4 ring-[var(--st-surface)] @2xl:h-40 @2xl:w-40">
             {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src={logo} alt={store.business_name} className="h-full w-full object-contain" />
+            <img src={logo} alt={store.business_name} className="h-full w-full rounded-full object-cover" />
           </div>
           <h1 className="mt-4 text-3xl font-semibold @2xl:text-4xl">{store.title}</h1>
           {store.description && <p className="mx-auto mt-2 max-w-xl text-[15px] leading-relaxed text-[var(--st-muted)]">{store.description}</p>}
@@ -824,7 +868,10 @@ export function Storefront({ data, slug, preview = false }: { data: StoreData; s
     );
 
   return (
-    <div className={cn("st-root @container relative bg-[var(--st-bg)] text-[var(--st-text)]", preview ? "min-h-full" : "min-h-dvh")} style={vars}>
+    <div
+      className={cn("st-root @container relative bg-[var(--st-bg)] text-[var(--st-text)]", preview ? "min-h-full" : "min-h-dvh")}
+      style={decor.pattern ? { ...vars, backgroundImage: decor.pattern.image, backgroundSize: `${decor.pattern.width}px ${decor.pattern.height}px` } : vars}
+    >
       {announcementVisible && (
         <div className="flex items-center justify-center gap-2 bg-[var(--st-primary)] px-4 py-2 text-center text-[13px] font-semibold text-[var(--st-on-primary)]">
           <Megaphone className="h-4 w-4 shrink-0" /> {store.announcement}
@@ -836,10 +883,21 @@ export function Storefront({ data, slug, preview = false }: { data: StoreData; s
           <span>{x.banner || `Temporada de ${x.name}`} · hasta el {dateLong(x.end_date).replace(/^[a-záéíóúñ]+, /i, "")}</span>
         </div>
       ))}
-      {hero}
+      <div className={cn("relative", decor.edge && theme.hero === "minimal" && "pt-8")}>
+        {decor.edge && <DecorEdge tile={decor.edge} />}
+        {hero}
+      </div>
 
       <main className="mx-auto max-w-6xl pb-32">
-        {theme.sections.filter((s) => s.visible && s.id !== "anuncio").map((s) => sections[s.id])}
+        {theme.sections
+          .filter((s) => s.visible && s.id !== "anuncio")
+          .map((s, i) => (
+            <Fragment key={s.id}>
+              {decor.edge && i > 0 && sections[s.id] && <DecorDivider tile={decor.edge} />}
+              {sections[s.id]}
+            </Fragment>
+          ))}
+        {decor.edge && <DecorDivider tile={decor.edge} wide />}
         <footer className="mt-14 px-4 text-center">
           <p className="font-script text-2xl text-[var(--st-primary)]">Hechos con amor de hogar</p>
           <p className="mt-1 text-xs text-[var(--st-muted)]">Tienda creada con Dulces Detalles</p>
@@ -868,11 +926,7 @@ export function Storefront({ data, slug, preview = false }: { data: StoreData; s
           <Modal open={!!detail} onClose={() => setDetail(null)} title={detail?.name} size="md"
             footer={detail && (
               <div className="flex w-full flex-col-reverse gap-3 sm:flex-row sm:items-center sm:justify-end">
-                <div className="flex items-center justify-center gap-1 rounded-full bg-cream-200 p-1">
-                  <button type="button" onClick={() => setDetailQty((q) => Math.max(1, q - 1))} className="grid h-9 w-9 place-items-center rounded-full bg-white text-cocoa-600 shadow-sm" aria-label="Menos"><Minus className="h-4 w-4" /></button>
-                  <span className="w-8 text-center font-bold">{detailQty}</span>
-                  <button type="button" onClick={() => setDetailQty((q) => Math.min(99, q + 1))} className="grid h-9 w-9 place-items-center rounded-full bg-white text-cocoa-600 shadow-sm" aria-label="Más"><Plus className="h-4 w-4" /></button>
-                </div>
+                <QtyStepper label="Cantidad" value={detailQty} max={99} onChange={setDetailQty} />
                 <button
                   className={cn("flex h-12 w-full items-center justify-center gap-2 rounded-2xl px-6 font-bold disabled:opacity-50 sm:w-auto", btnPrimary)}
                   disabled={!!missing}
@@ -978,24 +1032,26 @@ export function Storefront({ data, slug, preview = false }: { data: StoreData; s
           </Modal>
 
           {/* Armar caja surtida */}
-          <Modal open={!!box} onClose={() => setBox(null)} title={box?.name} description={box ? `Elige ${box.pieces} piezas · ${money(box.price)} la caja` : undefined} size="md"
+          <Modal open={!!box} onClose={() => setBox(null)} title={box?.name}
+            description={box ? (isCakePack(box) ? `Elige tu pastel mini y ${box.pieces} cupcakes · ${money(box.price)}` : `Elige ${box.pieces} piezas · ${money(box.price)} la caja`) : undefined} size="md"
             footer={box && (
               <div className="flex w-full flex-col-reverse gap-3 sm:flex-row sm:items-center sm:justify-end">
-                <div className="flex items-center justify-center gap-1 rounded-full bg-cream-200 p-1">
-                  <button type="button" onClick={() => setDetailQty((q) => Math.max(1, q - 1))} className="grid h-9 w-9 place-items-center rounded-full bg-white text-cocoa-600 shadow-sm" aria-label="Menos cajas"><Minus className="h-4 w-4" /></button>
-                  <span className="w-8 text-center font-bold">{detailQty}</span>
-                  <button type="button" onClick={() => setDetailQty((q) => Math.min(50, q + 1))} className="grid h-9 w-9 place-items-center rounded-full bg-white text-cocoa-600 shadow-sm" aria-label="Más cajas"><Plus className="h-4 w-4" /></button>
-                </div>
+                <QtyStepper label={isCakePack(box) ? "Paquetes" : "Cajas"} value={detailQty} max={50} onChange={setDetailQty} />
                 <button
                   className={cn("flex h-12 w-full items-center justify-center gap-2 rounded-2xl px-6 font-bold disabled:opacity-50 sm:w-auto", btnPrimary)}
-                  disabled={boxTotal !== box.pieces}
+                  disabled={!boxReady}
                   onClick={() => {
                     addPack(box.id, Object.entries(boxChoices).map(([dessert_id, qty]) => ({ dessert_id, qty })), detailQty);
                     setBox(null);
                     toast.success("Caja agregada a tu pedido 🎁");
                   }}
                 >
-                  <Gift className="h-4 w-4" /> {boxTotal !== box.pieces ? (box.pieces - boxTotal === 1 ? "Falta 1 pieza" : `Faltan ${box.pieces - boxTotal} piezas`) : `Agregar · ${money(Number(box.price) * detailQty)}`}
+                  <Gift className="h-4 w-4" />{" "}
+                  {boxSplit.cakes !== boxCakes
+                    ? "Elige tu pastel mini"
+                    : boxTotal !== box.pieces
+                      ? box.pieces - boxTotal === 1 ? "Falta 1 pieza" : `Faltan ${box.pieces - boxTotal} piezas`
+                      : `Agregar ${detailQty === 1 ? "" : `${detailQty} `}· ${money(Number(box.price) * detailQty)}`}
                 </button>
               </div>
             )}
@@ -1007,35 +1063,37 @@ export function Storefront({ data, slug, preview = false }: { data: StoreData; s
                   <img src={box.image_url} alt={box.name} className="mb-4 aspect-[16/9] w-full rounded-3xl object-cover" />
                 )}
                 {box.description && <p className="mb-4 text-[15px] leading-relaxed text-cocoa-500">{box.description}</p>}
+                {isCakePack(box) && (
+                  <>
+                    <StepTitle n={1} done={boxSplit.cakes === boxCakes}>
+                      {boxCakes === 1 ? "Elige el sabor de tu pastel mini" : `Elige ${boxCakes} pasteles mini`}
+                    </StepTitle>
+                    <ul className="mb-5 space-y-2">
+                      {(box.cake_options ?? []).map((o) => (
+                        <FlavorRow key={o.dessert_id} o={o} n={boxChoices[o.dessert_id] ?? 0} full={boxCakes !== 1 && boxSplit.cakes >= boxCakes} onChange={(d) => setFlavor(o.dessert_id, d)} />
+                      ))}
+                    </ul>
+                    <StepTitle n={2} done={boxTotal === box.pieces}>Elige tus {box.pieces} cupcakes</StepTitle>
+                  </>
+                )}
                 <div className="mb-3 flex items-center gap-3">
                   <div className="h-2.5 flex-1 overflow-hidden rounded-full bg-cream-200">
                     <div className="h-full rounded-full bg-[var(--st-primary)] transition-all" style={{ width: `${(boxTotal / box.pieces) * 100}%` }} />
                   </div>
                   <span className="text-sm font-bold text-cocoa-600 tabular-nums">{boxTotal} de {box.pieces}</span>
                 </div>
-                <ul className="space-y-2">
-                  {box.options.map((o) => {
-                    const n = boxChoices[o.dessert_id] ?? 0;
-                    return (
-                      <li key={o.dessert_id} className={cn("flex items-center gap-3 rounded-2xl p-2 ring-1 transition", n ? "bg-[var(--st-soft)] ring-[var(--st-primary)]" : "ring-cocoa-800/8")}>
-                        <span className="h-12 w-12 shrink-0 overflow-hidden rounded-xl bg-cream-200">
-                          {o.image_url ? (
-                            // eslint-disable-next-line @next/next/no-img-element
-                            <img src={o.image_url} alt="" className="h-full w-full object-cover" loading="lazy" />
-                          ) : (
-                            <span className="grid h-full w-full place-items-center"><CakeSlice className="h-5 w-5 text-[var(--st-primary)] opacity-60" /></span>
-                          )}
-                        </span>
-                        <span className="min-w-0 flex-1 font-semibold text-cocoa-700">{o.name}</span>
-                        <span className="flex items-center gap-1 rounded-full bg-white p-1 shadow-sm">
-                          <button type="button" onClick={() => setFlavor(o.dessert_id, -1)} disabled={!n} className="grid h-8 w-8 place-items-center rounded-full text-[var(--st-primary)] disabled:opacity-30" aria-label={`Quitar ${o.name}`}><Minus className="h-4 w-4" /></button>
-                          <span className="w-6 text-center font-bold tabular-nums">{n}</span>
-                          <button type="button" onClick={() => setFlavor(o.dessert_id, 1)} disabled={boxTotal >= box.pieces} className="grid h-8 w-8 place-items-center rounded-full text-[var(--st-primary)] disabled:opacity-30" aria-label={`Agregar ${o.name}`}><Plus className="h-4 w-4" /></button>
-                        </span>
-                      </li>
-                    );
-                  })}
-                </ul>
+                <div className="space-y-4">
+                  {byGroup(box.options).map((g) => (
+                    <div key={g.name || "_"}>
+                      {g.name && <p className="mb-2 text-xs font-bold tracking-wider text-cocoa-400 uppercase">{g.name}</p>}
+                      <ul className="space-y-2">
+                        {g.items.map((o) => (
+                          <FlavorRow key={o.dessert_id} o={o} n={boxChoices[o.dessert_id] ?? 0} full={boxTotal >= box.pieces} onChange={(d) => setFlavor(o.dessert_id, d)} />
+                        ))}
+                      </ul>
+                    </div>
+                  ))}
+                </div>
                 {Number(box.min_notice_days ?? 0) > store.min_notice_days && (
                   <p className="mt-4 inline-flex items-center gap-1.5 rounded-full bg-cream-200 px-3 py-1 text-xs font-semibold text-cocoa-500">
                     <CalendarDays className="h-3.5 w-3.5" /> Pídela con {box.min_notice_days} días de anticipación
@@ -1170,5 +1228,82 @@ export function Storefront({ data, slug, preview = false }: { data: StoreData; s
         </>
       )}
     </div>
+  );
+}
+
+/** Contador con etiqueta (ej. "Cajas  – 1 +") */
+function QtyStepper({ label, value, max, onChange }: { label: string; value: number; max: number; onChange: (n: number) => void }) {
+  return (
+    <div className="flex items-center justify-center gap-2">
+      <span className="text-sm font-bold text-cocoa-500">{label}</span>
+      <div className="flex items-center gap-1 rounded-full bg-cream-200 p-1">
+        <button type="button" onClick={() => onChange(Math.max(1, value - 1))} disabled={value <= 1} className="grid h-9 w-9 place-items-center rounded-full bg-white text-cocoa-600 shadow-sm disabled:opacity-40" aria-label={`Menos ${label.toLowerCase()}`}><Minus className="h-4 w-4" /></button>
+        <span className="w-8 text-center font-bold tabular-nums" aria-label={`${value} ${label.toLowerCase()}`}>{value}</span>
+        <button type="button" onClick={() => onChange(Math.min(max, value + 1))} className="grid h-9 w-9 place-items-center rounded-full bg-white text-cocoa-600 shadow-sm" aria-label={`Más ${label.toLowerCase()}`}><Plus className="h-4 w-4" /></button>
+      </div>
+    </div>
+  );
+}
+
+function StepTitle({ n, done, children }: { n: number; done: boolean; children: React.ReactNode }) {
+  return (
+    <p className="mb-2.5 flex items-center gap-2 font-semibold text-cocoa-700">
+      <span className={cn("grid h-6 w-6 place-items-center rounded-full text-xs font-bold", done ? "bg-[var(--st-primary)] text-[var(--st-on-primary)]" : "bg-cream-200 text-cocoa-500")}>{done ? "✓" : n}</span>
+      {children}
+    </p>
+  );
+}
+
+function FlavorRow({ o, n, full, onChange }: { o: { name: string; image_url: string | null }; n: number; full: boolean; onChange: (d: number) => void }) {
+  return (
+    <li className={cn("flex items-center gap-3 rounded-2xl p-2 ring-1 transition", n ? "bg-[var(--st-soft)] ring-[var(--st-primary)]" : "ring-cocoa-800/8")}>
+      <span className="h-12 w-12 shrink-0 overflow-hidden rounded-xl bg-cream-200">
+        {o.image_url ? (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img src={o.image_url} alt="" className="h-full w-full object-cover" loading="lazy" />
+        ) : (
+          <span className="grid h-full w-full place-items-center"><CakeSlice className="h-5 w-5 text-[var(--st-primary)] opacity-60" /></span>
+        )}
+      </span>
+      <span className="min-w-0 flex-1 font-semibold text-cocoa-700">{o.name}</span>
+      <span className="flex items-center gap-1 rounded-full bg-white p-1 shadow-sm">
+        <button type="button" onClick={() => onChange(-1)} disabled={!n} className="grid h-8 w-8 place-items-center rounded-full text-[var(--st-primary)] disabled:opacity-30" aria-label={`Quitar ${o.name}`}><Minus className="h-4 w-4" /></button>
+        <span className="w-6 text-center font-bold tabular-nums">{n}</span>
+        <button type="button" onClick={() => onChange(1)} disabled={full} className="grid h-8 w-8 place-items-center rounded-full text-[var(--st-primary)] disabled:opacity-30" aria-label={`Agregar ${o.name}`}><Plus className="h-4 w-4" /></button>
+      </span>
+    </li>
+  );
+}
+
+type Tile = { image: string; width: number; height: number };
+
+/** Borde repostero que cuelga sobre la portada (glaseado, helado, galleta…) */
+function DecorEdge({ tile }: { tile: Tile }) {
+  return (
+    <div
+      aria-hidden
+      className="pointer-events-none absolute inset-x-0 top-0 z-10"
+      style={{ height: tile.height, backgroundImage: tile.image, backgroundSize: `${tile.width}px ${tile.height}px`, backgroundRepeat: "repeat-x", filter: "drop-shadow(0 2px 2px rgb(0 0 0 / .08))" }}
+    />
+  );
+}
+
+/** Separador entre secciones con el mismo motivo, difuminado a los lados */
+function DecorDivider({ tile, wide = false }: { tile: Tile; wide?: boolean }) {
+  const mask = "linear-gradient(90deg, transparent, #000 25%, #000 75%, transparent)";
+  return (
+    <div
+      aria-hidden
+      className={cn("pointer-events-none mx-auto my-8 opacity-80", wide ? "max-w-2xl" : "max-w-xs")}
+      style={{
+        height: Math.round(tile.height * 0.6),
+        backgroundImage: tile.image,
+        backgroundSize: `${Math.round(tile.width * 0.6)}px ${Math.round(tile.height * 0.6)}px`,
+        backgroundRepeat: "repeat-x",
+        backgroundPosition: "center top",
+        WebkitMaskImage: mask,
+        maskImage: mask,
+      }}
+    />
   );
 }

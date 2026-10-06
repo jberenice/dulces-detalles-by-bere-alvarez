@@ -183,6 +183,7 @@ export type Dessert = {
   gallery?: string[];
   min_notice_days?: number | null;
   season_id?: string | null;
+  flavor_group_id?: string | null;
   allergens?: string[];
   may_contain?: string[];
   ingredients_label?: string | null;
@@ -210,6 +211,10 @@ export type QuoteStatus = "borrador" | "enviada" | "aceptada" | "rechazada" | "v
 export type PackageComponent = { dessert_id: string; name: string; qty: number };
 
 export type PackageItem = { dessert_id: string; qty?: number };
+/** Categoría de cupcakes (ej. Clásicos, Mexicanos sin alcohol) */
+export type FlavorGroup = { id: string; name: string; position: number };
+/** cupcakes: caja surtida por categorías · pastel: pastel mini + cupcakes · postres: contenido fijo */
+export type PackageKind = "cupcakes" | "pastel" | "postres";
 export type Package = {
   id: string;
   name: string;
@@ -217,6 +222,13 @@ export type Package = {
   image_url: string | null;
   /** fijo: tú defines qué trae · surtido: la clienta elige sabores hasta llenar las piezas */
   mode: "fijo" | "surtido";
+  kind?: PackageKind;
+  /** Categorías de cupcakes que la clienta puede elegir */
+  groups?: string[];
+  /** Sabores de pastel mini para elegir (paquete pastel + cupcakes) */
+  cake_items?: PackageItem[];
+  /** Cuántos pasteles mini lleva */
+  cakes?: number;
   pieces: number;
   price: number;
   price_mode: "total" | "pieza";
