@@ -157,7 +157,7 @@ export default async function TrackingPage({ params }: { params: Promise<{ token
               <MessageCircle className="h-5 w-5" /> Escribir por WhatsApp
             </a>
           )}
-          <a href={`/p/${o.public_token}`} target="_blank" rel="noopener noreferrer" className="flex items-center justify-center gap-2 rounded-2xl px-5 py-3 text-sm font-bold text-[var(--st-primary)] ring-1 ring-[var(--st-line)]">
+          <a href={`/pedido/${o.public_token}`} target="_blank" rel="noopener noreferrer" className="flex items-center justify-center gap-2 rounded-2xl px-5 py-3 text-sm font-bold text-[var(--st-primary)] ring-1 ring-[var(--st-line)]">
             <Download className="h-4 w-4" /> Descargar nota en PDF
           </a>
         </div>

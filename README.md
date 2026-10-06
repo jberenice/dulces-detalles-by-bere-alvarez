@@ -46,7 +46,7 @@ Al activar la licencia se puede **precargar el recetario** con tus datos reales:
    - `supabase/migrations/0015_cupcake_groups.sql` (categorías de cupcakes y los 3 tipos de paquete: cajas de cupcakes, pastel con cupcakes y paquetes de postres)
    - `supabase/migrations/0016_package_excluded.sql` (encender o apagar cupcakes de una categoría solo dentro de una caja)
    - `supabase/migrations/0017_extras.sql` (catálogo de extras con precio y disponibilidad; la caja o empaque del paquete se le cobra a la clienta)
-   - `supabase/migrations/0018_order_email.sql` (copia del pedido en PDF por correo para la clienta y descarga segura con token en `/p/<token>`)
+   - `supabase/migrations/0018_order_email.sql` (copia del pedido en PDF por correo para la clienta y descarga segura con token en `/pedido/<token>`)
    - `supabase/migrations/0019_location_tracking.sql` (ubicación de entrega marcada en el mapa; página de seguimiento `/seguimiento/<token>`)
    - `supabase/cron_setup.sql` (recordatorios cada hora; reemplaza tu dominio y tu CRON_SECRET antes de ejecutarlo)
    - `supabase/admin_setup.sql` → el resultado te muestra **tu código de licencia de administradora** (aleatorio)

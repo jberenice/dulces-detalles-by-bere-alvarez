@@ -1232,7 +1232,7 @@ export function Storefront({ data, slug, preview = false }: { data: StoreData; s
                     <MessageCircle className="h-5 w-5" /> Abrir WhatsApp
                   </a>
                   {done.token && (
-                    <a href={`/p/${done.token}`} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-2 rounded-2xl px-5 py-2.5 text-sm font-bold text-[var(--st-primary)] ring-1 ring-[var(--st-primary)]/30 hover:bg-[var(--st-soft)]">
+                    <a href={`/pedido/${done.token}`} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-2 rounded-2xl px-5 py-2.5 text-sm font-bold text-[var(--st-primary)] ring-1 ring-[var(--st-primary)]/30 hover:bg-[var(--st-soft)]">
                       <FileText className="h-4 w-4" /> Descargar mi pedido en PDF
                     </a>
                   )}

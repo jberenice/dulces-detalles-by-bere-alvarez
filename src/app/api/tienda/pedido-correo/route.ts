@@ -48,7 +48,7 @@ export async function POST(request: Request) {
   if (profile.is_demo || !/^[^\s@,;<>]+@[^\s@,;<>]+\.[^\s@,;<>]+$/.test(to) || to.length > 200) return NextResponse.json({ ok: true, sent: false });
 
   const origin = new URL(request.url).origin;
-  const link = `${origin}/p/${order.public_token}`;
+  const link = `${origin}/pedido/${order.public_token}`;
   // Plan Premium: el correo lleva el logo y los colores de la repostería
   const { data: plan } = await admin.rpc("current_plan", { p_uid: profile.id });
   const brand = brandFromProfile(profile, plan === "premium");
