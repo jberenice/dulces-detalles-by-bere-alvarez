@@ -1,5 +1,7 @@
 "use client";
-import { FestiveParticles, FestiveRibbon, usePanelFestive } from "@/components/festive/Festive";
+import { FestiveArt, FestiveParticles, FestiveRibbon, FestiveSectionGarland, usePanelFestive } from "@/components/festive/Festive";
+import { THEME_ART } from "@/lib/festiveArt";
+import type { FestiveTheme } from "@/lib/festive";
 import { useMemo } from "react";
 import Link from "next/link";
 import { AlertTriangle, ArrowRight, BellRing, Cake, CalendarClock, CakeSlice, FileText, Gift, HandCoins, MessageCircle, Plus, ShoppingBag, Sparkles, Star, Store, TrendingUp, Wallet, Wheat } from "lucide-react";
@@ -102,10 +104,11 @@ export default function DashboardHome() {
       {/* Bienvenida */}
       <section
         className="sprinkles relative mb-6 overflow-hidden rounded-[32px] bg-cocoa-800 px-6 py-7 text-cream-100 transition-colors sm:px-9 sm:py-9"
-        style={fest ? { backgroundColor: "var(--festive-hero, var(--color-cocoa-800))" } : undefined}
+        style={fest ? { backgroundColor: "var(--festive-hero, var(--color-cocoa-800))", paddingTop: 52 } : undefined}
       >
         <div className="absolute -top-20 -right-16 h-64 w-64 rounded-full bg-rose-500/30 blur-3xl" />
         <div className="absolute -bottom-24 left-1/3 h-56 w-56 rounded-full bg-mint-400/20 blur-3xl" />
+        {fest && <HeroFestiveArt theme={fest} />}
         <div className="relative flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
           <div className="animate-fade-up">
             <p className="font-script text-2xl text-rose-300">{fest ? `${fest.emoji} ` : ""}{greeting}{firstName ? `, ${firstName}` : ""}</p>
@@ -345,6 +348,21 @@ function HomeFestive() {
     <>
       <FestiveRibbon theme={fest} href="/dashboard/temporadas" cta="Preparar temporada" />
       <FestiveParticles theme={fest} count={12} seconds={12} />
+    </>
+  );
+}
+
+/** Guirnalda e ilustraciones dentro de la bienvenida del panel */
+function HeroFestiveArt({ theme }: { theme: FestiveTheme }) {
+  const art = THEME_ART[theme.id];
+  return (
+    <>
+      <FestiveSectionGarland theme={theme} scale={0.8} />
+      <div aria-hidden className="pointer-events-none absolute top-8 right-8 hidden items-end gap-2 lg:flex">
+        <FestiveArt name={art[1]} size={44} className="fest-float" />
+        <FestiveArt name={art[0]} size={62} className="fest-float" style={{ animationDelay: "-2s" }} />
+        <FestiveArt name={art[2]} size={44} className="fest-float" style={{ animationDelay: "-4s" }} />
+      </div>
     </>
   );
 }

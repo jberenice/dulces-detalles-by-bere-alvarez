@@ -73,6 +73,11 @@
 }
 
 @layer base {
+  /* Fechas especiales: las tarjetas sirven de ancla para su ilustración de esquina (las utilidades absolute/fixed siguen ganando) */
+  [data-fest-decor] .card,
+  [data-fest-decor] .fest-card {
+    position: relative;
+  }
   /* En una cuadrícula, un texto largo (truncado) no debe ensanchar la columna ni la página en el celular */
   .grid > * {
     min-width: 0;
@@ -236,4 +241,93 @@
 /* En fechas especiales los íconos del menú también toman el color de la temporada */
 :root[data-festive] .nav-ico {
   color: var(--color-rose-400);
+}
+
+/* ====================================================================
+   Fechas especiales: ilustraciones y animaciones
+   ==================================================================== */
+/* Contorno blanco de "estampa" alrededor de cada ilustración */
+.fest-sticker {
+  filter: drop-shadow(1.5px 0 0 #fff) drop-shadow(-1.5px 0 0 #fff) drop-shadow(0 1.5px 0 #fff) drop-shadow(0 -1.5px 0 #fff)
+    drop-shadow(0 4px 6px rgb(0 0 0 / 0.16));
+}
+@keyframes fest-float {
+  0%,
+  100% {
+    transform: translateY(0) rotate(var(--r, 0deg));
+  }
+  50% {
+    transform: translateY(-10px) rotate(calc(var(--r, 0deg) + 6deg));
+  }
+}
+.fest-float {
+  animation: fest-float 6s ease-in-out infinite;
+}
+@keyframes fest-flutter {
+  0%,
+  100% {
+    transform: skewX(0deg) translateY(0);
+  }
+  25% {
+    transform: skewX(1.5deg) translateY(1px);
+  }
+  75% {
+    transform: skewX(-1.5deg) translateY(-1px);
+  }
+}
+.fest-flutter {
+  transform-origin: top center;
+  animation: fest-flutter 4s ease-in-out infinite;
+}
+@keyframes fest-pop {
+  0%,
+  100% {
+    transform: rotate(var(--r, 12deg)) scale(1);
+  }
+  50% {
+    transform: rotate(calc(var(--r, 12deg) - 10deg)) scale(1.06);
+  }
+}
+/* Ilustración en la esquina de las tarjetas (una sí y una no, alternando dibujos) */
+[data-fest-decor] .card:nth-child(odd)::after,
+[data-fest-decor] .fest-card:nth-child(odd)::after {
+  content: "";
+  position: absolute;
+  top: -12px;
+  right: -8px;
+  width: 44px;
+  height: 44px;
+  background: var(--fest-st-1) center / contain no-repeat;
+  pointer-events: none;
+  z-index: 3;
+  --r: 14deg;
+  animation: fest-pop 5s ease-in-out infinite;
+  filter: drop-shadow(1.5px 0 0 #fff) drop-shadow(-1.5px 0 0 #fff) drop-shadow(0 1.5px 0 #fff) drop-shadow(0 -1.5px 0 #fff)
+    drop-shadow(0 3px 4px rgb(0 0 0 / 0.15));
+}
+[data-fest-decor] .card:nth-child(4n + 3)::after,
+[data-fest-decor] .fest-card:nth-child(4n + 3)::after {
+  background-image: var(--fest-st-2);
+  right: auto;
+  left: -8px;
+  --r: -14deg;
+  animation-delay: -1.6s;
+}
+[data-fest-decor] .card:nth-child(8n + 5)::after,
+[data-fest-decor] .fest-card:nth-child(8n + 5)::after {
+  background-image: var(--fest-st-3);
+  animation-delay: -3.2s;
+}
+/* En ventanas emergentes y menús no se ponen adornos */
+[role="dialog"] .card::after,
+[role="menu"] .card::after {
+  display: none;
+}
+@media (prefers-reduced-motion: reduce) {
+  .fest-float,
+  .fest-flutter,
+  [data-fest-decor] .card::after,
+  [data-fest-decor] .fest-card::after {
+    animation: none !important;
+  }
 }

@@ -8,7 +8,7 @@ import { SocialLinks } from "@/components/legal/SocialLinks";
 import { Pricing } from "@/components/marketing/Pricing";
 import { WhatsAppFloat } from "@/components/marketing/WhatsAppFloat";
 import { DEMO_VIDEO_ID, FAQ, TESTIMONIALS } from "@/lib/marketing";
-import { LandingFestiveBadge, LandingFestiveDecor } from "@/components/festive/LandingFestive";
+import { LandingFestiveBadge, LandingFestiveDecor, LandingFestiveSection, LandingHeaderArt } from "@/components/festive/LandingFestive";
 
 const FEATURES = [
   { icon: Calculator, title: "Costeo exacto", text: "Ingredientes, empaques, gastos fijos, desgaste y ganancia: el precio justo de cada postre.", tone: "bg-mint-50 text-mint-600" },
@@ -37,6 +37,7 @@ export default async function Landing({ searchParams }: { searchParams: Promise<
             <Image src="/logo-transparent.svg" unoptimized alt="Dulces Detalles" width={44} height={44} className="h-11 w-11 shrink-0" />
             <span className="truncate font-script text-xl font-bold whitespace-nowrap text-cocoa-600 max-[359px]:hidden sm:text-2xl">Dulces Detalles</span>
           </Link>
+          <LandingHeaderArt className="mr-auto max-md:hidden" />
           <nav className="flex shrink-0 items-center gap-2">
             <a href="#precios" className="rounded-xl px-3 py-2 text-[13px] font-bold text-cocoa-600 hover:bg-cocoa-800/5 max-md:hidden">Precios</a>
             <a href="#preguntas" className="rounded-xl px-3 py-2 text-[13px] font-bold text-cocoa-600 hover:bg-cocoa-800/5 max-lg:hidden">Preguntas</a>
@@ -92,7 +93,8 @@ export default async function Landing({ searchParams }: { searchParams: Promise<
       </section>
 
       {/* Funciones */}
-      <section className="mx-auto max-w-6xl px-4 py-20 sm:px-6">
+      <section className="relative mx-auto max-w-6xl px-4 py-20 sm:px-6">
+        <LandingFestiveSection seed={3} count={8} />
         <div className="mx-auto max-w-2xl text-center">
           <p className="font-script text-2xl text-rose-500">Todo en un solo lugar</p>
           <h2 className="mt-1 text-4xl font-semibold">Tu repostería, organizada y rentable</h2>
@@ -110,7 +112,8 @@ export default async function Landing({ searchParams }: { searchParams: Promise<
       </section>
 
       {/* Video */}
-      <section id="video" className="mx-auto max-w-5xl px-4 pb-20 sm:px-6">
+      <section id="video" className="relative mx-auto max-w-5xl px-4 pb-20 sm:px-6">
+        <LandingFestiveSection seed={5} count={4} garland={false} />
         <div className="mx-auto mb-8 max-w-2xl text-center">
           <p className="font-script text-2xl text-rose-500">Míralo en acción</p>
           <h2 className="mt-1 text-3xl font-semibold sm:text-4xl">Un recorrido de un minuto</h2>
@@ -141,7 +144,8 @@ export default async function Landing({ searchParams }: { searchParams: Promise<
       </section>
 
       {/* Cómo funciona */}
-      <section className="bg-cocoa-800 text-cream-100">
+      <section className="relative bg-cocoa-800 text-cream-100">
+        <LandingFestiveSection seed={7} count={6} />
         <div className="sprinkles mx-auto grid max-w-6xl gap-10 px-4 py-20 sm:px-6 lg:grid-cols-2 lg:items-center">
           <div>
             <p className="font-script text-2xl text-rose-300">Así de fácil</p>
@@ -202,7 +206,8 @@ export default async function Landing({ searchParams }: { searchParams: Promise<
       )}
 
       {/* Precios */}
-      <section id="precios" className="scroll-mt-20 bg-cream-200/60">
+      <section id="precios" className="relative scroll-mt-20 bg-cream-200/60">
+        <LandingFestiveSection seed={9} count={8} />
         <div className="mx-auto max-w-6xl px-4 py-20 sm:px-6">
           <div className="mx-auto mb-10 max-w-2xl text-center">
             <p className="font-script text-2xl text-rose-500">Planes a tu medida</p>
@@ -214,7 +219,8 @@ export default async function Landing({ searchParams }: { searchParams: Promise<
       </section>
 
       {/* Preguntas frecuentes */}
-      <section id="preguntas" className="mx-auto max-w-3xl scroll-mt-20 px-4 py-20 sm:px-6">
+      <section id="preguntas" className="relative mx-auto max-w-3xl scroll-mt-20 px-4 py-20 sm:px-6">
+        <LandingFestiveSection seed={11} count={8} />
         <div className="text-center">
           <p className="font-script text-2xl text-rose-500">Resolvemos tus dudas</p>
           <h2 className="mt-1 text-4xl font-semibold">Preguntas frecuentes</h2>
@@ -233,7 +239,8 @@ export default async function Landing({ searchParams }: { searchParams: Promise<
       </section>
 
       {/* Redes sociales */}
-      <section className="mx-auto max-w-4xl px-4 py-16 text-center sm:px-6">
+      <section className="relative mx-auto max-w-4xl px-4 py-16 text-center sm:px-6">
+        <LandingFestiveSection seed={13} count={4} />
         <p className="font-script text-2xl text-rose-500">Endulza tu feed</p>
         <h2 className="mt-1 text-3xl font-semibold sm:text-4xl">Síguenos en nuestras redes sociales</h2>
         <p className="mx-auto mt-2 max-w-lg text-cocoa-400">Novedades, recetas, tips para tu repostería y los pedidos más bonitos de Dulces Detalles.</p>

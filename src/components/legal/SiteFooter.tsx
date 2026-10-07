@@ -3,6 +3,7 @@ import Image from "next/image";
 import { LEGAL, LEGAL_LINKS, SOCIAL } from "@/lib/legal";
 import { cn } from "@/lib/cn";
 import { SocialLinks } from "./SocialLinks";
+import { FestiveFooterArt } from "@/components/festive/LandingFestive";
 
 /** Pie de página con enlaces legales. `compact` para pantallas de acceso, tienda y cotización. */
 export function SiteFooter({ compact, className, social = true }: { compact?: boolean; className?: string; social?: boolean }) {
@@ -25,6 +26,7 @@ export function SiteFooter({ compact, className, social = true }: { compact?: bo
   return (
     <footer className={cn("border-t border-cocoa-800/5 bg-cream-50", className)}>
       <div className="mx-auto flex max-w-6xl flex-col items-center gap-4 px-4 py-12 text-center sm:px-6">
+        <FestiveFooterArt />
         <Image src="/logo-transparent.svg" unoptimized alt="Dulces Detalles" width={100} height={100} />
         <p className="font-script text-2xl text-rose-500">Hechos con amor de hogar</p>
         <div>

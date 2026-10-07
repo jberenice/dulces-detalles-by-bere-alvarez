@@ -1,5 +1,6 @@
 "use client";
-import { FestiveGarland, PanelFestiveColors, usePanelFestive } from "@/components/festive/Festive";
+import { FestiveArt, FestiveGarland, PanelFestiveColors, useFestiveDecor, usePanelFestive } from "@/components/festive/Festive";
+import { THEME_ART } from "@/lib/festiveArt";
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
@@ -171,6 +172,7 @@ export function Shell({ children }: { children: React.ReactNode }) {
       </Link>
       <NotificationBell className="max-lg:hidden" />
       </div>
+      <SidebarArt />
       <nav className="flex-1 space-y-5 overflow-y-auto px-3 pb-4">
         {nav.map((g) => (
           <div key={g.group}>
@@ -301,8 +303,30 @@ export function Shell({ children }: { children: React.ReactNode }) {
 /** Guirnalda de temporada arriba del contenido del panel */
 function PanelGarland() {
   const fest = usePanelFestive();
+  // Ilustraciones en las esquinas de las tarjetas del panel
+  useFestiveDecor(fest);
   if (!fest) return null;
-  return <FestiveGarland theme={fest} scale={0.75} className="relative -mb-6 lg:-mb-8" />;
+  return (
+    <div className="pointer-events-none relative -mb-6 lg:-mb-8">
+      <div className="fest-flutter">
+        <FestiveGarland theme={fest} scale={0.75} />
+      </div>
+    </div>
+  );
+}
+
+/** Ilustraciones junto al nombre del negocio en el menú */
+function SidebarArt() {
+  const fest = usePanelFestive();
+  if (!fest) return null;
+  const art = THEME_ART[fest.id];
+  return (
+    <div aria-hidden className="pointer-events-none flex items-end justify-center gap-2 pb-2">
+      {[art[1], art[0], art[2]].map((n, i) => (
+        <FestiveArt key={i} name={n} size={i === 1 ? 38 : 28} className="fest-float" style={{ animationDelay: `${-i * 1.5}s` }} />
+      ))}
+    </div>
+  );
 }
 
 /** Emoji de la temporada junto a los botones principales */

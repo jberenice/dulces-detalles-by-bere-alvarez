@@ -2,6 +2,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { X } from "lucide-react";
 import { cn } from "@/lib/cn";
+import { THEME_ART, artCss, artUri, type ArtName } from "@/lib/festiveArt";
 import { festiveById, festiveVars, resolveFestive, type FestiveSetting, type FestiveTheme } from "@/lib/festive";
 
 /**
@@ -207,4 +208,100 @@ export function PanelFestiveColors() {
     return () => window.removeEventListener("dd-festivo", load);
   }, []);
   return fest && on ? <FestiveColors theme={fest} /> : null;
+}
+
+/* ======================================================================
+   Ilustraciones de temporada (calaveritas, cempasúchil, velas, esferas…)
+   ====================================================================== */
+
+/** Una ilustración suelta (con su animación propia: flama, aleteo, giro…) */
+export function FestiveArt({ name, size = 48, className, style }: { name: ArtName; size?: number; className?: string; style?: React.CSSProperties }) {
+  // eslint-disable-next-line @next/next/no-img-element
+  return <img src={artUri(name)} alt="" aria-hidden width={size} height={size} draggable={false} className={cn("fest-sticker pointer-events-none select-none", className)} style={style} />;
+}
+
+const rnd = (seed: number, n: number) => ((Math.sin(seed * 12.9898 + n * 78.233) * 43758.5453) % 1 + 1) % 1;
+
+/**
+ * Ilustraciones repartidas en las orillas de una sección (izquierda y derecha), flotando suavemente.
+ * Va dentro de un contenedor con `position: relative`.
+ */
+export function FestiveScatter({ theme, count = 6, seed = 1, className }: { theme: FestiveTheme; count?: number; seed?: number; className?: string }) {
+  const art = THEME_ART[theme.id];
+  const items = Array.from({ length: count }, (_, i) => {
+    const left = i % 2 === 0;
+    return {
+      name: art[(i + seed) % art.length],
+      left,
+      top: 6 + ((i / Math.max(count - 1, 1)) * 82 + rnd(seed, i) * 8),
+      size: 40 + Math.round(rnd(seed, i + 9) * 34),
+      off: -26 + Math.round(rnd(seed, i + 3) * 26),
+      rot: Math.round((rnd(seed, i + 5) - 0.5) * 40),
+      delay: -rnd(seed, i + 7) * 6,
+    };
+  });
+  return (
+    <div aria-hidden className={cn("pointer-events-none absolute inset-0 z-[1]", className)}>
+      {items.map((it, i) => (
+        <span
+          key={i}
+          className={cn("fest-float absolute", i > 3 && "max-sm:hidden")}
+          style={{ top: `${it.top}%`, [it.left ? "left" : "right"]: it.off, animationDelay: `${it.delay}s`, "--r": `${it.rot}deg` } as React.CSSProperties}
+        >
+          <FestiveArt name={it.name} size={it.size} className="max-sm:!h-9 max-sm:!w-9" />
+        </span>
+      ))}
+    </div>
+  );
+}
+
+/** Guirnalda que se mece (para la parte de arriba de una sección) */
+export function FestiveSectionGarland({ theme, className, scale = 1 }: { theme: FestiveTheme; className?: string; scale?: number }) {
+  return (
+    <div aria-hidden className={cn("pointer-events-none absolute inset-x-0 top-0 z-[2] overflow-hidden", className)}>
+      <div className="fest-flutter">
+        <FestiveGarland theme={theme} scale={scale} />
+      </div>
+    </div>
+  );
+}
+
+/**
+ * Activa las ilustraciones en las esquinas de las tarjetas (.card y .fest-card) dentro de `target`
+ * (por defecto toda la página). Usa variables CSS para no tocar el contenido de cada tarjeta.
+ */
+export function useFestiveDecor(theme: FestiveTheme | null, target?: React.RefObject<HTMLElement | null>) {
+  useEffect(() => {
+    const el = target?.current ?? document.documentElement;
+    if (!theme || !el) return;
+    const art = THEME_ART[theme.id];
+    const vars: Record<string, string> = {};
+    art.forEach((a, i) => (vars[`--fest-st-${i + 1}`] = artCss(a)));
+    Object.entries(vars).forEach(([k, v]) => el.style.setProperty(k, v));
+    el.dataset.festDecor = theme.id;
+    return () => {
+      Object.keys(vars).forEach((k) => el.style.removeProperty(k));
+      delete el.dataset.festDecor;
+    };
+  }, [theme, target]);
+}
+
+/** Ramillete de ilustraciones (p. ej. calaverita con cempasúchil) para las esquinas de una sección */
+export function FestiveCluster({ theme, corner = "tl", className }: { theme: FestiveTheme; corner?: "tl" | "tr" | "bl" | "br"; className?: string }) {
+  const [a, b, c] = THEME_ART[theme.id];
+  const pos = { tl: "top-10 left-0", tr: "top-10 right-0", bl: "bottom-0 left-0", br: "bottom-0 right-0" }[corner];
+  const flip = corner === "tr" || corner === "br";
+  return (
+    <div aria-hidden className={cn("pointer-events-none absolute z-[1] h-28 w-32 max-sm:scale-[.65]", pos, flip ? "origin-right" : "origin-left", className)}>
+      <span className={cn("fest-float absolute bottom-1", flip ? "right-12" : "left-12")} style={{ animationDelay: "-1s", "--r": flip ? "10deg" : "-10deg" } as React.CSSProperties}>
+        <FestiveArt name={b} size={56} />
+      </span>
+      <span className={cn("fest-float absolute bottom-6", flip ? "right-0" : "left-0")} style={{ "--r": flip ? "-8deg" : "8deg" } as React.CSSProperties}>
+        <FestiveArt name={a} size={70} />
+      </span>
+      <span className={cn("fest-float absolute top-0", flip ? "right-16" : "left-16")} style={{ animationDelay: "-3s" } as React.CSSProperties}>
+        <FestiveArt name={c} size={38} />
+      </span>
+    </div>
+  );
 }

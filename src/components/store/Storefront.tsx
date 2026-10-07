@@ -1,7 +1,7 @@
 "use client";
-import { FestiveGarland, FestiveParticles, useFestive } from "@/components/festive/Festive";
+import { FestiveCluster, FestiveGarland, FestiveParticles, FestiveScatter, useFestive, useFestiveDecor } from "@/components/festive/Festive";
 import { BizLogo } from "./BizLogo";
-import { Fragment, useEffect, useMemo, useState } from "react";
+import { Fragment, useEffect, useMemo, useRef, useState } from "react";
 import { CakeSlice, CalendarDays, Check, FileText, Mail, ChevronLeft, ChevronRight, Clock, Facebook, Gift, Instagram, Loader2, ShieldAlert, Ticket, Wand2, Quote as QuoteIcon, MapPin, Megaphone, MessageCircle, Minus, Plus, ShoppingBag, Sparkles, Star, Truck, X } from "lucide-react";
 import { toast } from "sonner";
 import { createClient } from "@/lib/supabase/client";
@@ -169,6 +169,9 @@ export function Storefront({ data, slug, preview = false }: { data: StoreData; s
   const theme: StoreTheme = useMemo(() => normalizeTheme(store.theme), [store.theme]);
   // Fechas especiales (Navidad, 14 de febrero, Día de Muertos…)
   const fest = useFestive(theme.festive);
+  // Ilustraciones de temporada en las esquinas de las tarjetas de la tienda
+  const rootRef = useRef<HTMLDivElement>(null);
+  useFestiveDecor(fest, rootRef);
   const vars = useMemo(() => themeVars(fest && theme.festiveColors ? { ...theme, ...fest.colors } : theme), [theme, fest]);
   const decor = useMemo(() => decorTiles(theme), [theme]);
   const storageKey = `dd-cart-${slug}`;
@@ -465,7 +468,7 @@ export function Storefront({ data, slug, preview = false }: { data: StoreData; s
   }
 
   const btnPrimary = "bg-[var(--st-primary)] text-[var(--st-on-primary)] transition hover:brightness-95 active:scale-95";
-  const card = "overflow-hidden rounded-[var(--st-radius)] bg-[var(--st-surface)] shadow-[0_1px_2px_rgb(0_0_0/0.04),0_10px_28px_-12px_rgb(0_0_0/0.18)] ring-1 ring-[var(--st-line)]";
+  const card = "fest-card overflow-hidden rounded-[var(--st-radius)] bg-[var(--st-surface)] shadow-[0_1px_2px_rgb(0_0_0/0.04),0_10px_28px_-12px_rgb(0_0_0/0.18)] ring-1 ring-[var(--st-line)]";
 
   const qtyControl = (p: StoreProduct, size: "sm" | "md" = "md") => {
     const n = qtyOf(p.id);
@@ -929,6 +932,7 @@ export function Storefront({ data, slug, preview = false }: { data: StoreData; s
 
   return (
     <div
+      ref={rootRef}
       className={cn("st-root @container relative bg-[var(--st-bg)] text-[var(--st-text)]", preview ? "min-h-full" : "min-h-dvh")}
       style={decor.pattern ? { ...vars, backgroundImage: decor.pattern.image, backgroundSize: `${decor.pattern.width}px ${decor.pattern.height}px` } : vars}
     >
@@ -948,11 +952,18 @@ export function Storefront({ data, slug, preview = false }: { data: StoreData; s
       ))}
       <div className={cn("relative", (decor.edge || fest) && theme.hero === "minimal" && "pt-10")}>
         {fest ? <FestiveGarland theme={fest} className="absolute inset-x-0 top-0 z-10" /> : decor.edge && <DecorEdge tile={decor.edge} />}
+        {fest && (
+          <>
+            <FestiveCluster theme={fest} corner="tl" className="top-12" />
+            <FestiveCluster theme={fest} corner="br" className="bottom-2" />
+          </>
+        )}
         {hero}
       </div>
 
       {fest && <FestiveParticles theme={fest} count={preview ? 10 : 14} contained={preview} />}
-      <main className="mx-auto max-w-6xl pb-32">
+      <main className="relative mx-auto max-w-6xl pb-32">
+        {fest && <FestiveScatter theme={fest} count={10} seed={4} className="max-sm:opacity-80" />}
         {theme.sections
           .filter((s) => s.visible && s.id !== "anuncio")
           .map((s, i) => (
