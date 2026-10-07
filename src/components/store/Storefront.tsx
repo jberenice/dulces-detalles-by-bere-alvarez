@@ -1,6 +1,8 @@
 "use client";
 import { FestiveCluster, FestiveParticles, useFestive, useFestiveDecor } from "@/components/festive/Festive";
 import { FestiveSwags } from "@/components/festive/Decor";
+import { storeSkinCss } from "@/lib/festiveSkin";
+import type { FestiveId } from "@/lib/festive";
 import { BizLogo } from "./BizLogo";
 import { Fragment, useEffect, useMemo, useRef, useState } from "react";
 import { CakeSlice, CalendarDays, Check, FileText, Mail, ChevronLeft, ChevronRight, Clock, Facebook, Gift, Instagram, Loader2, ShieldAlert, Ticket, Wand2, Quote as QuoteIcon, MapPin, Megaphone, MessageCircle, Minus, Plus, ShoppingBag, Sparkles, Star, Truck, X } from "lucide-react";
@@ -889,7 +891,7 @@ export function Storefront({ data, slug, preview = false }: { data: StoreData; s
             // eslint-disable-next-line @next/next/no-img-element
             <img src={store.banner_url} alt="" className="h-full w-full object-cover" />
           ) : (
-            <div className="sprinkles h-full w-full bg-[var(--st-soft)]" />
+            <div data-fs={fest ? "sbanner" : undefined} className="sprinkles h-full w-full bg-[var(--st-soft)]" />
           )}
           <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/25 to-black/5" />
           <div className="absolute inset-x-0 bottom-0 flex items-end gap-4 p-5 @2xl:p-8">
@@ -913,7 +915,7 @@ export function Storefront({ data, slug, preview = false }: { data: StoreData; s
       </header>
     ) : (
       <header className="relative">
-        <div className={cn("relative h-40 overflow-hidden @2xl:h-60", !store.banner_url && "sprinkles bg-[var(--st-soft)]")}>
+        <div data-fs={fest && !store.banner_url ? "sbanner" : undefined} className={cn("relative h-40 overflow-hidden @2xl:h-60", !store.banner_url && "sprinkles bg-[var(--st-soft)]")}>
           {store.banner_url && (
             // eslint-disable-next-line @next/next/no-img-element
             <img src={store.banner_url} alt="" className="h-full w-full object-cover" />
@@ -934,6 +936,7 @@ export function Storefront({ data, slug, preview = false }: { data: StoreData; s
   return (
     <div
       ref={rootRef}
+      data-fs={fest ? "store" : undefined}
       className={cn("st-root @container relative bg-[var(--st-bg)] text-[var(--st-text)]", preview ? "min-h-full" : "min-h-dvh")}
       style={decor.pattern ? { ...vars, backgroundImage: decor.pattern.image, backgroundSize: `${decor.pattern.width}px ${decor.pattern.height}px` } : vars}
     >
@@ -963,6 +966,7 @@ export function Storefront({ data, slug, preview = false }: { data: StoreData; s
       </div>
 
       {fest && <FestiveParticles theme={fest} count={preview ? 10 : 14} contained={preview} />}
+      {fest && <StoreSkinStyle id={fest.id} />}
       <main className="relative mx-auto max-w-6xl pb-32">
         {fest && (
           <>
@@ -1491,4 +1495,10 @@ function ExtraRow({ x, n, onChange }: { x: StoreExtra; n: number; onChange: (d: 
       </span>
     </li>
   );
+}
+
+/** Estilos de temporada de la tienda (fondo con patrón, portada y tarjetas) */
+function StoreSkinStyle({ id }: { id: FestiveId }) {
+  const css = useMemo(() => storeSkinCss(id), [id]);
+  return <style data-fest-store={id} dangerouslySetInnerHTML={{ __html: css }} />;
 }

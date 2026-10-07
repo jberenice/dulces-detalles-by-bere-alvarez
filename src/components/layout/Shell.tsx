@@ -1,8 +1,10 @@
 "use client";
 import { FestiveGarland, PanelFestiveColors, useFestiveDecor, usePanelFestive } from "@/components/festive/Festive";
 import { BigArtImg } from "@/components/festive/Decor";
+import { panelSkinCss } from "@/lib/festiveSkin";
+import type { FestiveId } from "@/lib/festive";
 import { BOUQUET } from "@/lib/festiveArt2";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { usePathname, useRouter } from "next/navigation";
@@ -223,17 +225,17 @@ export function Shell({ children }: { children: React.ReactNode }) {
   );
 
   return (
-    <div className="min-h-dvh lg:pl-[272px]">
+    <div data-fs="panel" className="min-h-dvh lg:pl-[272px]">
       <DemoBanner />
       <WelcomeTour />
       {/* Sidebar escritorio */}
-      <aside className="fixed inset-y-0 left-0 z-40 hidden w-[272px] border-r border-cocoa-800/5 bg-white/80 backdrop-blur-xl lg:block">{SidebarContent}</aside>
+      <aside data-fs="sidebar" className="fixed inset-y-0 left-0 z-40 hidden w-[272px] border-r border-cocoa-800/5 bg-white/80 backdrop-blur-xl lg:block">{SidebarContent}</aside>
 
       {/* Drawer móvil */}
       {open && (
         <div className="fixed inset-0 z-[70] lg:hidden">
           <div className="absolute inset-0 bg-cocoa-900/30 backdrop-blur-[2px]" onClick={() => setOpen(false)} />
-          <aside className="absolute inset-y-0 left-0 w-[calc(100%-64px)] max-w-[320px] bg-white shadow-lift animate-[fade-up_.25s_ease]">
+          <aside data-fs="sidebar" className="absolute inset-y-0 left-0 w-[calc(100%-64px)] max-w-[320px] bg-white shadow-lift animate-[fade-up_.25s_ease]">
             {SidebarContent}
           </aside>
           {/* La X va afuera del menú, sobre el fondo oscuro, para no tapar el nombre del negocio */}
@@ -248,7 +250,7 @@ export function Shell({ children }: { children: React.ReactNode }) {
       )}
 
       {/* Barra superior móvil */}
-      <header className="sticky top-0 z-30 flex items-center justify-between border-b border-cocoa-800/5 bg-cream-100/85 px-4 py-3 backdrop-blur-xl lg:hidden">
+      <header data-fs="pheader" className="sticky top-0 z-30 flex items-center justify-between border-b border-cocoa-800/5 bg-cream-100/85 px-4 py-3 backdrop-blur-xl lg:hidden">
         <button onClick={() => setOpen(true)} className="rounded-xl p-2 text-cocoa-600 hover:bg-cocoa-800/5" aria-label="Abrir menú">
           <Menu className="h-6 w-6" />
         </button>
@@ -309,6 +311,7 @@ function PanelGarland() {
   if (!fest) return null;
   return (
     <div className="pointer-events-none relative -mb-6 lg:-mb-8">
+      <PanelSkinStyle id={fest.id} />
       <div className="fest-flutter">
         <FestiveGarland theme={fest} scale={0.75} />
       </div>
@@ -336,4 +339,10 @@ function SidebarArt() {
 function FestiveEmoji() {
   const fest = usePanelFestive();
   return fest ? <span aria-hidden>{fest.emoji}</span> : null;
+}
+
+/** Estilos de temporada del panel: menú lateral, fondo, tarjetas (ver lib/festiveSkin.ts) */
+function PanelSkinStyle({ id }: { id: FestiveId }) {
+  const css = useMemo(() => panelSkinCss(id), [id]);
+  return <style data-fest-panel={id} dangerouslySetInnerHTML={{ __html: css }} />;
 }

@@ -103,6 +103,7 @@ export default function DashboardHome() {
     <>
       {/* Bienvenida */}
       <section
+        data-fs={fest ? "phero" : undefined}
         className="sprinkles relative mb-6 overflow-hidden rounded-[32px] bg-cocoa-800 px-6 py-7 text-cream-100 transition-colors sm:px-9 sm:py-9"
         style={fest ? { backgroundColor: "var(--festive-hero, var(--color-cocoa-800))", paddingTop: 64 } : undefined}
       >

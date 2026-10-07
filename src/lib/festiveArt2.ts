@@ -165,11 +165,119 @@ export function papelPicadoFlag(color: string, motif: Motif, id: string) {
   );
 }
 
+/* ---------------------------------------------------------------- Cupido: silueta rosita volando con su arco */
+export const cupido = svg(
+  "0 0 150 120",
+  // ala de atrás
+  `<path d='M64 50C56 26 34 12 14 14c8 4 12 8 12 12-8-1-14 1-16 6 8 0 12 3 12 6-6 1-10 5-10 10 8-3 14-2 18 1-4 3-5 8-3 12 12-8 28-6 37-11Z' fill='#f6c1cf'/>` +
+    // ala del frente
+    `<path d='M70 54C70 30 56 10 36 4c6 6 8 11 6 15-6-3-12-2-15 2 7 2 10 6 9 9-6-1-11 2-12 6 7 0 12 2 14 6-4 2-6 6-5 10 13-5 28-2 37 2Z' fill='#f4a6b8'/>` +
+    `<path d='M40 12c6 8 12 16 16 26M30 24c8 4 16 10 22 18M26 38c8 2 16 6 22 10' stroke='#fbd3dd' stroke-width='1.6' fill='none' stroke-linecap='round'/>` +
+    // cuerpo, cabeza y rizos (una sola silueta)
+    `<path d='M84 22c-10 0-17 8-16 18 0 4 2 8 4 10-8 4-14 12-14 22 0 8 4 14 10 18-6 6-14 10-22 10 4 6 14 6 22 2 4-2 8-6 10-10 4 2 8 2 12 0 2 6 6 10 12 12 6 2 12 0 14-4-6 0-12-4-14-10 6-4 10-12 10-20 0-8-4-14-10-18 4-4 6-8 6-14 0-9-7-16-16-16Z' fill='#f08aa3'/>` +
+    `<path d='M70 30c-2-8 4-14 10-14 2-4 8-6 12-2 6-2 12 4 10 10 4 2 4 8 0 10-4-6-10-4-12-8-4 4-10 2-12-2-2 4-6 6-8 6Z' fill='#e9718f'/>` +
+    `<circle cx='90' cy='38' r='1.8' fill='#c24d6c'/><path d='M86 45q4 3 8 0' stroke='#c24d6c' stroke-width='1.6' fill='none' stroke-linecap='round'/>` +
+    `<path d='M74 70c6 4 16 4 22 0' stroke='#fbd3dd' stroke-width='3' stroke-linecap='round'/>` +
+    // brazo, arco y flecha
+    `<path d='M96 58c8-2 14-2 18 0' stroke='#f08aa3' stroke-width='7' stroke-linecap='round'/>` +
+    `<path d='M116 34c14 12 14 38 0 50' stroke='#e9718f' stroke-width='4' fill='none' stroke-linecap='round'/><path d='M116 34V84' stroke='#f6c1cf' stroke-width='1.2'/>` +
+    `<path d='M98 59H146' stroke='#e9718f' stroke-width='2.6' stroke-linecap='round'/><path d='M148 59l-9-5v10Z' fill='#e9718f'/><path d='M101 59l-6-5M101 59l-6 5' stroke='#e9718f' stroke-width='2.6' stroke-linecap='round'/>`,
+);
+
+/* ---------------------------------------------------------------- Pastel en forma de corazón */
+export const pastelCorazon = svg(
+  "0 0 120 124",
+  `<ellipse cx='60' cy='118' rx='46' ry='5' fill='#000' opacity='.12'/>` +
+    // costado
+    `<path d='M60 100C24 84 8 62 10 46v18c-2 16 14 38 50 54 36-16 52-38 50-54V46c2 16-14 38-50 54Z' fill='#c2185b' stroke='${INK}' stroke-width='2.4'/>` +
+    `<path d='M12 60c4 14 20 30 48 42 28-12 44-28 48-42' stroke='#fff' stroke-width='3' stroke-dasharray='2 6' stroke-linecap='round' fill='none'/>` +
+    // cubierta
+    `<path d='M60 86C26 70 10 52 10 36 10 22 22 12 36 12c10 0 18 6 24 14 6-8 14-14 24-14 14 0 26 10 26 24 0 16-16 34-50 50Z' fill='#f06292' stroke='${INK}' stroke-width='2.6'/>` +
+    `<path d='M60 78C32 64 18 50 18 37c0-10 8-17 18-17 9 0 16 6 24 16 8-10 15-16 24-16 10 0 18 7 18 17 0 13-14 27-42 41Z' fill='#f8bbd0'/>` +
+    // betún de puntitos
+    Array.from({ length: 22 }, (_, i) => {
+      const t = i / 21;
+      const a = Math.PI * 2 * t;
+      const x = 60 + 46 * Math.sin(a) * (1 - 0.2 * Math.abs(Math.cos(a)));
+      const y = 46 - 30 * Math.cos(a) + 10 * Math.abs(Math.sin(a));
+      return `<circle cx='${x.toFixed(1)}' cy='${y.toFixed(1)}' r='3' fill='#fff' stroke='#f48fb1'/>`;
+    }).join("") +
+    `<path d='M60 58c-8-5-8-11-4-12 2-.6 3 .6 4 2 1-1.4 2-2.6 4-2 4 1 4 7-4 12Z' fill='#e53950' stroke='${INK}' stroke-width='1.4'/>` +
+    `<circle cx='44' cy='36' r='3' fill='#fff' opacity='.8'/><circle cx='78' cy='34' r='2.4' fill='#fff' opacity='.8'/>` +
+    [[40, 48, "#ffd54f"], [80, 48, "#81d4fa"], [52, 30, "#fff"], [70, 30, "#ffd54f"]].map(([x, y, c]) => `<rect x='${x}' y='${y}' width='6' height='2.4' rx='1.2' fill='${c}' transform='rotate(${(x as number) * 3} ${x} ${y})'/>`).join(""),
+);
+
+/* ---------------------------------------------------------------- Rosca de reyes */
+export const roscaDeluxe = svg(
+  "0 0 140 100",
+  `<ellipse cx='70' cy='86' rx='62' ry='10' fill='#000' opacity='.12'/>` +
+    `<path d='M70 14C34 14 8 34 8 54s26 34 62 34 62-14 62-34-26-40-62-40Zm0 24c18 0 30 6 30 14s-12 12-30 12-30-4-30-12 12-14 30-14Z' fill='#e0974a' stroke='${INK}' stroke-width='3' fill-rule='evenodd'/>` +
+    `<path d='M20 44c8-14 28-22 50-22s42 8 50 22' stroke='#f4c27a' stroke-width='6' fill='none' stroke-linecap='round' opacity='.7'/>` +
+    [[24, 40, "#c62828", -40], [46, 26, "#2e7d32", -15], [76, 22, "#fbc02d", 5], [104, 30, "#c62828", 30], [118, 52, "#2e7d32", 70], [100, 74, "#fbc02d", 150], [66, 80, "#c62828", 180], [34, 72, "#2e7d32", 210]]
+      .map(([x, y, c, r]) => `<rect x='${(x as number) - 9}' y='${(y as number) - 3.5}' width='18' height='7' rx='3.5' fill='${c}' stroke='${INK}' stroke-width='1.4' transform='rotate(${r} ${x} ${y})'/>`)
+      .join("") +
+    Array.from({ length: 30 }, (_, i) => `<circle cx='${(16 + ((i * 37) % 108)).toFixed(0)}' cy='${(30 + ((i * 23) % 50)).toFixed(0)}' r='1.3' fill='#fff8e8'/>`).join(""),
+);
+
+/* ---------------------------------------------------------------- Animales de los Reyes Magos */
+const legs = (xs: number[], y: number, h: number, c: string) => xs.map((x) => `<rect x='${x}' y='${y}' width='9' height='${h}' rx='4' fill='${c}' stroke='${INK}' stroke-width='2'/>`).join("");
+export const camello = svg(
+  "0 0 140 120",
+  legs([34, 48, 82, 96], 70, 40, "#c8935a") +
+    `<path d='M28 74c-4-26 10-46 26-46 10 0 12 12 18 12s10-16 24-16 22 20 18 50c-4 8-82 8-86 0Z' fill='#d9a467' stroke='${INK}' stroke-width='2.6'/>` +
+    `<path d='M110 60c8-6 10-22 12-34 2-8 12-10 16-4 2 4-2 6-6 8l-4 30c-2 6-10 8-18 0Z' fill='#d9a467' stroke='${INK}' stroke-width='2.6'/>` +
+    `<circle cx='130' cy='24' r='1.8' fill='${INK}'/>` +
+    `<path d='M40 54h62v18H40Z' fill='#7b2d8e' stroke='${INK}' stroke-width='2'/><path d='M40 72l6 6 6-6 6 6 6-6 6 6 6-6 6 6 6-6 6 6 6-6 6 6' stroke='#fbc02d' stroke-width='3' fill='none'/>` +
+    `<circle cx='71' cy='63' r='4' fill='#fbc02d'/><path d='M24 74c-6 4-8 12-4 16' stroke='${INK}' stroke-width='2.4' fill='none'/>`,
+);
+export const elefante = svg(
+  "0 0 140 120",
+  legs([30, 46, 80, 96], 74, 36, "#9aa5b1") +
+    `<path d='M22 74c0-28 18-46 50-46s46 18 46 40c0 10-6 14-12 14H32c-6 0-10-2-10-8Z' fill='#aeb8c2' stroke='${INK}' stroke-width='2.6'/>` +
+    `<path d='M104 40c18-4 30 8 28 26-1 12-2 26 4 34 2 4-6 6-8 2-8-10-8-22-10-30' fill='#aeb8c2' stroke='${INK}' stroke-width='2.6'/>` +
+    `<path d='M92 36c-10 0-18 10-16 22 2 10 12 14 22 10' fill='#c4ccd5' stroke='${INK}' stroke-width='2.4'/>` +
+    `<circle cx='114' cy='46' r='2' fill='${INK}'/><path d='M120 60c4 0 6 2 6 4' stroke='#fff' stroke-width='3' stroke-linecap='round'/>` +
+    `<path d='M44 40h44l-4 30H48Z' fill='#c62828' stroke='${INK}' stroke-width='2'/><path d='M48 70l4 6 4-6 4 6 4-6 4 6 4-6 4 6 4-6 4 6' stroke='#fbc02d' stroke-width='3' fill='none'/>` +
+    `<path d='M100 30l6-8 6 8-6 6Z' fill='#fbc02d' stroke='${INK}' stroke-width='1.6'/><circle cx='66' cy='54' r='5' fill='#fbc02d'/>`,
+);
+export const caballo = svg(
+  "0 0 140 120",
+  legs([30, 44, 82, 96], 70, 40, "#e9e4dc") +
+    `<path d='M24 72c-2-20 10-34 30-34h40c12 0 18 10 18 22 0 8-4 14-10 16H34c-6 0-10-2-10-4Z' fill='#f5f1ea' stroke='${INK}' stroke-width='2.6'/>` +
+    `<path d='M94 44c4-14 10-26 22-30 8-2 16 4 18 12 2 6-2 10-8 10-6 0-10 4-12 10l-6 14Z' fill='#f5f1ea' stroke='${INK}' stroke-width='2.6'/>` +
+    `<path d='M108 16c-8 2-14 12-18 26 4-2 8-2 10 2 2-8 6-14 10-18 2 4 4 6 8 6-2-6-4-12-10-16Z' fill='#8d5a2b' stroke='${INK}' stroke-width='1.6'/>` +
+    `<circle cx='124' cy='24' r='2' fill='${INK}'/><path d='M18 70c-8 4-10 16-4 22 0-8 4-14 10-16' fill='#8d5a2b' stroke='${INK}' stroke-width='1.8'/>` +
+    `<path d='M44 46h44v22H44Z' fill='#1565c0' stroke='${INK}' stroke-width='2'/><path d='M44 68l6 6 6-6 6 6 6-6 6 6 6-6 6 6' stroke='#fbc02d' stroke-width='3' fill='none'/>` +
+    `<path d='M48 52h36' stroke='#fbc02d' stroke-width='2.4'/>`,
+);
+
+/* ---------------------------------------------------------------- Águila real mexicana (toda café, sobre el nopal) */
+export const aguila = svg(
+  "0 0 140 116",
+  // alas abiertas con plumas largas
+  `<path d='M68 52C56 34 38 22 20 18c-6-1-12 0-16 3 6 1 10 3 12 6-6 0-11 2-13 6 6 0 10 2 12 4-5 1-9 4-10 8 6-1 11 0 14 2-3 2-5 6-4 10 8-4 16-5 22-3-2 3-2 7 0 10 8-6 18-7 26-4Z' fill='#6b3f1d' stroke='#3b2010' stroke-width='2'/>` +
+    `<path d='M72 52c12-18 30-30 48-34 6-1 12 0 16 3-6 1-10 3-12 6 6 0 11 2 13 6-6 0-10 2-12 4 5 1 9 4 10 8-6-1-11 0-14 2 3 2 5 6 4 10-8-4-16-5-22-3 2 3 2 7 0 10-8-6-18-7-26-4Z' fill='#6b3f1d' stroke='#3b2010' stroke-width='2'/>` +
+    `<path d='M14 24c14 2 30 10 44 24M10 36c14 0 30 6 42 16M14 48c12-1 24 2 34 8M126 24c-14 2-30 10-44 24M130 36c-14 0-30 6-42 16M126 48c-12-1-24 2-34 8' stroke='#9a6233' stroke-width='2' fill='none'/>` +
+    // cuerpo
+    `<path d='M60 50c-2 18 2 34 10 44 8-10 12-26 10-44-6-6-14-6-20 0Z' fill='#7a4a22' stroke='#3b2010' stroke-width='2'/>` +
+    `<path d='M63 62l7 5 7-5M63 72l7 5 7-5M64 82l6 4 6-4' stroke='#4e2c12' stroke-width='1.6' fill='none'/>` +
+    // cabeza café con nuca dorada (águila real)
+    `<path d='M60 46c-2-12 4-20 12-20 8 0 14 6 14 14 0 4-2 8-6 10l-12 2Z' fill='#5d3416' stroke='#3b2010' stroke-width='2'/>` +
+    `<path d='M64 30c4-3 10-3 14 0 3 2 4 6 3 9-4-4-10-6-17-9Z' fill='#c08a3e'/>` +
+    `<path d='M84 36l10 4-9 5Z' fill='#e0a020' stroke='#3b2010' stroke-width='1.4'/><circle cx='78' cy='36' r='1.8' fill='#f9d36b'/><circle cx='78' cy='36' r='.8' fill='#1a0d05'/>` +
+    // serpiente en el pico
+    `<path d='M92 42c8 4 10 10 4 14s-14 0-12 6 12 6 18 2' stroke='#2e7d32' stroke-width='4' fill='none' stroke-linecap='round'/><circle cx='103' cy='63' r='2.4' fill='#2e7d32'/>` +
+    // garras y nopal con tunas
+    `<path d='M64 92l-3 6M70 94v6M76 92l3 6' stroke='#e0a020' stroke-width='2.4' stroke-linecap='round'/>` +
+    `<ellipse cx='70' cy='104' rx='16' ry='9' fill='#43a047' stroke='#1b5e20' stroke-width='2'/><ellipse cx='51' cy='98' rx='9' ry='6' fill='#66bb6a' stroke='#1b5e20' stroke-width='1.8'/><ellipse cx='89' cy='98' rx='9' ry='6' fill='#66bb6a' stroke='#1b5e20' stroke-width='1.8'/>` +
+    `<circle cx='62' cy='100' r='2.2' fill='#e53935'/><circle cx='80' cy='98' r='2.2' fill='#e53935'/>`,
+);
+
 /* ======================================================================
    Composiciones por temporada
    ====================================================================== */
 
-const DELUXE = { calaveraDeluxe, cempasuchilSolo, cempasuchilHojas, velaDeluxe, panDeluxe } as const;
+const DELUXE = { calaveraDeluxe, cempasuchilSolo, cempasuchilHojas, velaDeluxe, panDeluxe, cupido, pastelCorazon, roscaDeluxe, camello, elefante, caballo, aguila } as const;
 export type BigArt = ArtName | keyof typeof DELUXE;
 const uriCache = new Map<string, string>();
 export const bigUri = (n: BigArt) => {
@@ -181,7 +289,8 @@ export const bigUri = (n: BigArt) => {
   return u;
 };
 /** Proporción alto/ancho de cada ilustración (las de 64×64 son cuadradas) */
-export const bigRatio = (n: BigArt) => ({ velaDeluxe: 140 / 80, panDeluxe: 100 / 140, calaveraDeluxe: 136 / 128, cempasuchilHojas: 132 / 136 })[n as string] ?? 1;
+export const bigRatio = (n: BigArt) =>
+  ({ velaDeluxe: 140 / 80, panDeluxe: 100 / 140, calaveraDeluxe: 136 / 128, cempasuchilHojas: 132 / 136, cupido: 120 / 150, pastelCorazon: 124 / 120, roscaDeluxe: 100 / 140, camello: 120 / 140, elefante: 120 / 140, caballo: 120 / 140, aguila: 116 / 140 })[n as string] ?? 1;
 
 /**
  * Ramillete: [relleno de atrás, estrella, alto (vela, árbol…), relleno chico, frente]
@@ -192,14 +301,14 @@ export const BOUQUET: Record<FestiveId, [BigArt, BigArt, BigArt, BigArt, BigArt]
   halloween: ["dulce", "calabaza", "fantasma", "murcielago", "dulce"],
   navidad: ["esfera", "arbol", "baston", "esfera", "regaloRojo"],
   anonuevo: ["estrellaPlata", "copa", "fuego", "estrellaOro", "estrellaOro"],
-  reyes: ["estrellaOro", "corona", "rosca", "estrellaOro", "regaloMorado"],
-  sanvalentin: ["rosaRoja", "corazonRojo", "carta", "corazonRosa", "rosaRosa"],
+  reyes: ["estrellaOro", "roscaDeluxe", "camello", "corona", "elefante"],
+  sanvalentin: ["rosaRoja", "pastelCorazon", "cupido", "corazonRojo", "carta"],
   primavera: ["tulipanAmarillo", "florAmarilla", "mariposa", "florAmarilla", "tulipanAmarillo"],
   nino: ["globoAzul", "globoRojo", "papalote", "rehileteNino", "paleta"],
   madres: ["rosaRosa", "tulipanRosa", "corazonRosa", "rosaRosa", "regaloRosa"],
   maestro: ["estrellaOro", "manzana", "lapiz", "estrellaOro", "libro"],
   padre: ["estrellaOro", "corbata", "taza", "estrellaOro", "bigote"],
-  independencia: ["chile", "bandera", "campana", "rehileteMx", "chile"],
+  independencia: ["campana", "aguila", "chile", "rehileteMx", "campana"],
 };
 
 /** Colores y figuras del papel picado de cada temporada */
@@ -215,7 +324,7 @@ export const PICADO: Record<FestiveId, { colors: string[]; motifs: Motif[] }> = 
   madres: { colors: ["#ec407a", "#f8bbd0", "#ab47bc", "#f06292", "#ce93d8", "#ec407a"], motifs: ["corazon", "flor", "mariposa", "corazon", "flor", "corazon"] },
   maestro: { colors: ["#e53935", "#1e88e5", "#fbc02d", "#43a047", "#e53935", "#1e88e5"], motifs: ["estrella", "rombo", "corazon", "estrella", "flor", "rombo"] },
   padre: { colors: ["#1f4e79", "#4f8ac9", "#c08a3e", "#2d6a4f", "#1f4e79", "#8fb3d9"], motifs: ["estrella", "rombo", "corona", "estrella", "rombo", "corona"] },
-  independencia: { colors: ["#006847", "#ffffff", "#ce1126", "#006847", "#ffffff", "#ce1126"], motifs: ["campana", "estrella", "flor", "campana", "estrella", "calavera"] },
+  independencia: { colors: ["#ffffff", "#7a4a22", "#c8102e", "#ffffff", "#7a4a22", "#c8102e"], motifs: ["estrella", "campana", "flor", "estrella", "campana", "rombo"] },
 };
 
 const SHADE = `<linearGradient id='pp-shade' x1='0' y1='0' x2='0' y2='1'><stop offset='0' stop-color='#fff' stop-opacity='.28'/><stop offset='1' stop-color='#000' stop-opacity='.1'/></linearGradient>`;
@@ -401,4 +510,129 @@ export function ribbonEndUri(id: FestiveId, side: "left" | "right") {
 export function laceUri(id: FestiveId) {
   const col = PICADO[id].colors[0];
   return dataUrl(`<svg xmlns='http://www.w3.org/2000/svg' width='20' height='12'><path d='M0 0h20v2a10 10 0 0 1-20 0Z' fill='${col}'/><circle cx='10' cy='4' r='2' fill='#fff' fill-opacity='.85'/></svg>`);
+}
+
+/* ======================================================================
+   Fondos detrás del logo (como el arco de papel picado de Día de Muertos)
+   ====================================================================== */
+const bulbs = (pts: [number, number][], colors: string[], r = 5) =>
+  pts.map(([x, y], i) => `<path d='M${x} ${y - r * 1.4}v${r * 0.6}' stroke='#3e2a12' stroke-width='2'/><ellipse cx='${x}' cy='${y}' rx='${r * 0.8}' ry='${r * 1.1}' fill='${colors[i % colors.length]}'/><ellipse cx='${x - r * 0.25}' cy='${y - r * 0.35}' rx='${r * 0.22}' ry='${r * 0.35}' fill='#fff' opacity='.7'/>`).join("");
+const arcPts = (cx: number, cy: number, r: number, from: number, to: number, n: number): [number, number][] =>
+  Array.from({ length: n }, (_, i) => {
+    const a = ((from + ((to - from) * i) / (n - 1)) * Math.PI) / 180;
+    return [+(cx + r * Math.cos(a)).toFixed(1), +(cy + r * Math.sin(a)).toFixed(1)];
+  });
+const LIGHTS = ["#e53935", "#fbc02d", "#43a047", "#1e88e5", "#8e24aa", "#fb8c00"];
+
+/** Fondo del logo: `mode` arch = arco arriba del remolino; full = figura detrás de todo el logo */
+export function logoBackdrop(id: FestiveId): { uri: string; mode: "arch" | "full" } {
+  if (id === "muertos") return { uri: logoArchUri(id), mode: "arch" };
+  const full = (body: string, defs = "") => ({ uri: dataUrl(`<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 200 200'>${defs ? `<defs>${defs}</defs>` : ""}${body}</svg>`), mode: "full" as const });
+  const arch = (body: string) => ({ uri: dataUrl(`<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 200 104'>${body}</svg>`), mode: "arch" as const });
+  const rays = (n: number, c1: string, c2: string, r = 100) =>
+    Array.from({ length: n }, (_, i) => {
+      const a = (Math.PI * 2 * i) / n;
+      const b = (Math.PI * 2 * (i + 0.5)) / n;
+      return `<path d='M100 100L${(100 + r * Math.cos(a)).toFixed(1)} ${(100 + r * Math.sin(a)).toFixed(1)}L${(100 + r * Math.cos(b)).toFixed(1)} ${(100 + r * Math.sin(b)).toFixed(1)}Z' fill='${i % 2 ? c1 : c2}'/>`;
+    }).join("");
+  switch (id) {
+    case "navidad": {
+      const pine = arcPts(100, 100, 88, 185, 355, 34)
+        .map(([x, y], i) => `<path d='M${x} ${y}l${i % 2 ? -9 : 9} -7M${x} ${y}l${i % 2 ? 7 : -7} 8M${x} ${y}l0 -10' stroke='${i % 3 ? "#2e7d32" : "#1b5e20"}' stroke-width='5' stroke-linecap='round'/>`)
+        .join("");
+      return arch(
+        `<path d='M12 100a88 88 0 0 1 176 0' stroke='#1b5e20' stroke-width='16' fill='none'/>${pine}` +
+          bulbs(arcPts(100, 100, 88, 190, 350, 13), LIGHTS, 5) +
+          `<path d='M100 10c-10-10-26-8-24 2 2 8 16 8 24 0 8 8 22 8 24 0 2-10-14-12-24-2Z' fill='#d32f2f' stroke='#7f0d0d' stroke-width='2'/><path d='M100 12l-10 22M100 12l10 22' stroke='#d32f2f' stroke-width='6' stroke-linecap='round'/><circle cx='100' cy='11' r='5' fill='#b71c1c'/>`,
+      );
+    }
+    case "anonuevo":
+    case "reyes": {
+      const gold = id === "anonuevo";
+      return full(
+        `<circle cx='100' cy='100' r='98' fill='url(#g)'/>${rays(36, "#f3d27a", "#fff3c4", 98).replace(/<path/g, "<path opacity='.35'")}` +
+          (gold
+            ? `<g transform='translate(150 40)'><circle r='22' fill='#fffaf0' stroke='#c9a646' stroke-width='4'/><path d='M0 0V-14M0 0L10 4' stroke='#3a2c14' stroke-width='3' stroke-linecap='round'/>${Array.from({ length: 12 }, (_, i) => `<circle cx='${(17 * Math.cos((i * Math.PI) / 6)).toFixed(1)}' cy='${(17 * Math.sin((i * Math.PI) / 6)).toFixed(1)}' r='1.4' fill='#3a2c14'/>`).join("")}</g>`
+            : `<path d='M58 46l-6-30 22 16 26-28 26 28 22-16-6 30Z' fill='#f3c742' stroke='#a87b10' stroke-width='3'/><circle cx='100' cy='30' r='5' fill='#c62828'/><circle cx='74' cy='36' r='4' fill='#1565c0'/><circle cx='126' cy='36' r='4' fill='#2e7d32'/>`),
+        `<radialGradient id='g'><stop offset='0' stop-color='#fff8e1'/><stop offset='.6' stop-color='#f3d27a' stop-opacity='.55'/><stop offset='1' stop-color='#f3d27a' stop-opacity='0'/></radialGradient>`,
+      );
+    }
+    case "halloween":
+      return full(
+        `<circle cx='100' cy='96' r='86' fill='url(#m)'/><circle cx='70' cy='70' r='12' fill='#e8dcae' opacity='.6'/><circle cx='130' cy='120' r='16' fill='#e8dcae' opacity='.5'/><circle cx='120' cy='58' r='7' fill='#e8dcae' opacity='.6'/>` +
+          [[30, 30, 1], [170, 40, 0.8], [160, 170, 0.7]].map(([x, y, k]) => `<path transform='translate(${x} ${y}) scale(${k})' d='M0 0c-4-6-14-8-22-2 4 0 6 4 6 8 4-4 8-4 10 0 2-2 4-4 6-4 2 0 4 2 6 4 2-4 6-4 10 0 0-4 2-8 6-8-8-6-18-4-22 2Z' fill='#1a0d26'/>`).join(""),
+        `<radialGradient id='m'><stop offset='0' stop-color='#fffbe0'/><stop offset='.75' stop-color='#fdf1b8'/><stop offset='1' stop-color='#fdf1b8' stop-opacity='0'/></radialGradient>`,
+      );
+    case "sanvalentin":
+    case "madres": {
+      const c = id === "madres" ? "#f8bbd0" : "#ffc1d1";
+      const d = id === "madres" ? "#ec407a" : "#e8456b";
+      const flowers = id === "madres" ? arcPts(100, 104, 92, 200, 340, 8).map(([x, y], i) => flower(x, y, 9, i % 2 ? "#fff" : "#f48fb1", "#ffd54f", "#ad1457")).join("") : "";
+      return full(
+        `<path d='M100 186C34 140 6 104 10 66 14 34 40 16 66 18c16 1 28 10 34 24 6-14 18-23 34-24 26-2 52 16 56 48 4 38-24 74-90 120Z' fill='${c}' stroke='${d}' stroke-width='4' stroke-dasharray='1 7' stroke-linecap='round'/>` +
+          `<path d='M100 174C42 132 18 100 22 68 26 42 46 28 68 30c14 1 24 9 32 22 8-13 18-21 32-22 22-2 42 12 46 38 4 32-20 64-78 106Z' fill='#fff' opacity='.75'/>` +
+          flowers,
+      );
+    }
+    case "primavera":
+      return full(`<circle cx='100' cy='100' r='96' fill='url(#s)'/>${rays(24, "#ffe066", "#fff3b0", 96).replace(/<path/g, "<path opacity='.45'")}`, `<radialGradient id='s'><stop offset='0' stop-color='#fffef0'/><stop offset='.65' stop-color='#ffe066' stop-opacity='.6'/><stop offset='1' stop-color='#ffe066' stop-opacity='0'/></radialGradient>`);
+    case "nino":
+      return arch(
+        arcPts(100, 104, 86, 190, 350, 9)
+          .map(([x, y], i) => `<path d='M${x} ${y + 12}q4 10-2 20' stroke='#555' stroke-width='1' fill='none'/><ellipse cx='${x}' cy='${y}' rx='12' ry='14' fill='${["#e53935", "#fbc02d", "#43a047", "#1e88e5", "#8e24aa", "#fb8c00"][i % 6]}'/><ellipse cx='${x - 4}' cy='${y - 5}' rx='3' ry='4' fill='#fff' opacity='.6'/>`)
+          .join(""),
+      );
+    case "maestro":
+      return full(`<rect x='18' y='26' width='164' height='120' rx='8' fill='#2f5a3f' stroke='#a1683a' stroke-width='8' opacity='.85'/><text x='34' y='60' font-size='18' fill='#fff' fill-opacity='.4' font-family='serif'>a b c  1 2 3</text><circle cx='160' cy='150' r='16' fill='#e53935'/><path d='M160 134q2-8 8-10' stroke='#5d4037' stroke-width='3'/>`);
+    case "padre":
+      return full(`<circle cx='100' cy='100' r='96' fill='url(#n)'/>${rays(28, "#e0b15c", "#fff", 96).replace(/<path/g, "<path opacity='.18'")}`, `<radialGradient id='n'><stop offset='0' stop-color='#ffffff'/><stop offset='.6' stop-color='#cfe0f2' stop-opacity='.7'/><stop offset='1' stop-color='#cfe0f2' stop-opacity='0'/></radialGradient>`);
+    case "independencia":
+      return arch(
+        `<path d='M100 100C76 64 40 50 4 58c14 6 18 12 16 18 12-4 18 0 18 6 12-4 18 0 18 6 12 0 22 2 30 10Z' fill='#7a4a22' stroke='#3b2412' stroke-width='3'/>` +
+          `<path d='M100 100c24-36 60-50 96-42-14 6-18 12-16 18-12-4-18 0-18 6-12-4-18 0-18 6-12 0-22 2-30 10Z' fill='#7a4a22' stroke='#3b2412' stroke-width='3'/>` +
+          `<path d='M18 62c16 0 34 6 52 20M182 62c-16 0-34 6-52 20M30 74c14 0 26 6 40 16M170 74c-14 0-26 6-40 16' stroke='#a8743f' stroke-width='3' fill='none'/>`,
+      );
+    default:
+      return full(`<circle cx='100' cy='100' r='96' fill='#fff' opacity='.6'/>`);
+  }
+}
+
+/** Marco de focos de colores (para border-image de tarjetas navideñas) */
+export function lightsBorderUri(frame = "#8d5a2b") {
+  const b = (x: number, y: number, c: string, rot = 0) => `<g transform='translate(${x} ${y}) rotate(${rot})'><rect x='-2' y='-9' width='4' height='4' fill='#4a3215'/><ellipse cx='0' cy='0' rx='4' ry='5.5' fill='${c}'/><ellipse cx='-1.2' cy='-1.8' rx='1.1' ry='1.7' fill='#fff' opacity='.7'/></g>`;
+  const L = LIGHTS;
+  const body =
+    `<rect width='84' height='84' fill='${frame}'/><rect x='5' y='5' width='74' height='74' fill='none' stroke='#c48a4a' stroke-width='2'/>` +
+    `<path d='M0 8q7 4 14 0t14 0 14 0 14 0 14 0 14 0M0 76q7 4 14 0t14 0 14 0 14 0 14 0 14 0M8 0q4 7 0 14t0 14 0 14 0 14 0 14 0 14M76 0q4 7 0 14t0 14 0 14 0 14 0 14 0 14' stroke='#2e2410' stroke-width='1.2' fill='none'/>` +
+    [21, 42, 63].map((x, i) => b(x, 10, L[i]) + b(x, 74, L[i + 3], 180) + b(10, x, L[(i + 1) % 6], -90) + b(74, x, L[(i + 4) % 6], 90)).join("") +
+    b(9, 9, L[5], -45) + b(75, 9, L[2], 45) + b(9, 75, L[1], -135) + b(75, 75, L[4], 135);
+  return dataUrl(`<svg xmlns='http://www.w3.org/2000/svg' width='84' height='84'>${body}</svg>`);
+}
+
+/** Tirita decorativa de la temporada (focos, corazones, estrellas, papel picado…) para la orilla de tarjetas */
+export function stripUri(id: FestiveId): { uri: string; w: number; h: number } {
+  const wrapS = (w: number, h: number, body: string) => ({ uri: dataUrl(`<svg xmlns='http://www.w3.org/2000/svg' width='${w}' height='${h}'>${body}</svg>`), w, h });
+  switch (id) {
+    case "navidad":
+      return wrapS(96, 16, `<path d='M0 3Q12 9 24 3T48 3T72 3T96 3' stroke='#2e2410' stroke-width='1.1' fill='none'/>` + LIGHTS.slice(0, 4).map((c, i) => `<rect x='${11 + i * 24}' y='4' width='3' height='3' fill='#4a3215'/><ellipse cx='${12.5 + i * 24}' cy='10.5' rx='3.4' ry='4.6' fill='${c}'/><ellipse cx='${11.6 + i * 24}' cy='9' rx='.9' ry='1.4' fill='#fff' opacity='.7'/>`).join(""));
+    case "sanvalentin":
+    case "madres":
+      return wrapS(60, 16, `<path d='M0 3Q15 8 30 3T60 3' stroke='#f48fb1' stroke-width='1' fill='none'/>` + [[10, "#e53950"], [30, "#f48fb1"], [50, "#d81b60"]].map(([x, c]) => `<path d='M${x} 15c-7-4-7-9-3.5-9.5 1.6-.3 2.8.6 3.5 1.8.7-1.2 1.9-2.1 3.5-1.8 3.5.5 3.5 5.5-3.5 9.5Z' fill='${c}'/>`).join(""));
+    case "anonuevo":
+    case "reyes":
+    case "padre":
+      return wrapS(48, 14, [[8, 7, 5, "#d4af37"], [24, 6, 3, "#f3d27a"], [40, 7, 4.5, "#c9a646"]].map(([x, y, r, c]) => `<path d='M${x} ${(y as number) - (r as number)}L${(x as number) + (r as number) * 0.3} ${(y as number) - (r as number) * 0.3} ${(x as number) + (r as number)} ${y} ${(x as number) + (r as number) * 0.3} ${(y as number) + (r as number) * 0.3} ${x} ${(y as number) + (r as number)} ${(x as number) - (r as number) * 0.3} ${(y as number) + (r as number) * 0.3} ${(x as number) - (r as number)} ${y} ${(x as number) - (r as number) * 0.3} ${(y as number) - (r as number) * 0.3}Z' fill='${c}'/>`).join(""));
+    case "halloween":
+      return wrapS(64, 16, `<path d='M0 3Q16 9 32 3T64 3' stroke='#4a148c' stroke-width='1' fill='none'/><ellipse cx='16' cy='11' rx='5.5' ry='4.5' fill='#ef6c00'/><path d='M16 6.5v-2' stroke='#2e7d32' stroke-width='1.6'/><path d='M48 9c-1-2-4-3-7-1 1.5 0 2 1.5 2 3 1-1 2.5-1 3 0 .5-.6 1-1 2-1s1.5.4 2 1c.5-1 2-1 3 0 0-1.5.5-3 2-3-3-2-6-1-7 1Z' fill='#1a0d26'/>`);
+    case "primavera":
+      return wrapS(40, 14, [10, 30].map((x, i) => [0, 72, 144, 216, 288].map((a) => `<ellipse cx='${x}' cy='3.5' rx='2.2' ry='3.6' fill='${i ? "#ffd54f" : "#fbc02d"}' transform='rotate(${a} ${x} 7)'/>`).join("") + `<circle cx='${x}' cy='7' r='1.8' fill='#f57f17'/>`).join(""));
+    case "nino":
+      return wrapS(54, 18, ["#e53935", "#1e88e5", "#fbc02d"].map((c, i) => `<ellipse cx='${9 + i * 18}' cy='7' rx='5' ry='6' fill='${c}'/><path d='M${9 + i * 18} 13q2 3 0 5' stroke='#666' stroke-width='.7' fill='none'/>`).join(""));
+    case "maestro":
+      return wrapS(48, 14, `<rect x='4' y='4' width='18' height='6' rx='1' fill='#fbc02d'/><path d='M22 4l5 3-5 3Z' fill='#f5d6a8'/><circle cx='38' cy='8' r='5' fill='#e53935'/><path d='M38 3q1-2 3-2' stroke='#5d4037' stroke-width='1.2'/>`);
+    default: {
+      const t = picadoTile(id);
+      return { uri: t.image, w: Math.round(t.width * 0.5), h: Math.round(t.height * 0.5) };
+    }
+  }
 }

@@ -8,7 +8,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { cn } from "@/lib/cn";
 import type { FestiveTheme } from "@/lib/festive";
 import { SKINS, skinCss } from "@/lib/festiveSkin";
-import { BOUQUET, bigRatio, bigUri, confettiUri, darkPatternUri, laceUri, logoArchUri, ribbonEndUri, sidePanelUri, swagSvg, type BigArt } from "@/lib/festiveArt2";
+import { BOUQUET, bigRatio, bigUri, confettiUri, darkPatternUri, laceUri, logoBackdrop, ribbonEndUri, sidePanelUri, swagSvg, type BigArt } from "@/lib/festiveArt2";
 
 /* ------------------------------------------------------------------ Revisión de choques con el texto */
 type Deco = { el: HTMLElement; scales: number[]; textOnly?: boolean };
@@ -309,8 +309,9 @@ export function FestiveSidePanels({ theme, opacity = 0.22 }: { theme: FestiveThe
 /** Flores y calaveritas en las orillas, a distintas alturas: pueden asomarse sobre las tarjetas pero nunca sobre letras */
 export function FestiveEdgeArt({ theme, rows = 4, seed = 0 }: { theme: FestiveTheme; rows?: number; seed?: number }) {
   const [back, hero, , filler] = BOUQUET[theme.id];
+  const list = SKINS[theme.id].edge ?? [back, hero, filler, back];
   const items = Array.from({ length: rows * 2 }, (_, i) => ({
-    name: [back, hero, filler, back][(i + seed) % 4] as BigArt,
+    name: list[(i + seed) % list.length] as BigArt,
     right: i % 2 === 1,
     top: 6 + Math.floor(i / 2) * (88 / Math.max(rows - 1, 1)) + (i % 2) * 6,
     w: [70, 64, 44, 58][(i + seed) % 4],
@@ -342,7 +343,7 @@ function EdgeItem({ name, right, top, w, delay }: { name: BigArt; right: boolean
  */
 export function LogoFrame({ theme, compact = false }: { theme: FestiveTheme; compact?: boolean }) {
   const [back, hero, , filler] = BOUQUET[theme.id];
-  const arch = useMemo(() => logoArchUri(theme.id), [theme.id]);
+  const backdrop = useMemo(() => logoBackdrop(theme.id), [theme.id]);
   const lace = useMemo(() => laceUri(theme.id), [theme.id]);
   const endL = useMemo(() => ribbonEndUri(theme.id, "left"), [theme.id]);
   const endR = useMemo(() => ribbonEndUri(theme.id, "right"), [theme.id]);
@@ -352,13 +353,12 @@ export function LogoFrame({ theme, compact = false }: { theme: FestiveTheme; com
     <>
       {/* detrás del logo */}
       <div aria-hidden data-fest className="pointer-events-none absolute inset-0">
-        {theme.id === "muertos" ? (
-          <>
-            <span className="absolute block rounded-full" style={{ inset: "-8%", background: "radial-gradient(circle, rgb(255 248 236 / .97) 0 42%, rgb(255 236 214 / .6) 55%, rgb(255 236 214 / 0) 70%)" }} />
-            <span className="fest-flutter block" style={{ ...at(19, 3, 66), aspectRatio: "200 / 104", background: `${arch} center / contain no-repeat`, opacity: 0.9 }} />
-          </>
+        {/* resplandor claro que funde el logo con el fondo sin perder las letras */}
+        <span className="absolute block rounded-full" style={{ inset: "-10%", background: "radial-gradient(circle, rgb(255 250 242 / .97) 0 40%, rgb(255 244 230 / .7) 52%, rgb(255 240 222 / 0) 70%)" }} />
+        {backdrop.mode === "arch" ? (
+          <span className="fest-flutter block" style={{ ...at(17, 1, 70), aspectRatio: "200 / 104", background: `${backdrop.uri} center / contain no-repeat`, opacity: 0.95 }} />
         ) : (
-          <Medallion theme={theme} />
+          <span className="fest-breathe block" style={{ ...at(2, -2, 96), aspectRatio: "1", background: `${backdrop.uri} center / contain no-repeat`, opacity: 0.9 }} />
         )}
         {!compact && (
           <>
@@ -392,30 +392,3 @@ export function FestiveSkin({ theme }: { theme: FestiveTheme }) {
   return <style data-fest-skin={theme.id} dangerouslySetInnerHTML={{ __html: css }} />;
 }
 
-/** Medallón blanco con aro de la temporada detrás del logo (para todas las temporadas menos Día de Muertos) */
-function Medallion({ theme }: { theme: FestiveTheme }) {
-  const ring = SKINS[theme.id].ring;
-  const special: React.CSSProperties =
-    theme.id === "navidad"
-      ? { outline: "7px dotted #e53935", outlineOffset: "-4px" }
-      : theme.id === "anonuevo" || theme.id === "reyes"
-        ? { outline: "2px solid #f3d27a", outlineOffset: "6px" }
-        : theme.id === "halloween"
-          ? { boxShadow: "0 0 0 6px #ff8c1a55, 0 0 70px 24px #fff3b0aa" }
-          : {};
-  return (
-    <span
-      className="absolute block rounded-full"
-      style={{
-        left: "4%",
-        top: "2%",
-        width: "92%",
-        aspectRatio: "1",
-        background: `radial-gradient(circle, #fff 0 62%, #fffaf2 70%)`,
-        border: `12px solid ${ring}`,
-        boxShadow: `0 0 0 4px #fff8, 0 24px 60px -20px rgb(0 0 0 / .55)`,
-        ...special,
-      }}
-    />
-  );
-}

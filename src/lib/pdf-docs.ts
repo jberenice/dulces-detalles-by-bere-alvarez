@@ -2,6 +2,10 @@
 import type { PdfDoc } from "@/components/pdf/DocumentPDF";
 import { date, dateLong, facebookLabel, folio as fmtFolio, siteUrl } from "./format";
 import type { Order, Profile, Quote } from "./types";
+import { festiveFor } from "./festive";
+
+/** Temporada de hoy para el diseño del PDF (Navidad, Día de Muertos…) */
+const seasonNow = () => festiveFor(new Date())?.id ?? null;
 
 /** Código corto de verificación (no secreto) a partir del token: permite comprobar que el PDF es auténtico */
 export const verifyCode = (token?: string | null) => (token ? token.replace(/-/g, "").slice(0, 8).toUpperCase().replace(/(.{4})(.{4})/, "$1-$2") : null);
@@ -49,6 +53,7 @@ export function quoteToPdf(q: Quote, p: BusinessLike): PdfDoc {
     notes: q.notes,
     terms: q.terms,
     link: q.share_enabled === false ? null : `${siteUrl()}/c/${q.public_token}`,
+    festive: seasonNow(),
   };
 }
 
@@ -76,6 +81,7 @@ export function orderToPdf(o: Order, p: BusinessLike, origin?: string): PdfDoc {
     total: Number(o.total),
     deposit: Number(o.deposit) || 0,
     notes: o.notes,
+    festive: seasonNow(),
   };
 }
 

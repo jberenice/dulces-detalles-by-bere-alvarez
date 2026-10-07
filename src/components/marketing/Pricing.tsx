@@ -112,6 +112,17 @@ const SPRINKLES = [
 /** Adornos sobre el glaseado según la temporada */
 function Topping({ kind, seed }: { kind: string; seed: number }) {
   const r = (n: number) => ((Math.sin((n + 1) * 12.9898 + seed * 78.233) * 43758.5453) % 1 + 1) % 1;
+  if (kind === "reyes")
+    // roscas y los animales de los Reyes Magos encima del glaseado
+    return (
+      <>
+        {(seed === 0 ? (["camello", "roscaDeluxe", "elefante"] as const) : seed === 1 ? (["roscaDeluxe", "caballo", "roscaDeluxe"] as const) : (["elefante", "roscaDeluxe", "camello"] as const)).map((n, i) => (
+          <span key={i} className="fest-bob absolute" style={{ left: `${4 + i * 21}%`, top: 2, animationDelay: `${-i * 1.3}s` }}>
+            <BigArtImg name={n} w={n === "roscaDeluxe" ? 54 : 50} part={false} />
+          </span>
+        ))}
+      </>
+    );
   if (kind === "snow")
     return (
       <>
@@ -121,6 +132,13 @@ function Topping({ kind, seed }: { kind: string; seed: number }) {
         </svg>
         {Array.from({ length: 11 }, (_, i) => (
           <span key={i} className="absolute block" style={{ left: `${4 + i * 9 + r(i) * 3}%`, top: 22, width: 0, height: 0, borderLeft: "5px solid transparent", borderRight: "5px solid transparent", borderTop: `${14 + r(i + 3) * 18}px solid #f2f8ff`, filter: "drop-shadow(0 1px 0 #cfe3f7)" }} />
+        ))}
+        {/* tira de focos de colores */}
+        <svg viewBox="0 0 400 30" preserveAspectRatio="none" className="absolute inset-x-0 top-[40px] h-[26px] w-full">
+          <path d="M0 4Q25 16 50 4T100 4T150 4T200 4T250 4T300 4T350 4T400 4" stroke="#2e2410" strokeWidth="1.2" fill="none" />
+        </svg>
+        {Array.from({ length: 16 }, (_, i) => (
+          <span key={`b${i}`} className="fest-twinkle absolute block rounded-full" style={{ left: `${3 + i * 6.2}%`, top: i % 2 ? 50 : 44, width: 8, height: 11, background: ["#e53935", "#fbc02d", "#43a047", "#1e88e5", "#8e24aa", "#fb8c00"][i % 6], boxShadow: `0 0 8px ${["#e53935", "#fbc02d", "#43a047", "#1e88e5", "#8e24aa", "#fb8c00"][i % 6]}`, animationDelay: `${-i * 0.3}s` }} />
         ))}
       </>
     );

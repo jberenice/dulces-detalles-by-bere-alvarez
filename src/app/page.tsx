@@ -95,7 +95,7 @@ export default async function Landing({ searchParams }: { searchParams: Promise<
 
       {/* Funciones */}
       <section data-fs="features" className="relative mx-auto max-w-6xl px-4 py-20 sm:px-6">
-        <LandingFestiveSection seed={3} count={8} />
+        <LandingFestiveSection seed={3} edgeArt={3} />
         <div className="mx-auto max-w-2xl text-center">
           <p className="font-script text-2xl text-rose-500">Todo en un solo lugar</p>
           <h2 className="mt-1 text-4xl font-semibold">Tu repostería, organizada y rentable</h2>
@@ -208,7 +208,7 @@ export default async function Landing({ searchParams }: { searchParams: Promise<
 
       {/* Precios */}
       <section id="precios" data-fs="pricing" className="relative scroll-mt-20 bg-cream-200/60">
-        <LandingFestiveSection seed={9} count={8} />
+        <LandingFestiveSection seed={9} edgeArt={3} />
         <div className="mx-auto max-w-6xl px-4 py-20 sm:px-6">
           <div className="mx-auto mb-10 max-w-2xl text-center">
             <p className="font-script text-2xl text-rose-500">Planes a tu medida</p>

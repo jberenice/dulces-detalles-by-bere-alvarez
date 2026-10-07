@@ -428,3 +428,47 @@
     animation: none;
   }
 }
+@keyframes fest-breathe {
+  0%,
+  100% {
+    transform: scale(1) rotate(0deg);
+  }
+  50% {
+    transform: scale(1.03) rotate(2deg);
+  }
+}
+.fest-breathe {
+  animation: fest-breathe 9s ease-in-out infinite;
+}
+@media (prefers-reduced-motion: reduce) {
+  .fest-breathe {
+    animation: none;
+  }
+}
+@keyframes fest-twinkle {
+  0%,
+  100% {
+    opacity: 1;
+    filter: brightness(1.15);
+  }
+  50% {
+    opacity: 0.55;
+    filter: brightness(0.8);
+  }
+}
+.fest-twinkle {
+  animation: fest-twinkle 1.6s ease-in-out infinite;
+}
+@media (prefers-reduced-motion: reduce) {
+  .fest-twinkle {
+    animation: none;
+  }
+}
+/* Etiquetas pequeñas sobre el color secundario: en temporada se oscurece el fondo para que el texto blanco se lea */
+:root[data-festive] .bg-mint-400.text-cocoa-900 {
+  background-color: var(--color-mint-600);
+  color: #fff;
+}
+:root[data-festive] .card .text-cocoa-300 {
+  color: var(--color-cocoa-400);
+}
