@@ -9,6 +9,7 @@ import { cn } from "@/lib/cn";
 import { useFestive } from "@/components/festive/Festive";
 import { BigArtImg } from "@/components/festive/Decor";
 import { BOUQUET, picadoTile } from "@/lib/festiveArt2";
+import { SKINS } from "@/lib/festiveSkin";
 import type { FestiveTheme } from "@/lib/festive";
 
 /** Cada plan es un postre con su propio glaseado que se derrite */
@@ -48,15 +49,11 @@ const BAND = 36; // alto del glaseado base dentro del viewBox (0–100)
 const VB = 100;
 const H = 96; // alto en px del SVG
 
-// En temporada cada plan toma un glaseado de la temporada (morado, chocolate, naranja…)
-const FEST_GLAZE: Record<PlanId, { glaze: string; shine: string }> = {
-  basico: { glaze: "var(--color-mint-500)", shine: "var(--color-mint-200)" },
-  profesional: { glaze: "var(--color-cocoa-400)", shine: "var(--color-cocoa-200)" },
-  premium: { glaze: "var(--color-rose-500)", shine: "var(--color-rose-200)" },
-};
+const PLAN_IDX: Record<PlanId, number> = { basico: 0, profesional: 1, premium: 2 };
 
 function MeltingGlaze({ plan, shown, fest }: { plan: PlanId; shown: boolean; fest?: FestiveTheme | null }) {
-  const d = fest ? { ...DESSERT[plan], ...FEST_GLAZE[plan] } : DESSERT[plan];
+  const skin = fest ? SKINS[fest.id] : null;
+  const d = skin ? { ...DESSERT[plan], glaze: skin.glaze[PLAN_IDX[plan]], shine: "rgb(255 255 255 / .55)" } : DESSERT[plan];
   const drips = DRIPS[plan];
   return (
     <div
@@ -78,8 +75,8 @@ function MeltingGlaze({ plan, shown, fest }: { plan: PlanId; shown: boolean; fes
           />
         ))}
       </svg>
-      {/* tira de papel picado debajo del glaseado */}
-      {fest && <FestPicadoStrip theme={fest} />}
+      {/* adorno de la temporada sobre el glaseado (nieve, oro, corazones, burbujas, papel picado…) */}
+      {fest && skin && (skin.topping === "picado" ? <FestPicadoStrip theme={fest} /> : <Topping kind={skin.topping} seed={PLAN_IDX[plan]} />)}
       {/* gotitas que caen de la punta */}
       {drips
         .filter((_, i) => i % 2 === 0)
@@ -111,6 +108,40 @@ const SPRINKLES = [
   { dx: "-12px", dy: "-40px", rot: "90deg", c: "var(--color-mint-500)" },
   { dx: "14px", dy: "34px", rot: "-80deg", c: "var(--color-rose-200)" },
 ];
+
+/** Adornos sobre el glaseado según la temporada */
+function Topping({ kind, seed }: { kind: string; seed: number }) {
+  const r = (n: number) => ((Math.sin((n + 1) * 12.9898 + seed * 78.233) * 43758.5453) % 1 + 1) % 1;
+  if (kind === "snow")
+    return (
+      <>
+        <svg viewBox="0 0 400 40" preserveAspectRatio="none" className="absolute inset-x-0 -top-1 h-[34px] w-full">
+          <path d="M0 0H400V18c-14 10-22-4-36 4s-18 14-32 6-20-12-36-2-22 12-36 2-20-8-34 2-26 12-40 2-20-12-34-2-20 14-36 4S14 18 0 24Z" fill="#fff" />
+          <path d="M0 0H400V8C360 14 330 4 290 9S220 5 180 9 90 3 50 9 10 6 0 9Z" fill="#e8f3ff" />
+        </svg>
+        {Array.from({ length: 11 }, (_, i) => (
+          <span key={i} className="absolute block" style={{ left: `${4 + i * 9 + r(i) * 3}%`, top: 22, width: 0, height: 0, borderLeft: "5px solid transparent", borderRight: "5px solid transparent", borderTop: `${14 + r(i + 3) * 18}px solid #f2f8ff`, filter: "drop-shadow(0 1px 0 #cfe3f7)" }} />
+        ))}
+      </>
+    );
+  const items = Array.from({ length: 16 }, (_, i) => ({ x: 3 + r(i) * 94, y: 4 + r(i + 20) * 26, rot: r(i + 40) * 360 }));
+  return (
+    <>
+      {items.map((it, i) => {
+        const base = { position: "absolute" as const, left: `${it.x}%`, top: it.y };
+        if (kind === "gold")
+          return <span key={i} style={{ ...base, width: i % 3 ? 4 : 6, height: i % 3 ? 4 : 6, borderRadius: i % 3 ? 99 : 1, transform: `rotate(${it.rot}deg)`, background: i % 2 ? "#f3d27a" : "#fff3c4", boxShadow: "0 0 6px #f3d27a" }} />;
+        if (kind === "hearts")
+          return <span key={i} style={{ ...base, fontSize: i % 3 ? 11 : 15, lineHeight: 1, color: i % 2 ? "#ffd6e0" : "#ff8fab" }}>♥</span>;
+        if (kind === "slime")
+          return <span key={i} style={{ ...base, width: 6 + (i % 4) * 3, height: 6 + (i % 4) * 3, borderRadius: 99, background: "rgb(220 255 170 / .55)", border: "1px solid rgb(255 255 255 / .6)" }} />;
+        if (kind === "flowers")
+          return <span key={i} style={{ ...base, fontSize: i % 3 ? 11 : 15, lineHeight: 1, color: i % 2 ? "#fff" : "#fff3b0" }}>✿</span>;
+        return <span key={i} style={{ ...base, width: 9, height: 3.5, borderRadius: 2, transform: `rotate(${it.rot}deg)`, background: ["#ffca28", "#26c6da", "#ec407a", "#fff", "#66bb6a"][i % 5] }} />;
+      })}
+    </>
+  );
+}
 
 function FestPicadoStrip({ theme }: { theme: FestiveTheme }) {
   const t = picadoTile(theme.id);

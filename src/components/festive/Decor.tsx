@@ -7,6 +7,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { cn } from "@/lib/cn";
 import type { FestiveTheme } from "@/lib/festive";
+import { SKINS, skinCss } from "@/lib/festiveSkin";
 import { BOUQUET, bigRatio, bigUri, confettiUri, darkPatternUri, laceUri, logoArchUri, ribbonEndUri, sidePanelUri, swagSvg, type BigArt } from "@/lib/festiveArt2";
 
 /* ------------------------------------------------------------------ Revisión de choques con el texto */
@@ -351,7 +352,20 @@ export function LogoFrame({ theme, compact = false }: { theme: FestiveTheme; com
     <>
       {/* detrás del logo */}
       <div aria-hidden data-fest className="pointer-events-none absolute inset-0">
-        <span className="fest-flutter block" style={{ ...at(19, 3, 66), aspectRatio: "200 / 104", background: `${arch} center / contain no-repeat`, opacity: 0.9 }} />
+        {theme.id === "muertos" ? (
+          <>
+            <span className="absolute block rounded-full" style={{ inset: "-8%", background: "radial-gradient(circle, rgb(255 248 236 / .97) 0 42%, rgb(255 236 214 / .6) 55%, rgb(255 236 214 / 0) 70%)" }} />
+            <span className="fest-flutter block" style={{ ...at(19, 3, 66), aspectRatio: "200 / 104", background: `${arch} center / contain no-repeat`, opacity: 0.9 }} />
+          </>
+        ) : (
+          <Medallion theme={theme} />
+        )}
+        {!compact && (
+          <>
+            <span className="fest-bob" style={{ ...at(-14, 70, 22), animationDelay: "-1.2s" }}><BigArtImg name={BOUQUET[theme.id][2]} w={90} part={false} className="!h-auto !w-full" /></span>
+            <span className="fest-sway" style={{ ...at(92, 66, 22), ["--r" as string]: "6deg" }}><BigArtImg name={BOUQUET[theme.id][4]} w={90} part={false} className="!h-auto !w-full" /></span>
+          </>
+        )}
         <span style={{ ...at(4, 87.6, 92), height: compact ? 6 : "2.6%", background: `${lace} left top / auto 100% repeat-x` }} />
         <span style={{ ...at(-6, 79.5, 12), aspectRatio: "64 / 36", background: `${endL} center / contain no-repeat` }} />
         <span style={{ ...at(94.5, 79.5, 12), aspectRatio: "64 / 36", background: `${endR} center / contain no-repeat` }} />
@@ -369,5 +383,39 @@ export function LogoFrame({ theme, compact = false }: { theme: FestiveTheme; com
         )}
       </div>
     </>
+  );
+}
+
+/** Inyecta la "piel" de la temporada (fondos de secciones, tarjetas, colores de texto) mientras está montado */
+export function FestiveSkin({ theme }: { theme: FestiveTheme }) {
+  const css = useMemo(() => skinCss(theme.id), [theme.id]);
+  return <style data-fest-skin={theme.id} dangerouslySetInnerHTML={{ __html: css }} />;
+}
+
+/** Medallón blanco con aro de la temporada detrás del logo (para todas las temporadas menos Día de Muertos) */
+function Medallion({ theme }: { theme: FestiveTheme }) {
+  const ring = SKINS[theme.id].ring;
+  const special: React.CSSProperties =
+    theme.id === "navidad"
+      ? { outline: "7px dotted #e53935", outlineOffset: "-4px" }
+      : theme.id === "anonuevo" || theme.id === "reyes"
+        ? { outline: "2px solid #f3d27a", outlineOffset: "6px" }
+        : theme.id === "halloween"
+          ? { boxShadow: "0 0 0 6px #ff8c1a55, 0 0 70px 24px #fff3b0aa" }
+          : {};
+  return (
+    <span
+      className="absolute block rounded-full"
+      style={{
+        left: "4%",
+        top: "2%",
+        width: "92%",
+        aspectRatio: "1",
+        background: `radial-gradient(circle, #fff 0 62%, #fffaf2 70%)`,
+        border: `12px solid ${ring}`,
+        boxShadow: `0 0 0 4px #fff8, 0 24px 60px -20px rgb(0 0 0 / .55)`,
+        ...special,
+      }}
+    />
   );
 }

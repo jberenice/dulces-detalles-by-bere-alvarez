@@ -31,7 +31,7 @@ export default async function Landing({ searchParams }: { searchParams: Promise<
   return (
     <div className="overflow-x-clip">
       {/* Navegación */}
-      <header className="sticky top-0 z-40 border-b border-cocoa-800/5 bg-cream-100/85 backdrop-blur-xl">
+      <header data-fs="header" className="sticky top-0 z-40 border-b border-cocoa-800/5 bg-cream-100/85 backdrop-blur-xl">
         <div className="mx-auto flex max-w-6xl items-center justify-between gap-3 px-4 py-2.5 sm:px-6 sm:py-3">
           <Link href="/" className="flex min-w-0 items-center gap-2">
             <Image src="/logo-transparent.svg" unoptimized alt="Dulces Detalles" width={44} height={44} className="h-11 w-11 shrink-0" />
@@ -50,7 +50,7 @@ export default async function Landing({ searchParams }: { searchParams: Promise<
       </header>
 
       {/* Hero */}
-      <section className="sprinkles relative">
+      <section data-fs="hero" className="sprinkles relative">
         <div className="absolute top-10 -left-32 h-96 w-96 rounded-full bg-rose-200/40 blur-3xl" />
         <div className="absolute -right-24 bottom-0 h-96 w-96 rounded-full bg-mint-200/50 blur-3xl" />
         <LandingFestiveDecor />
@@ -94,7 +94,7 @@ export default async function Landing({ searchParams }: { searchParams: Promise<
       </section>
 
       {/* Funciones */}
-      <section className="relative mx-auto max-w-6xl px-4 py-20 sm:px-6">
+      <section data-fs="features" className="relative mx-auto max-w-6xl px-4 py-20 sm:px-6">
         <LandingFestiveSection seed={3} count={8} />
         <div className="mx-auto max-w-2xl text-center">
           <p className="font-script text-2xl text-rose-500">Todo en un solo lugar</p>
@@ -113,7 +113,7 @@ export default async function Landing({ searchParams }: { searchParams: Promise<
       </section>
 
       {/* Video */}
-      <section id="video" className="relative mx-auto max-w-5xl px-4 pb-20 sm:px-6">
+      <section id="video" data-fs="video" className="relative mx-auto max-w-5xl px-4 pb-20 sm:px-6">
         <LandingFestiveSection seed={5} count={4} garland={false} />
         <div className="mx-auto mb-8 max-w-2xl text-center">
           <p className="font-script text-2xl text-rose-500">Míralo en acción</p>
@@ -145,7 +145,7 @@ export default async function Landing({ searchParams }: { searchParams: Promise<
       </section>
 
       {/* Cómo funciona */}
-      <section className="relative bg-cocoa-800 text-cream-100">
+      <section data-fs="how" className="relative bg-cocoa-800 text-cream-100">
         <LandingFestiveSection seed={7} dark />
         <div className="sprinkles mx-auto grid max-w-6xl gap-10 px-4 py-20 sm:px-6 lg:grid-cols-2 lg:items-center">
           <div>
@@ -207,7 +207,7 @@ export default async function Landing({ searchParams }: { searchParams: Promise<
       )}
 
       {/* Precios */}
-      <section id="precios" className="relative scroll-mt-20 bg-cream-200/60">
+      <section id="precios" data-fs="pricing" className="relative scroll-mt-20 bg-cream-200/60">
         <LandingFestiveSection seed={9} count={8} />
         <div className="mx-auto max-w-6xl px-4 py-20 sm:px-6">
           <div className="mx-auto mb-10 max-w-2xl text-center">
@@ -220,7 +220,7 @@ export default async function Landing({ searchParams }: { searchParams: Promise<
       </section>
 
       {/* Preguntas frecuentes */}
-      <section id="preguntas" className="relative mx-auto max-w-3xl scroll-mt-20 px-4 py-20 sm:px-6">
+      <section id="preguntas" data-fs="faq" className="relative mx-auto max-w-3xl scroll-mt-20 px-4 py-20 sm:px-6">
         <LandingFestiveSection seed={11} edgeArt={4} corners={false} />
         <div className="text-center">
           <p className="font-script text-2xl text-rose-500">Resolvemos tus dudas</p>
@@ -240,7 +240,7 @@ export default async function Landing({ searchParams }: { searchParams: Promise<
       </section>
 
       {/* Redes sociales */}
-      <section className="relative mx-auto max-w-4xl px-4 py-16 text-center sm:px-6">
+      <section data-fs="social" className="relative mx-auto max-w-4xl px-4 py-16 text-center sm:px-6">
         <LandingFestiveSection seed={13} count={4} />
         <p className="font-script text-2xl text-rose-500">Endulza tu feed</p>
         <h2 className="mt-1 text-3xl font-semibold sm:text-4xl">Síguenos en nuestras redes sociales</h2>

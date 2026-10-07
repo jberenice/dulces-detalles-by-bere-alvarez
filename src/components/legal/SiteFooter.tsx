@@ -24,7 +24,7 @@ export function SiteFooter({ compact, className, social = true }: { compact?: bo
       </footer>
     );
   return (
-    <footer className={cn("relative overflow-hidden border-t border-cocoa-800/5 bg-cream-50", className)}>
+    <footer data-fs="footer" className={cn("relative overflow-hidden border-t border-cocoa-800/5 bg-cream-50", className)}>
       <FestiveFooterDecor />
       <div className="mx-auto flex max-w-6xl flex-col items-center gap-4 px-4 py-12 text-center sm:px-6">
         <FestiveFooterArt />

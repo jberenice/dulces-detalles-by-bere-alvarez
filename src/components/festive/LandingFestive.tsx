@@ -2,7 +2,7 @@
 import { cn } from "@/lib/cn";
 import { BOUQUET } from "@/lib/festiveArt2";
 import { FestiveColors, FestiveParticles, useFestive, useFestiveDecor } from "./Festive";
-import { BigArtImg, FestiveBouquet, FestiveConfetti, FestiveEdgeArt, FestiveSidePanels, FestiveSwag, FestiveSwags, LogoFrame, MiniBouquet } from "./Decor";
+import { BigArtImg, FestiveBouquet, FestiveConfetti, FestiveEdgeArt, FestiveSidePanels, FestiveSwag, FestiveSwags, FestiveSkin, LogoFrame, MiniBouquet } from "./Decor";
 
 /** Adornos de temporada de la portada (según la fecha; ?tema=… para verlos antes) */
 export function LandingFestiveDecor() {
@@ -13,6 +13,7 @@ export function LandingFestiveDecor() {
   return (
     <>
       <FestiveColors theme={fest} />
+      <FestiveSkin theme={fest} />
       <FestiveConfetti theme={fest} opacity={0.55} />
       <FestiveSwags theme={fest} big width={0.46} />
       <FestiveParticles theme={fest} count={18} contained />
