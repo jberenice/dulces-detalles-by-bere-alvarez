@@ -111,7 +111,14 @@ export function FestiveRibbon({ theme, href, cta }: { theme: FestiveTheme; href?
   }, [key]);
   if (hidden) return null;
   return (
-    <div className="relative mb-6 overflow-hidden rounded-3xl text-white shadow-soft" style={{ background: `linear-gradient(120deg, ${theme.colors.primary}, ${theme.colors.accent})` }}>
+    <div
+      className="relative mb-6 overflow-hidden rounded-3xl text-white shadow-soft"
+      style={
+        theme.id === "independencia"
+          ? { background: "linear-gradient(90deg, #0b6b46 0%, #0b6b46 18%, #fffdf9 40%, #fffdf9 60%, #c8102e 82%, #c8102e 100%)", color: "#1d2b22", textShadow: "0 0 6px #fff, 0 0 2px #fff, 0 0 12px #fff" }
+          : { background: `linear-gradient(120deg, ${theme.colors.primary}, ${theme.colors.accent})` }
+      }
+    >
       <FestiveGarland theme={theme} className="opacity-95" scale={0.8} />
       <div className="flex flex-wrap items-center gap-3 px-5 pt-1 pb-4">
         <span className="text-3xl">{theme.emoji}</span>

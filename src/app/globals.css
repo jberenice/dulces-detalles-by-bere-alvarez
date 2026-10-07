@@ -636,3 +636,13 @@
 :root[data-festive="muertos"] .nav-chip svg {
   margin-top: -4px;
 }
+/* Logo de temporada: las orillas del cuadro se difuminan para que se funda con el resplandor */
+.season-logo {
+  -webkit-mask-image: radial-gradient(circle, #000 58%, transparent 71%);
+  mask-image: radial-gradient(circle, #000 58%, transparent 71%);
+}
+/* En temporada los logos llevan un resplandor blanco detrás para que siempre se vean (encabezados oscuros) */
+:root[data-festive] header img:is([src*="logo"], [alt*="Dulces Detalles"]) {
+  background: radial-gradient(circle, #fff 0 46%, rgb(255 255 255 / 0.75) 58%, rgb(255 255 255 / 0) 71%);
+  border-radius: 9999px;
+}

@@ -36,7 +36,10 @@ export default async function Landing({ searchParams }: { searchParams: Promise<
         <div className="mx-auto flex max-w-6xl items-center justify-between gap-3 px-4 py-2.5 sm:px-6 sm:py-3">
           <Link href="/" className="flex min-w-0 items-center gap-2">
             <Image src="/logo-transparent.svg" unoptimized alt="Dulces Detalles" width={44} height={44} className="h-11 w-11 shrink-0" />
-            <span className="truncate font-script text-xl font-bold whitespace-nowrap text-cocoa-600 max-[359px]:hidden sm:text-2xl">Dulces Detalles</span>
+            <span className="flex min-w-0 flex-col leading-none max-[359px]:hidden">
+              <span className="truncate font-script text-xl font-bold whitespace-nowrap text-cocoa-600 sm:text-2xl">Dulces Detalles</span>
+              <span className="truncate font-script text-[13px] whitespace-nowrap text-rose-500 sm:text-sm">by Bere Álvarez</span>
+            </span>
           </Link>
           <LandingHeaderArt className="mr-auto max-md:hidden" />
           <nav className="flex shrink-0 items-center gap-2">
@@ -59,7 +62,6 @@ export default async function Landing({ searchParams }: { searchParams: Promise<
         <div className="relative mx-auto grid max-w-6xl items-center gap-10 px-4 pt-12 pb-20 sm:px-6 lg:grid-cols-[1.1fr_1fr] lg:pt-20 lg:pb-28">
           <div className="animate-fade-up text-center lg:text-left">
             <LandingFestiveBadge />
-            <p className="font-script text-2xl text-rose-500 sm:text-3xl">by Bere Álvarez</p>
             <h1 className="mt-2 text-[34px] leading-[1.08] font-semibold sm:text-6xl">
               Cotiza, costea y vende tus <span className="text-rose-500 italic">postres</span> con el cariño de siempre.
             </h1>

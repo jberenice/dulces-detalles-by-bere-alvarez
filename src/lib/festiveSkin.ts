@@ -43,6 +43,10 @@ export type Skin = {
   side?: string;
   /** el contenido del pie de página va sobre una placa clara */
   plaque?: boolean;
+  /** el menú lateral es claro en partes: letras oscuras con contorno blanco */
+  sideLight?: boolean;
+  /** letras con contorno blanco para que se lean sobre las franjas de color */
+  halo?: boolean;
   /** fondo de cada plan (básico, profesional, premium) y si su texto va claro */
   plans?: { bg: [string, string, string]; dark: [boolean, boolean, boolean] };
 };
@@ -123,7 +127,9 @@ const MX = {
   light: "linear-gradient(90deg, #dcefe5 0%, #f4faf6 22%, #fffdf9 38%, #fffdf9 62%, #fdf1f2 78%, #f9dfe2 100%)",
   dark: "linear-gradient(105deg, #06523a 0%, #0b6b46 30%, #5b3a22 50%, #a8101f 70%, #7d0c16 100%)",
   /** bandera: verde a la izquierda, blanco al centro (con el águila café) y rojo a la derecha */
-  flag: "linear-gradient(90deg, #0b6b46 0%, #0b6b46 2.5%, #cfe6da 10%, #fffdf9 20%, #fffdf9 80%, #f8d9de 90%, #c8102e 97.5%, #c8102e 100%)",
+  flag: "linear-gradient(90deg, #0b6b46 0%, #0b6b46 20%, #fffdf9 40%, #fffdf9 60%, #c8102e 80%, #c8102e 100%)",
+  /** igual pero de arriba hacia abajo (menú lateral del panel) */
+  flagV: "linear-gradient(180deg, #0b6b46 0%, #0b6b46 22%, #fffdf9 40%, #fffdf9 60%, #c8102e 78%, #c8102e 100%)",
   eagleBig: eagle("#7a4a22", 0.16),
   footer: "linear-gradient(90deg, #0b6b46 0%, #0b6b46 10%, #fffdf9 30%, #fffdf9 70%, #c8102e 90%, #c8102e 100%)",
 };
@@ -296,7 +302,9 @@ export const SKINS: Record<FestiveId, Skin> = {
     ring: "#0b6b46",
     ink: { dark: "#fffdf9", muted: "#f1ece2" },
     edge: ["aguila", "campana", "chile", "rehileteMx"],
-    side: "linear-gradient(180deg, #07583b 0%, #0b6b46 45%, #a8101f 55%, #7d0c16 100%)",
+    side: `${MX.eagleBig} center 50% / 85% auto no-repeat, ${MX.flagV}`,
+    sideLight: true,
+    halo: true,
     plans: { bg: ["#0b6b46", `${MX.eagleBig} center 62% / 78% auto no-repeat, #fffdf9`, "#c8102e"], dark: [true, false, true] },
   },
   halloween: {
@@ -433,7 +441,8 @@ export function skinCss(id: FestiveId) {
     const t = s[name];
     const sec = `[data-fs="${name}"]`;
     // fondo de orilla a orilla (aunque la sección sea angosta), detrás del confeti y del contenido
-    css += `${sec}{position:relative;isolation:isolate;background:transparent!important}`;
+    // el encabezado conserva su posición fija al hacer scroll (sticky)
+    css += name === "header" ? `${sec}{isolation:isolate;background:transparent!important}` : `${sec}{position:relative;isolation:isolate;background:transparent!important}`;
     css += `${sec}::before{content:"";position:absolute;inset:0 calc(50% - 50vw);z-index:-20;background:${t.bg};pointer-events:none}`;
     if (t.dark) css += ink(sec, s.ink.dark, s.ink.muted);
     else css += `${sec} :is(.text-white,[class*="text-cream-"]):not(:is(a,button,[class*="bg-rose-"],[class*="bg-mint-"]) *):not(a,button,[class*="bg-rose-"],[class*="bg-mint-"]){color:#2e1d10}${sec} [class*="text-cream-200"]:not(a *){color:#5d4634}${sec} .text-mint-300{color:#0b6b46}`;
@@ -498,6 +507,8 @@ export function skinCss(id: FestiveId) {
       css += `${card} div.rounded-2xl{background:rgb(255 255 255 / .92)!important}${card} div.rounded-2xl :is(p,span,b,label):not(button *){color:#2e1d10!important}`;
     });
   }
+  if (s.halo) css += `[data-fs]:not([data-fs="pricing"]) :is(.text-cocoa-500,.text-cocoa-400,.text-cocoa-300):not(:is(.card,.fest-card,li.rounded-3xl,a,button) *){color:#2e2014!important;font-weight:600}`;
+  if (s.halo) css += `[data-fs]:not([data-fs="pricing"]) :is(h1,h2,h3,p,li,summary,label,figcaption,blockquote):not(:is(a,button,.card,.fest-card,li.rounded-3xl,.rounded-full) *){text-shadow:0 0 2px #fff,0 0 6px #fff,0 0 10px #fff,0 0 16px rgb(255 255 255 / .9)}[data-fs="pricing"]>div>div:first-child :is(h2,p){text-shadow:0 0 6px #fff,0 0 2px #fff}`;
   css += darkSkin(s);
   return css;
 }
@@ -537,15 +548,16 @@ export function panelSkinCss(id: FestiveId) {
   css += `:root[data-theme="dark"] [data-fs="panel"]::before{background:${blobs},${DIM},${light.bg}}`;
   css += `:root[data-theme="dark"] [data-fs="panel"] main .font-script{color:color-mix(in srgb, ${light.accent ?? "var(--color-rose-500)"} 55%, white)}`;
   // la bienvenida: si el fondo de la temporada es claro, los textos van oscuros
-  if (!s.hero.dark) css += `[data-fs="phero"] :is(h1,h2,p,span,b,strong):not(button *):not(a *){color:#3a2412!important;text-shadow:0 1px 0 rgb(255 255 255 / .5)}`;
+  if (!s.hero.dark) css += `[data-fs="phero"] :is(h1,h2,p,span,b,strong):not(button *):not(a *){color:#3a2412!important;text-shadow:${s.halo ? "0 0 6px #fff,0 0 2px #fff,0 0 12px #fff" : "0 1px 0 rgb(255 255 255 / .5)"}}`;
   css += `[data-fs="panel"] main .font-script{color:${light.accent ?? "var(--color-rose-500)"}}`;
   // menú lateral con el fondo oscuro de la temporada
   const side = `[data-fs="sidebar"]`;
   // sin patrones encima del texto del menú: solo el degradado de la temporada
   const sideBg = s.side ?? (s.footer.dark ? s.footer.bg : s.hero.bg).replace(/url\("[^"]*"\)[^,]*,\s*/g, "");
   css += `${side}{background:linear-gradient(rgb(0 0 0 / .14),rgb(0 0 0 / .14)),${sideBg}!important;border-color:rgb(255 255 255 / .08)!important}`;
-  css += `${side} :is(p,span,a){text-shadow:0 1px 2px rgb(0 0 0 / .35)}${side} .bg-mint-500 *,${side} .bg-rose-500 *{text-shadow:none}`;
-  css += ink(side, s.ink.dark, s.ink.muted);
+  if (!s.sideLight) css += `${side} :is(p,span,a){text-shadow:0 1px 2px rgb(0 0 0 / .35)}${side} .bg-mint-500 *,${side} .bg-rose-500 *{text-shadow:none}`;
+  if (s.sideLight) css += restore(side) + `${side} :is(p,span,a,button):not(.bg-rose-500,.bg-mint-500,.bg-rose-500 *,.bg-mint-500 *,.bg-white *,.nav-chip *){color:#1d2b22!important;text-shadow:0 0 5px #fff,0 0 2px #fff,0 0 10px #fff}${side} .bg-rose-500,${side} .bg-rose-500 *,${side} .bg-mint-500,${side} .bg-mint-500 *{color:#fff!important;text-shadow:none}${side} a:not(.bg-rose-500):not(.bg-mint-500):hover{background:rgb(255 255 255 / .45)!important}${side} .text-cocoa-300{color:#3c4a40!important}`;
+  else css += ink(side, s.ink.dark, s.ink.muted);
   css += `${side} a:not(.bg-rose-500):not(.bg-mint-500):hover,${side} button:hover{background:rgb(255 255 255 / .1)!important;color:${s.ink.dark}!important}`;
   css += `${side} .text-cocoa-300{color:${s.ink.muted}!important;opacity:.85}`;
   css += `${side} .border-t{border-color:rgb(255 255 255 / .12)}`;
@@ -572,7 +584,12 @@ export function storeSkinCss(id: FestiveId) {
   const border = CARD_BORDER[id] ?? "var(--st-primary)";
   let css = "";
   // fondo con el patrón de la temporada encima del color de la tienda
-  css += `[data-fs="store"]{isolation:isolate}[data-fs="store"]::before{content:"";position:absolute;inset:0;z-index:-1;background:radial-gradient(700px 500px at 0% 10%, color-mix(in srgb, var(--st-primary) 22%, transparent), transparent 62%), radial-gradient(700px 520px at 100% 40%, color-mix(in srgb, var(--st-accent) 20%, transparent), transparent 62%), radial-gradient(800px 500px at 40% 100%, color-mix(in srgb, var(--st-primary) 16%, transparent), transparent 60%), ${light.bg};opacity:.75;pointer-events:none}`;
+  css += `[data-fs="store"]{isolation:isolate}[data-fs="store"]::before{content:"";position:absolute;inset:0;z-index:-1;background:radial-gradient(700px 500px at 0% 10%, color-mix(in srgb, var(--st-primary) 22%, transparent), transparent 62%), radial-gradient(700px 520px at 100% 40%, color-mix(in srgb, var(--st-accent) 20%, transparent), transparent 62%), radial-gradient(800px 500px at 40% 100%, color-mix(in srgb, var(--st-primary) 16%, transparent), transparent 60%), ${light.bg};pointer-events:none}`;
+  // letras de la temporada en los títulos de la tienda
+  css += `[data-fs="store"]{--st-heading:var(--font-display)}[data-fs="store"] :is(h1,h2,h3){font-family:var(--font-display)}`;
+  // tarjetas con el estilo de la temporada (si es una tarjeta clara)
+  const fc = s.features.card ? CARD[s.features.card] : null;
+  if (fc && !fc.dark) css += `[data-fs="store"] .fest-card{${fc.css.replace("LIGHTS", lightsBorderUri(undefined, 0))}}`;
   // portada sin foto: fondo de la temporada
   css += `[data-fs="sbanner"]{background:${s.hero.bg}!important}`;
   // tarjetas de productos y paquetes

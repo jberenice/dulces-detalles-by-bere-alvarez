@@ -1,6 +1,6 @@
 "use client";
 import { FestiveCluster, FestiveParticles, useFestive, useFestiveDecor } from "@/components/festive/Festive";
-import { FestiveSwags, LogoFrame } from "@/components/festive/Decor";
+import { FestiveSwags, SeasonLogo } from "@/components/festive/Decor";
 import { storeSkinCss } from "@/lib/festiveSkin";
 import type { FestiveId } from "@/lib/festive";
 import { BizLogo } from "./BizLogo";
@@ -897,11 +897,7 @@ export function Storefront({ data, slug, preview = false }: { data: StoreData; s
           <div className="absolute inset-x-0 bottom-0 flex items-end gap-4 p-5 @2xl:p-8">
             {/* eslint-disable-next-line @next/next/no-img-element */}
             {fest && logo ? (
-              <span className="relative h-24 w-24 shrink-0 @2xl:h-28 @2xl:w-28">
-                <span aria-hidden className="absolute -inset-3 rounded-full" style={{ background: "radial-gradient(circle, rgb(255 250 242 / .97) 0 46%, rgb(255 244 230 / .6) 60%, transparent 72%)" }} />
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img src={logo} alt={store.business_name} className="relative h-full w-full object-contain" />
-              </span>
+              <SeasonLogo theme={fest} src={logo} alt={store.business_name} className="h-28 w-28 @2xl:h-32 @2xl:w-32" />
             ) : (
               <BizLogo src={logo} name={store.business_name} className="h-20 w-20 shrink-0 bg-white text-[80px] shadow-lg ring-4 ring-white/80 @2xl:h-24 @2xl:w-24 @2xl:text-[96px]" />
             )}
@@ -915,7 +911,11 @@ export function Storefront({ data, slug, preview = false }: { data: StoreData; s
     ) : theme.hero === "minimal" ? (
       <header className="flex items-center gap-4 px-4 pt-6 pb-2">
         {/* eslint-disable-next-line @next/next/no-img-element */}
-        <BizLogo src={logo} name={store.business_name} className="h-16 w-16 shrink-0 bg-[var(--st-surface)] text-[64px] ring-1 ring-[var(--st-line)]" />
+        {fest && logo ? (
+          <SeasonLogo theme={fest} src={logo} alt={store.business_name} className="h-20 w-20" />
+        ) : (
+          <BizLogo src={logo} name={store.business_name} className="h-16 w-16 shrink-0 bg-[var(--st-surface)] text-[64px] ring-1 ring-[var(--st-line)]" />
+        )}
         <div className="min-w-0">
           <h1 className="truncate text-2xl leading-tight font-semibold @2xl:text-3xl">{store.title}</h1>
           {store.description && <p className="line-clamp-2 text-sm text-[var(--st-muted)]">{store.description}</p>}
@@ -933,11 +933,7 @@ export function Storefront({ data, slug, preview = false }: { data: StoreData; s
         <div className="relative mx-auto -mt-16 max-w-3xl px-4 text-center @2xl:-mt-20">
           {fest && logo ? (
             // En temporada: logo sin círculo, fundido con un resplandor y con los adornos de la temporada alrededor
-            <div className="relative mx-auto h-44 w-44 @2xl:h-56 @2xl:w-56">
-              <LogoFrame theme={fest} />
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src={logo} alt={store.business_name} className="relative h-full w-full object-contain p-3" />
-            </div>
+            <SeasonLogo theme={fest} src={logo} alt={store.business_name} className="mx-auto h-44 w-44 @2xl:h-56 @2xl:w-56" compact={false} />
           ) : (
             <div className="mx-auto h-32 w-32 overflow-hidden rounded-full bg-[var(--st-surface)] shadow-lg ring-4 ring-[var(--st-surface)] @2xl:h-40 @2xl:w-40">
               {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -1517,5 +1513,14 @@ function ExtraRow({ x, n, onChange }: { x: StoreExtra; n: number; onChange: (d: 
 /** Estilos de temporada de la tienda (fondo con patrón, portada y tarjetas) */
 function StoreSkinStyle({ id }: { id: FestiveId }) {
   const css = useMemo(() => storeSkinCss(id), [id]);
+  // marca la temporada en la página para usar sus letras
+  useEffect(() => {
+    const root = document.documentElement;
+    if (root.dataset.festive) return;
+    root.dataset.festive = id;
+    return () => {
+      if (root.dataset.festive === id) delete root.dataset.festive;
+    };
+  }, [id]);
   return <style data-fest-store={id} dangerouslySetInnerHTML={{ __html: css }} />;
 }

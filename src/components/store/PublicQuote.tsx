@@ -3,7 +3,7 @@ import { BizLogo } from "./BizLogo";
 import { useMemo } from "react";
 import { cn } from "@/lib/cn";
 import { FestiveColors, FestiveParticles, useFestive } from "@/components/festive/Festive";
-import { FestiveSwags, LogoFrame } from "@/components/festive/Decor";
+import { FestiveSwags, SeasonLogo } from "@/components/festive/Decor";
 import { viewerSkinCss } from "@/lib/festiveSkin";
 import { storeUrl } from "@/lib/domains";
 import { useState } from "react";
@@ -89,11 +89,7 @@ export function PublicQuote({ data, token }: { data: PublicQuoteData; token: str
         <header className={cn("relative flex flex-col items-center gap-4 bg-cream-100 px-6 py-7 text-center sm:flex-row sm:justify-between sm:px-10 sm:text-left", fest && "pt-16")}>
           {fest && <FestiveSwags theme={fest} />}
           {fest && b.logo_url ? (
-            <span className="relative h-32 w-32 shrink-0">
-              <LogoFrame theme={fest} compact />
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src={b.logo_url} alt={b.business_name} className="relative h-full w-full object-contain p-2" />
-            </span>
+            <SeasonLogo theme={fest} src={b.logo_url} alt={b.business_name} className="h-40 w-40" compact={false} />
           ) : (
             <BizLogo src={b.logo_url} name={b.business_name} className="h-24 w-24 bg-white text-[96px] shadow-sm" />
           )}

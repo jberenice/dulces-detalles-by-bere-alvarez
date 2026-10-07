@@ -392,3 +392,22 @@ export function FestiveSkin({ theme }: { theme: FestiveTheme }) {
   return <style data-fest-skin={theme.id} dangerouslySetInnerHTML={{ __html: css }} />;
 }
 
+
+/**
+ * Logo con el diseño de la temporada: sin cuadro (las orillas se difuminan en un resplandor blanco)
+ * y con los adornos de la temporada alrededor. Sin temporada se muestra en su círculo de siempre.
+ */
+export function SeasonLogo({ theme, src, alt, className, compact = true, plainClassName }: { theme: FestiveTheme | null; src: string; alt: string; className?: string; compact?: boolean; plainClassName?: string }) {
+  if (!theme)
+    return (
+      // eslint-disable-next-line @next/next/no-img-element
+      <img src={src} alt={alt} className={cn("rounded-full bg-white object-cover", plainClassName ?? className)} />
+    );
+  return (
+    <span className={cn("relative block shrink-0", className)}>
+      <LogoFrame theme={theme} compact={compact} />
+      {/* eslint-disable-next-line @next/next/no-img-element */}
+      <img src={src} alt={alt} className="season-logo relative h-full w-full rounded-full object-cover" />
+    </span>
+  );
+}
