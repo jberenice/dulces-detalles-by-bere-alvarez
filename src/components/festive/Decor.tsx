@@ -6,9 +6,10 @@
  */
 import { useEffect, useMemo, useRef, useState } from "react";
 import { cn } from "@/lib/cn";
+import { cleanLogo } from "@/lib/cleanLogo";
 import type { FestiveTheme } from "@/lib/festive";
 import { SKINS, skinCss } from "@/lib/festiveSkin";
-import { BOUQUET, bigRatio, bigUri, confettiUri, darkPatternUri, laceUri, logoBackdrop, ribbonEndUri, sidePanelUri, swagSvg, type BigArt } from "@/lib/festiveArt2";
+import { BOUQUET, bigRatio, bigUri, confettiUri, darkPatternUri, logoBackdrop, picadoTile, POSTER_GRADIENT, posterSparkUri, ribbonUri, sidePanelUri, swagSvg, type BigArt } from "@/lib/festiveArt2";
 
 /* ------------------------------------------------------------------ Revisión de choques con el texto */
 type Deco = { el: HTMLElement; scales: number[]; textOnly?: boolean };
@@ -342,43 +343,46 @@ function EdgeItem({ name, right, top, w, delay }: { name: BigArt; right: boolean
  * Va dentro del contenedor del logo (position: relative), ANTES de la imagen del logo.
  */
 export function LogoFrame({ theme, compact = false }: { theme: FestiveTheme; compact?: boolean }) {
-  const [back, hero, , filler] = BOUQUET[theme.id];
+  const [back, hero, tall, filler, front] = BOUQUET[theme.id];
   const backdrop = useMemo(() => logoBackdrop(theme.id), [theme.id]);
-  const lace = useMemo(() => laceUri(theme.id), [theme.id]);
-  const endL = useMemo(() => ribbonEndUri(theme.id, "left"), [theme.id]);
-  const endR = useMemo(() => ribbonEndUri(theme.id, "right"), [theme.id]);
+  const ribbon = useMemo(() => ribbonUri(theme.id), [theme.id]);
+  const sparks = useMemo(() => posterSparkUri(theme.id), [theme.id]);
+  const confetti = useMemo(() => confettiUri(theme.id), [theme.id]);
+  const picado = useMemo(() => picadoTile(theme.id), [theme.id]);
   const pct = (n: number) => `${n}%`;
   const at = (l: number, t: number, w: number): React.CSSProperties => ({ position: "absolute", left: pct(l), top: pct(t), width: pct(w) });
+  const S = compact ? 0.8 : 1;
   return (
     <>
-      {/* detrás del logo */}
+      {/* detrás del logo: degradado de la temporada, confeti y resplandor claro al centro para que se lean las letras */}
+      <div aria-hidden data-fest className="pointer-events-none absolute" style={{ inset: compact ? "-10%" : "-14%" }}>
+        <span className="absolute inset-0 block rounded-[28%]" style={{ background: `${confetti} center / 160px 160px, ${POSTER_GRADIENT[theme.id]}`, boxShadow: "0 24px 60px -24px rgb(0 0 0 / .55)" }} />
+        <span className="absolute inset-0 block rounded-[28%]" style={{ background: "radial-gradient(ellipse at 50% 48%, rgb(255 250 242 / .98) 0 30%, rgb(255 246 236 / .75) 44%, rgb(255 240 222 / 0) 66%)" }} />
+        <span className="fest-breathe absolute inset-0 block" style={{ background: `${sparks} center / contain no-repeat`, opacity: 0.95 }} />
+        {/* papel picado colgando abajo del logo */}
+        <span className="fest-flutter absolute right-[6%] bottom-0 left-[6%] block" style={{ height: `${9 * S}%`, backgroundImage: picado.image, backgroundSize: `auto 100%`, backgroundRepeat: "repeat-x", backgroundPosition: "center top" }} />
+      </div>
+      {/* adornos detrás del logo (arco o figura de la temporada) */}
       <div aria-hidden data-fest className="pointer-events-none absolute inset-0">
-        {/* resplandor claro que funde el logo con el fondo sin perder las letras */}
-        <span className="absolute block rounded-full" style={{ inset: "-10%", background: "radial-gradient(circle, rgb(255 250 242 / .97) 0 40%, rgb(255 244 230 / .7) 52%, rgb(255 240 222 / 0) 70%)" }} />
         {backdrop.mode === "arch" ? (
           <span className="fest-flutter block" style={{ ...at(17, 1, 70), aspectRatio: "200 / 104", background: `${backdrop.uri} center / contain no-repeat`, opacity: 0.95 }} />
         ) : (
           <span className="fest-breathe block" style={{ ...at(2, -2, 96), aspectRatio: "1", background: `${backdrop.uri} center / contain no-repeat`, opacity: 0.9 }} />
         )}
+        {/* listón calado sobre la franja del logo */}
+        <span style={{ ...at(-7, 77.5, 114), aspectRatio: "400 / 70", background: `${ribbon} center / contain no-repeat`, filter: "drop-shadow(0 4px 6px rgb(0 0 0 / .25))" }} />
+      </div>
+      {/* ilustraciones al frente, en las orillas (nunca sobre las letras del logo) */}
+      <div aria-hidden data-fest className="pointer-events-none absolute inset-0 z-[1]">
+        <span className="fest-sway" style={{ ...at(-20, 56, 24 * S), ["--r" as string]: "-8deg" }}><BigArtImg name={hero} w={90} part={false} className="!h-auto !w-full" /></span>
+        <span className="fest-sway" style={{ ...at(96 - 24 * S + 24, 50, 24 * S), animationDelay: "-1.5s", ["--r" as string]: "8deg" }}><BigArtImg name={hero} w={90} part={false} className="!h-auto !w-full" /></span>
+        <span className="fest-bob" style={{ ...at(-14, 20, 16 * S), animationDelay: "-1s" }}><BigArtImg name={back} w={56} part={false} className="!h-auto !w-full" /></span>
+        <span className="fest-bob" style={{ ...at(98 - 16 * S + 16, 16, 16 * S), animationDelay: "-2.4s" }}><BigArtImg name={filler} w={56} part={false} className="!h-auto !w-full" /></span>
         {!compact && (
           <>
-            <span className="fest-bob" style={{ ...at(-14, 70, 22), animationDelay: "-1.2s" }}><BigArtImg name={BOUQUET[theme.id][2]} w={90} part={false} className="!h-auto !w-full" /></span>
-            <span className="fest-sway" style={{ ...at(92, 66, 22), ["--r" as string]: "6deg" }}><BigArtImg name={BOUQUET[theme.id][4]} w={90} part={false} className="!h-auto !w-full" /></span>
-          </>
-        )}
-        <span style={{ ...at(4, 87.6, 92), height: compact ? 6 : "2.6%", background: `${lace} left top / auto 100% repeat-x` }} />
-        <span style={{ ...at(-6, 79.5, 12), aspectRatio: "64 / 36", background: `${endL} center / contain no-repeat` }} />
-        <span style={{ ...at(94.5, 79.5, 12), aspectRatio: "64 / 36", background: `${endR} center / contain no-repeat` }} />
-      </div>
-      {/* al frente, en zonas sin letras */}
-      <div aria-hidden data-fest className="pointer-events-none absolute inset-0 z-[1]">
-        <span className="fest-bob" style={at(-9, 66, 10)}><BigArtImg name={filler} w={60} part={false} className="!h-auto !w-full" /></span>
-        <span className="fest-bob" style={{ ...at(96, 74.5, 11), animationDelay: "-2s" }}><BigArtImg name={filler} w={60} part={false} className="!h-auto !w-full" /></span>
-        {(
-          <>
-            <span className="fest-sway" style={{ ...at(19, 66, 13), ["--r" as string]: "-8deg" }}><BigArtImg name={hero} w={70} part={false} className="!h-auto !w-full" /></span>
-            <span className="fest-sway" style={{ ...at(81, 58, 13), animationDelay: "-1.5s", ["--r" as string]: "8deg" }}><BigArtImg name={hero} w={70} part={false} className="!h-auto !w-full" /></span>
-            <span className="fest-bob" style={{ ...at(12, 25, 10), animationDelay: "-1s" }}><BigArtImg name={back} w={56} part={false} className="!h-auto !w-full" /></span>
+            <span className="fest-bob" style={{ ...at(-16, 30, 14), animationDelay: "-3s" }}><BigArtImg name={tall} w={60} part={false} className="!h-auto !w-full" /></span>
+            <span className="fest-bob" style={{ ...at(100, 84, 14), animationDelay: "-.6s" }}><BigArtImg name={front} w={60} part={false} className="!h-auto !w-full" /></span>
+            <span className="fest-bob" style={{ ...at(44, -16, 12), animationDelay: "-2s" }}><BigArtImg name={filler} w={48} part={false} className="!h-auto !w-full" /></span>
           </>
         )}
       </div>
@@ -403,11 +407,25 @@ export function SeasonLogo({ theme, src, alt, className, compact = true, plainCl
       // eslint-disable-next-line @next/next/no-img-element
       <img src={src} alt={alt} className={cn("rounded-full bg-white object-cover", plainClassName ?? className)} />
     );
+  return <SeasonLogoInner theme={theme} src={src} alt={alt} className={className} compact={compact} />;
+}
+
+function SeasonLogoInner({ theme, src, alt, className, compact }: { theme: FestiveTheme; src: string; alt: string; className?: string; compact: boolean }) {
+  // logo sin su fondo liso (si tiene), para que se funda con el diseño sin verse el cuadro
+  const [clean, setClean] = useState<string | null>(null);
+  useEffect(() => {
+    let alive = true;
+    setClean(null);
+    cleanLogo(src).then((u) => alive && setClean(u));
+    return () => {
+      alive = false;
+    };
+  }, [src]);
   return (
     <span className={cn("relative block shrink-0", className)}>
       <LogoFrame theme={theme} compact={compact} />
       {/* eslint-disable-next-line @next/next/no-img-element */}
-      <img src={src} alt={alt} className="season-logo relative h-full w-full rounded-full object-cover" />
+      <img src={clean ?? src} alt={alt} className={cn("relative h-full w-full object-contain", !clean && "season-logo")} />
     </span>
   );
 }

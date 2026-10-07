@@ -1,7 +1,7 @@
 /* Plantilla PDF de cotización / nota de pedido (se genera en el navegador con @react-pdf/renderer) */
 import { Document, Image, Page, StyleSheet, Text, View } from "@react-pdf/renderer";
 import type { FestiveId } from "@/lib/festive";
-import { PdfGarland, PdfLogoGlow, PdfWatermark, pdfPalette, type PdfPalette } from "./PdfDecor";
+import { PdfGarland, PdfHeaderBg, PdfLogoGlow, PdfLogoPoster, PdfWatermark, pdfPalette, type PdfPalette } from "./PdfDecor";
 
 export type PdfDoc = {
   kind: "cotizacion" | "pedido";
@@ -55,12 +55,12 @@ function makeStyles(P: PdfPalette) {
     s: StyleSheet.create({
       page: { fontFamily: "Helvetica", fontSize: 9.5, color: C.ink, paddingBottom: 70, backgroundColor: "#ffffff" },
       garland: { backgroundColor: C.cream },
-      header: { backgroundColor: C.cream, paddingHorizontal: 40, paddingTop: 10, paddingBottom: 20, flexDirection: "row", justifyContent: "space-between", alignItems: "center" },
-      logoWrap: { width: 132, height: 132, position: "relative", alignItems: "center", justifyContent: "center", marginLeft: -14, marginVertical: -10 },
-      logo: { width: 92, height: 92, objectFit: "contain" },
-      initials: { width: 88, height: 88, borderRadius: 44, backgroundColor: C.rose, alignItems: "center", justifyContent: "center" },
+      header: { backgroundColor: C.cream, paddingHorizontal: 40, paddingTop: 10, paddingBottom: 20, flexDirection: "row", justifyContent: "space-between", alignItems: "center", position: "relative", minHeight: 156 },
+      logoWrap: { width: 150, height: 150, position: "relative", alignItems: "center", justifyContent: "center", marginLeft: -6, marginVertical: -8 },
+      logo: { width: 104, height: 104, objectFit: "contain", marginTop: -10, position: "relative" },
+      initials: { position: "relative", width: 88, height: 88, borderRadius: 44, backgroundColor: C.rose, alignItems: "center", justifyContent: "center" },
       initialsText: { fontFamily: "Times-BoldItalic", fontSize: 30, color: "#ffffff" },
-      bizBlock: { alignItems: "flex-end", maxWidth: 270 },
+      bizBlock: { position: "relative", alignItems: "flex-end", maxWidth: 290, paddingVertical: 10, paddingHorizontal: 14, borderRadius: 14, backgroundColor: "rgba(255,255,255,0.86)" },
       bizName: { fontFamily: "Times-BoldItalic", fontSize: 20, color: C.cocoa },
       bizLine: { fontSize: 8.5, color: C.cocoaSoft, marginTop: 2 },
       season: { marginTop: 6, backgroundColor: C.rose, color: "#ffffff", fontFamily: "Helvetica-Bold", fontSize: 8, paddingHorizontal: 8, paddingVertical: 3, borderRadius: 8 },
@@ -126,8 +126,9 @@ export function DocumentPDF({ doc }: { doc: PdfDoc }) {
         </View>
         <PdfWatermark p={P} />
         <View style={s.header}>
+          {P.poster ? <PdfHeaderBg p={P} height={186} /> : null}
           <View style={s.logoWrap}>
-            <PdfLogoGlow p={P} />
+            {P.poster ? <PdfLogoPoster p={P} size={150} /> : <PdfLogoGlow p={P} />}
             {/* eslint-disable-next-line jsx-a11y/alt-text */}
             {doc.business.logo ? (
               <Image src={doc.business.logo} style={s.logo} />

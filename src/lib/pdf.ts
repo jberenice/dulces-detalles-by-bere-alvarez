@@ -3,11 +3,17 @@ import type { PdfDoc } from "@/components/pdf/DocumentPDF";
 
 /** Genera el PDF en el navegador (carga diferida de @react-pdf/renderer). */
 export async function buildPdf(doc: PdfDoc): Promise<Blob> {
-  const [{ pdf }, { DocumentPDF }, React] = await Promise.all([
+  const [{ pdf }, { DocumentPDF }, React, { cleanLogo }] = await Promise.all([
     import("@react-pdf/renderer"),
     import("@/components/pdf/DocumentPDF"),
     import("react"),
+    import("./cleanLogo"),
   ]);
+  // el logo sin su fondo blanco, para que se funda con el diseño del PDF
+  if (doc.business.logo) {
+    const clean = await cleanLogo(doc.business.logo).catch(() => null);
+    if (clean) doc = { ...doc, business: { ...doc.business, logo: clean } };
+  }
   return pdf(React.createElement(DocumentPDF, { doc }) as unknown as Parameters<typeof pdf>[0]).toBlob();
 }
 

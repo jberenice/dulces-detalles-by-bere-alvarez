@@ -1,7 +1,7 @@
 import Link from "next/link";
-import Image from "next/image";
 import { Heart } from "lucide-react";
 import { SiteFooter } from "@/components/legal/SiteFooter";
+import { AuthFestiveDecor, SeasonBrandLogo } from "@/components/festive/LandingFestive";
 
 export default function AuthLayout({ children }: { children: React.ReactNode }) {
   return (
@@ -10,11 +10,12 @@ export default function AuthLayout({ children }: { children: React.ReactNode }) 
       <aside className="sprinkles relative hidden overflow-hidden bg-cream-200 lg:flex lg:flex-col lg:justify-between lg:p-12">
         <div className="absolute -top-24 -right-24 h-80 w-80 rounded-full bg-mint-200/50 blur-3xl" />
         <div className="absolute -bottom-28 -left-20 h-96 w-96 rounded-full bg-rose-200/50 blur-3xl" />
+        <AuthFestiveDecor />
         <Link href="/" className="relative z-10 text-sm font-bold text-cocoa-500 hover:text-rose-500">
           ← Volver al inicio
         </Link>
         <div className="relative z-10 mx-auto flex max-w-md flex-col items-center text-center">
-          <Image src="/logo-transparent.svg" unoptimized alt="Dulces Detalles" width={340} height={340} className="animate-float drop-shadow-xl" priority />
+          <SeasonBrandLogo size={340} className="animate-float h-[340px] w-[340px] drop-shadow-xl" />
           <p className="mt-2 font-script text-3xl text-rose-500">Cada postre, un detalle</p>
           <p className="mt-3 text-[15px] leading-relaxed text-cocoa-500">
             Cotiza en segundos, conoce el costo real de cada receta y lleva tus pedidos y tu tienda en línea desde un solo lugar.
@@ -29,7 +30,7 @@ export default function AuthLayout({ children }: { children: React.ReactNode }) 
       <main className="flex items-center justify-center px-5 py-10 sm:px-10">
         <div className="w-full max-w-[420px] animate-fade-up">
           <div className="mb-8 flex justify-center lg:hidden">
-            <Image src="/logo-transparent.svg" unoptimized alt="Dulces Detalles" width={150} height={150} priority />
+            <SeasonBrandLogo size={170} className="h-[170px] w-[170px]" />
           </div>
           {children}
           <SiteFooter compact className="mt-6 pb-0" />

@@ -1,5 +1,5 @@
 /* Adornos del PDF (se dibujan con figuras de @react-pdf: no usan imágenes ni emojis) */
-import { Circle, Ellipse, G, Line, Path, Polygon, Rect, Svg, View } from "@react-pdf/renderer";
+import { Circle, Defs, Ellipse, G, Line, LinearGradient, Path, Polygon, RadialGradient, Rect, Stop, Svg, View } from "@react-pdf/renderer";
 import type { FestiveId } from "@/lib/festive";
 
 export type PdfPalette = {
@@ -12,6 +12,8 @@ export type PdfPalette = {
   colors: string[];
   kind: "drip" | "picado" | "lights" | "hearts" | "stars" | "balloons" | "flowers";
   message: string | null;
+  /** degradado del encabezado y del póster del logo (de claro a oscuro) */
+  poster?: [string, string, string];
 };
 
 const DEFAULT: PdfPalette = {
@@ -28,18 +30,18 @@ const DEFAULT: PdfPalette = {
 
 /** Paleta y adorno de cada temporada para el PDF */
 const THEMES: Record<FestiveId, Omit<PdfPalette, "ink" | "muted">> = {
-  navidad: { primary: "#c0392b", accent: "#2e7d4f", soft: "#fff7ee", soft2: "#eef7f0", colors: ["#e53935", "#fbc02d", "#43a047", "#1e88e5", "#8e24aa", "#fb8c00"], kind: "lights", message: "¡Feliz Navidad!" },
-  anonuevo: { primary: "#8a6508", accent: "#2b2b3a", soft: "#fffaf0", soft2: "#f6f1e4", colors: ["#d4af37", "#c0c0c0", "#e9c46a", "#2b2b3a"], kind: "stars", message: "¡Feliz Año Nuevo!" },
-  reyes: { primary: "#7b2d8e", accent: "#a87b10", soft: "#fdf8ff", soft2: "#fbf3e3", colors: ["#d4a017", "#7b2d8e", "#c0392b", "#2e7d4f"], kind: "stars", message: "¡Feliz Día de Reyes!" },
-  sanvalentin: { primary: "#d81b60", accent: "#b83b6b", soft: "#fff5f8", soft2: "#ffe8ef", colors: ["#e53950", "#f48fb1", "#d81b60", "#ff8a80"], kind: "hearts", message: "Feliz día del amor y la amistad" },
-  primavera: { primary: "#a16c00", accent: "#4f8a3a", soft: "#fffbea", soft2: "#f3f9ec", colors: ["#fbc02d", "#ffd54f", "#f9a825", "#aed581"], kind: "flowers", message: "¡Feliz primavera!" },
-  nino: { primary: "#1e6fd0", accent: "#d17a00", soft: "#f3faff", soft2: "#fff6e8", colors: ["#e53935", "#fbc02d", "#43a047", "#1e88e5", "#8e24aa", "#fb8c00"], kind: "balloons", message: "¡Feliz Día del Niño!" },
-  madres: { primary: "#8a3ba6", accent: "#2f7d5b", soft: "#fbf6fe", soft2: "#f1f8f3", colors: ["#b57edc", "#f48fb1", "#ce93d8", "#8e44ad"], kind: "flowers", message: "Feliz Día de las Madres" },
-  maestro: { primary: "#c62828", accent: "#2e7d32", soft: "#fffaf0", soft2: "#eef6ee", colors: ["#e53935", "#1e88e5", "#fbc02d", "#43a047"], kind: "picado", message: "Feliz Día del Maestro" },
-  padre: { primary: "#1f4e79", accent: "#a8742f", soft: "#f4f7fb", soft2: "#fbf4ea", colors: ["#1f4e79", "#c99a4b", "#5b3b22", "#4f8ac9"], kind: "stars", message: "Feliz Día del Padre" },
-  independencia: { primary: "#0b6b46", accent: "#c8102e", soft: "#f6fbf8", soft2: "#fdf2f3", colors: ["#0b6b46", "#ffffff", "#c8102e"], kind: "picado", message: "¡Viva México!" },
-  halloween: { primary: "#d0560f", accent: "#6a1b9a", soft: "#fff8f1", soft2: "#f6effa", colors: ["#ef6c00", "#6a1b9a", "#212121", "#7cb342"], kind: "picado", message: "¡Feliz Halloween!" },
-  muertos: { primary: "#d9480f", accent: "#7b2d8e", soft: "#fff8f1", soft2: "#f9effa", colors: ["#e91e63", "#ff9800", "#8e24aa", "#43a047", "#fbc02d", "#00acc1"], kind: "picado", message: "Día de Muertos" },
+  navidad: { primary: "#c0392b", accent: "#2e7d4f", soft: "#fff7ee", soft2: "#eef7f0", colors: ["#e53935", "#fbc02d", "#43a047", "#1e88e5", "#8e24aa", "#fb8c00"], poster: ["#e53935", "#b71c1c", "#1b5e3b"], kind: "lights", message: "¡Feliz Navidad!" },
+  anonuevo: { primary: "#8a6508", accent: "#2b2b3a", soft: "#fffaf0", soft2: "#f6f1e4", colors: ["#d4af37", "#c0c0c0", "#e9c46a", "#2b2b3a"], poster: ["#f3d27a", "#8a6508", "#2b2b3a"], kind: "stars", message: "¡Feliz Año Nuevo!" },
+  reyes: { primary: "#7b2d8e", accent: "#a87b10", soft: "#fdf8ff", soft2: "#fbf3e3", colors: ["#d4a017", "#7b2d8e", "#c0392b", "#2e7d4f"], poster: ["#f3c742", "#c0392b", "#7b2d8e"], kind: "stars", message: "¡Feliz Día de Reyes!" },
+  sanvalentin: { primary: "#d81b60", accent: "#b83b6b", soft: "#fff5f8", soft2: "#ffe8ef", colors: ["#e53950", "#f48fb1", "#d81b60", "#ff8a80"], poster: ["#ffc1d1", "#e8456b", "#b0123f"], kind: "hearts", message: "Feliz día del amor y la amistad" },
+  primavera: { primary: "#a16c00", accent: "#4f8a3a", soft: "#fffbea", soft2: "#f3f9ec", colors: ["#fbc02d", "#ffd54f", "#f9a825", "#aed581"], poster: ["#fff3b0", "#ffe066", "#aed581"], kind: "flowers", message: "¡Feliz primavera!" },
+  nino: { primary: "#1e6fd0", accent: "#d17a00", soft: "#f3faff", soft2: "#fff6e8", colors: ["#e53935", "#fbc02d", "#43a047", "#1e88e5", "#8e24aa", "#fb8c00"], poster: ["#ffeb3b", "#29b6f6", "#8e24aa"], kind: "balloons", message: "¡Feliz Día del Niño!" },
+  madres: { primary: "#8a3ba6", accent: "#2f7d5b", soft: "#fbf6fe", soft2: "#f1f8f3", colors: ["#b57edc", "#f48fb1", "#ce93d8", "#8e44ad"], poster: ["#f8bbd0", "#b57edc", "#7b3f9e"], kind: "flowers", message: "Feliz Día de las Madres" },
+  maestro: { primary: "#c62828", accent: "#2e7d32", soft: "#fffaf0", soft2: "#eef6ee", colors: ["#e53935", "#1e88e5", "#fbc02d", "#43a047"], poster: ["#ffe082", "#e53935", "#2f5a3f"], kind: "picado", message: "Feliz Día del Maestro" },
+  padre: { primary: "#1f4e79", accent: "#a8742f", soft: "#f4f7fb", soft2: "#fbf4ea", colors: ["#1f4e79", "#c99a4b", "#5b3b22", "#4f8ac9"], poster: ["#e0b15c", "#4f8ac9", "#1f4e79"], kind: "stars", message: "Feliz Día del Padre" },
+  independencia: { primary: "#0b6b46", accent: "#c8102e", soft: "#f6fbf8", soft2: "#fdf2f3", colors: ["#0b6b46", "#ffffff", "#c8102e"], poster: ["#0b6b46", "#fffdf9", "#c8102e"], kind: "picado", message: "¡Viva México!" },
+  halloween: { primary: "#d0560f", accent: "#6a1b9a", soft: "#fff8f1", soft2: "#f6effa", colors: ["#ef6c00", "#6a1b9a", "#212121", "#7cb342"], poster: ["#ff8c1a", "#c2410c", "#4a1f6e"], kind: "picado", message: "¡Feliz Halloween!" },
+  muertos: { primary: "#d9480f", accent: "#7b2d8e", soft: "#fff8f1", soft2: "#f9effa", colors: ["#e91e63", "#ff9800", "#8e24aa", "#43a047", "#fbc02d", "#00acc1"], poster: ["#ff9a2e", "#c92a7a", "#6a1f9a"], kind: "picado", message: "Día de Muertos" },
 };
 
 export function pdfPalette(id?: FestiveId | null): PdfPalette {
@@ -220,6 +222,103 @@ export function PdfLogoGlow({ p, size = 132 }: { p: PdfPalette; size?: number })
         <Circle key={i} cx={c} cy={c} r={r} fill="#ffffff" fillOpacity={o} />
       ))}
       {p.kind === "drip" ? null : orn}
+    </Svg>
+  );
+}
+
+/* ------------------------------------------------------------------ Encabezado tipo póster */
+/** Fondo del encabezado: degradado de la temporada con confeti y figuras tenues (ancho carta) */
+export function PdfHeaderBg({ p, height = 190 }: { p: PdfPalette; height?: number }) {
+  const g = p.poster ?? [p.soft, p.primary, p.accent];
+  const r = (n: number) => ((Math.sin((n + 1) * 12.9898) * 43758.5453) % 1 + 1) % 1;
+  const conf = Array.from({ length: 70 }, (_, i) => {
+    const x = r(i) * 612;
+    const y = r(i + 100) * height;
+    const c = p.colors[i % p.colors.length] === "#ffffff" ? "#ffe9a8" : p.colors[i % p.colors.length];
+    return i % 3 === 0 ? (
+      <Rect key={i} x={x} y={y} width={7} height={3} rx={1.5} fill={c} opacity={0.75} transform={`rotate(${r(i + 200) * 180} ${x} ${y})`} />
+    ) : i % 3 === 1 ? (
+      <Ellipse key={i} cx={x} cy={y} rx={2.6} ry={4.6} fill={i % 2 ? "#ffffff" : c} opacity={0.7} transform={`rotate(${r(i + 300) * 180} ${x} ${y})`} />
+    ) : (
+      <Circle key={i} cx={x} cy={y} r={1.8} fill="#ffffff" opacity={0.75} />
+    );
+  });
+  const corners = [
+    [26, height - 34, 22],
+    [586, height - 30, 24],
+    [60, 44, 14],
+    [552, 40, 16],
+    [300, height - 22, 12],
+  ].map(([x, y, rr], i) => motif(p, x, y, rr, "#ffffff", 0.22, `c${i}`));
+  return (
+    <Svg width={612} height={height} viewBox={`0 0 612 ${height}`} style={{ position: "absolute", left: 0, top: 0 }}>
+      <Defs>
+        <LinearGradient id="hg" x1="0" y1="0" x2="1" y2="1">
+          <Stop offset="0" stopColor={g[0]} />
+          <Stop offset="0.5" stopColor={g[1]} />
+          <Stop offset="1" stopColor={g[2]} />
+        </LinearGradient>
+        <RadialGradient id="hl" cx="0.72" cy="0.5" r="0.55">
+          <Stop offset="0" stopColor="#ffffff" stopOpacity={0.92} />
+          <Stop offset="0.7" stopColor="#ffffff" stopOpacity={0.55} />
+          <Stop offset="1" stopColor="#ffffff" stopOpacity={0} />
+        </RadialGradient>
+      </Defs>
+      <Rect x={0} y={0} width={612} height={height} fill="url(#hg)" />
+      {conf}
+      {corners}
+      {/* zona clara detrás de los datos del negocio para que se lean */}
+      <Rect x={290} y={14} width={310} height={height - 40} rx={14} fill="url(#hl)" />
+    </Svg>
+  );
+}
+
+/** Póster del logo: degradado redondeado con resplandor al centro, confeti, figuras alrededor y tira de la temporada abajo */
+export function PdfLogoPoster({ p, size = 150 }: { p: PdfPalette; size?: number }) {
+  const g = p.poster ?? [p.soft, p.primary, p.accent];
+  const c = size / 2;
+  const n = 10;
+  const orn = Array.from({ length: n }, (_, i) => {
+    const a = Math.PI * 1.08 + (Math.PI * 0.84 * i) / (n - 1);
+    return motif(p, c + (c - 10) * Math.cos(a), c - 4 + (c - 12) * Math.sin(a), 6.5, p.colors[i % p.colors.length] === "#ffffff" ? p.accent : p.colors[i % p.colors.length], 1, `o${i}`);
+  });
+  const sides = [
+    [9, c + 8, 7],
+    [size - 9, c + 2, 7],
+    [12, size - 24, 6],
+    [size - 12, size - 26, 6],
+  ].map(([x, y, rr], i) => motif(p, x, y, rr, p.colors[(i + 2) % p.colors.length] === "#ffffff" ? p.primary : p.colors[(i + 2) % p.colors.length], 1, `s${i}`));
+  // tira de abajo: banderitas (o la figura de la temporada repetida)
+  const strip = Array.from({ length: 7 }, (_, i) => {
+    const x = 16 + i * ((size - 32) / 6);
+    const col = p.colors[i % p.colors.length];
+    return p.kind === "picado" || p.kind === "drip" ? (
+      <Path key={`f${i}`} d={`M${x - 7} ${size - 16}h14v12l-3.5-3-3.5 3-3.5-3-3.5 3Z`} fill={col === "#ffffff" ? "#f3f3f3" : col} stroke="#00000022" strokeWidth={0.5} />
+    ) : (
+      motif(p, x, size - 9, 5.5, col === "#ffffff" ? p.primary : col, 1, `f${i}`)
+    );
+  });
+  return (
+    <Svg width={size} height={size} viewBox={`0 0 ${size} ${size}`} style={{ position: "absolute", left: 0, top: 0 }}>
+      <Defs>
+        <LinearGradient id="pg" x1="0" y1="0" x2="1" y2="1">
+          <Stop offset="0" stopColor={g[0]} />
+          <Stop offset="0.55" stopColor={g[1]} />
+          <Stop offset="1" stopColor={g[2]} />
+        </LinearGradient>
+        <RadialGradient id="pl" cx="0.5" cy="0.47" r="0.5">
+          <Stop offset="0" stopColor="#fffaf2" stopOpacity={1} />
+          <Stop offset="0.55" stopColor="#fffaf2" stopOpacity={0.92} />
+          <Stop offset="1" stopColor="#fffaf2" stopOpacity={0} />
+        </RadialGradient>
+      </Defs>
+      <Rect x={0} y={0} width={size} height={size} rx={size * 0.22} fill="url(#pg)" />
+      <Rect x={0} y={0} width={size} height={size} rx={size * 0.22} fill="url(#pl)" />
+      <Path d={`M${size - 10} 2h8v8M2 ${size - 10}v8h8`} stroke="#ffffff" strokeWidth={1.2} opacity={0.6} fill="none" />
+      {orn}
+      {sides}
+      <Line x1={10} y1={size - 16} x2={size - 10} y2={size - 16} stroke="#7a5236" strokeWidth={0.8} />
+      {strip}
     </Svg>
   );
 }

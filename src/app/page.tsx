@@ -83,12 +83,12 @@ export default async function Landing({ searchParams }: { searchParams: Promise<
             <div className="absolute inset-6 rounded-full bg-white/70 blur-2xl" />
             <LandingLogoFrame />
             <Image src="/logo-transparent.svg" unoptimized alt="Dulces Detalles by Bere Álvarez" width={520} height={520} priority fetchPriority="high" className="relative animate-float drop-shadow-2xl" />
-            <div className="card absolute -bottom-2 -left-2 hidden w-52 p-4 sm:block">
+            <div className="card absolute -bottom-12 -left-10 hidden w-52 p-4 sm:block">
               <p className="text-[11px] font-bold tracking-wider text-cocoa-300 uppercase">Pastel 3 leches</p>
               <p className="font-display text-2xl font-semibold text-rose-500">$625</p>
               <p className="text-xs text-mint-600">Margen 38% ✓</p>
             </div>
-            <div className="card absolute top-6 -right-2 hidden w-48 p-4 sm:block">
+            <div className="card absolute -top-6 -right-10 hidden w-48 p-4 sm:block">
               <p className="flex items-center gap-1.5 text-xs font-bold text-mint-600"><MessageCircle className="h-3.5 w-3.5" /> Nuevo pedido</p>
               <p className="mt-1 text-sm font-semibold">12 cupcakes Red Velvet</p>
               <p className="text-xs text-cocoa-400">Entrega el sábado</p>

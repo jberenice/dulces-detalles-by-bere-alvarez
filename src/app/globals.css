@@ -637,9 +637,14 @@
   margin-top: -4px;
 }
 /* Logo de temporada: las orillas del cuadro se difuminan para que se funda con el resplandor */
+/* el fondo blanco o crema del logo se "funde" con el resplandor (sin recortar nada del logo) */
 .season-logo {
-  -webkit-mask-image: radial-gradient(circle, #000 58%, transparent 71%);
-  mask-image: radial-gradient(circle, #000 58%, transparent 71%);
+  mix-blend-mode: multiply;
+  /* orillas suavizadas solo en el borde (no toca el texto ni la franja del logo) */
+  -webkit-mask-image: linear-gradient(90deg, transparent, #000 3%, #000 97%, transparent), linear-gradient(180deg, transparent, #000 4%, #000 96%, transparent);
+  -webkit-mask-composite: source-in;
+  mask-image: linear-gradient(90deg, transparent, #000 3%, #000 97%, transparent), linear-gradient(180deg, transparent, #000 4%, #000 96%, transparent);
+  mask-composite: intersect;
 }
 /* En temporada los logos llevan un resplandor blanco detrás para que siempre se vean (encabezados oscuros) */
 :root[data-festive] header img:is([src*="logo"], [alt*="Dulces Detalles"]) {

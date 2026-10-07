@@ -2,7 +2,7 @@
 import { cn } from "@/lib/cn";
 import { BOUQUET } from "@/lib/festiveArt2";
 import { FestiveColors, FestiveParticles, useFestive, useFestiveDecor } from "./Festive";
-import { BigArtImg, FestiveBouquet, FestiveConfetti, FestiveEdgeArt, FestiveSidePanels, FestiveSwag, FestiveSwags, FestiveSkin, LogoFrame, MiniBouquet } from "./Decor";
+import { BigArtImg, FestiveBouquet, FestiveConfetti, FestiveEdgeArt, FestiveSidePanels, FestiveSwag, FestiveSwags, FestiveSkin, LogoFrame, MiniBouquet, SeasonLogo } from "./Decor";
 
 /** Adornos de temporada de la portada (según la fecha; ?tema=… para verlos antes) */
 export function LandingFestiveDecor() {
@@ -149,4 +149,33 @@ export function FestiveFooterArt() {
 export function FooterLogoFrame() {
   const fest = useFestive("auto");
   return fest ? <LogoFrame theme={fest} compact /> : null;
+}
+
+/** Logo de la marca con el diseño de la temporada (pantallas de acceso, etc.). Sin temporada: logo normal */
+export function SeasonBrandLogo({ size = 340, className }: { size?: number; className?: string }) {
+  const fest = useFestive("auto");
+  if (!fest)
+    // eslint-disable-next-line @next/next/no-img-element
+    return <img src="/logo-transparent.svg" alt="Dulces Detalles" width={size} height={size} className={className} />;
+  return (
+    <>
+      <FestiveColors theme={fest} />
+      <SeasonLogo theme={fest} src="/logo-transparent.svg" alt="Dulces Detalles" className={className} compact={size < 200} />
+    </>
+  );
+}
+
+/** Fondo y guirnaldas de temporada para el panel de marca del inicio de sesión */
+export function AuthFestiveDecor() {
+  const fest = useFestive("auto");
+  if (!fest) return null;
+  return (
+    <>
+      <FestiveConfetti theme={fest} opacity={0.5} />
+      <FestiveSwags theme={fest} />
+      <FestiveParticles theme={fest} count={12} contained />
+      <FestiveBouquet theme={fest} corner="bl" size={190} offset={10} />
+      <FestiveBouquet theme={fest} corner="br" size={190} offset={10} />
+    </>
+  );
 }

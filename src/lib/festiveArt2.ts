@@ -719,3 +719,61 @@ export function navChipUris(id: FestiveId): string[] {
   };
   return colors[id].map((c) => S(shape[id](c)));
 }
+
+/* ======================================================================
+   Logo tipo "póster": degradado de la temporada, confeti, papel picado colgando y listón calado
+   ====================================================================== */
+/** Degradado detrás del logo (de los colores de cada temporada) */
+export const POSTER_GRADIENT: Record<FestiveId, string> = {
+  muertos: "linear-gradient(160deg, #ff9a2e 0%, #f0642a 22%, #c92a7a 55%, #6a1f9a 100%)",
+  halloween: "linear-gradient(160deg, #ff8c1a 0%, #c2410c 30%, #4a1f6e 70%, #1a0d26 100%)",
+  navidad: "linear-gradient(160deg, #e53935 0%, #b71c1c 35%, #1b5e3b 75%, #0f3d25 100%)",
+  anonuevo: "linear-gradient(160deg, #f3d27a 0%, #b8901e 30%, #2b2b3a 70%, #0b0a08 100%)",
+  reyes: "linear-gradient(160deg, #f3c742 0%, #c0392b 35%, #7b2d8e 70%, #3b1257 100%)",
+  sanvalentin: "linear-gradient(160deg, #ffc1d1 0%, #ff8fab 30%, #e8456b 65%, #b0123f 100%)",
+  primavera: "linear-gradient(160deg, #fff3b0 0%, #ffe066 35%, #aed581 70%, #4f8a3a 100%)",
+  nino: "linear-gradient(160deg, #ffeb3b 0%, #29b6f6 40%, #e53935 75%, #8e24aa 100%)",
+  madres: "linear-gradient(160deg, #f8bbd0 0%, #e9c9f5 30%, #b57edc 65%, #7b3f9e 100%)",
+  maestro: "linear-gradient(160deg, #ffe082 0%, #e53935 35%, #2f5a3f 70%, #1f3d2b 100%)",
+  padre: "linear-gradient(160deg, #e0b15c 0%, #4f8ac9 35%, #1f4e79 70%, #0f2742 100%)",
+  independencia: "linear-gradient(90deg, #0b6b46 0%, #0b6b46 22%, #fffdf9 42%, #fffdf9 58%, #c8102e 78%, #c8102e 100%)",
+};
+
+/** Marco de listón calado (color de la temporada) que va detrás de la franja "HECHOS CON AMOR DE HOGAR" del logo: asoma por abajo y por los lados */
+export function ribbonUri(id: FestiveId) {
+  const c = ({ muertos: "#e8336f", halloween: "#ef6c00", navidad: "#c62828", anonuevo: "#b8901e", reyes: "#7b2d8e", sanvalentin: "#e53950", primavera: "#f9a825", nino: "#1e88e5", madres: "#b57edc", maestro: "#c62828", padre: "#1f4e79", independencia: "#0b6b46" } as Record<FestiveId, string>)[id];
+  const dark = `color-mix(in srgb, ${c} 70%, black)`;
+  const W = 400;
+  const H = 70;
+  const scallops = Array.from({ length: 20 }, (_, i) => `<circle cx='${30 + i * 18}' cy='${H - 18}' r='7' fill='${c}'/>`).join("");
+  const holes = Array.from({ length: 19 }, (_, i) => `<circle cx='${39 + i * 18}' cy='${H - 24}' r='2.2' fill='#fff' fill-opacity='.85'/>`).join("");
+  const dots = Array.from({ length: 30 }, (_, i) => `<circle cx='${34 + i * 11.5}' cy='12' r='1.6' fill='#fff' fill-opacity='.9'/>`).join("");
+  return dataUrl(
+    `<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 ${W} ${H}'>` +
+      `<path d='M0 10l40 8v34l-40 8 14-25Z' fill='${dark}'/><path d='M${W} 10l-40 8v34l40 8-14-25Z' fill='${dark}'/>` +
+      `<path d='M24 6h${W - 48}l8 8v${H - 42}l-8 8H24l-8-8V14Z' fill='${c}'/>${scallops}${holes}${dots}</svg>`,
+  );
+}
+
+/** Pétalos, gotas y estrellitas sueltas alrededor del logo (sin tapar el centro) */
+export function posterSparkUri(id: FestiveId) {
+  const c = PICADO[id].colors.map((x) => (x === "#ffffff" || x === "mx" ? "#ffd166" : x));
+  const items: string[] = [];
+  for (let i = 0; i < 26; i++) {
+    const a = (Math.PI * 2 * i) / 26 + (i % 3) * 0.3;
+    const r = 118 + ((i * 37) % 60);
+    const x = 150 + r * Math.cos(a);
+    const y = 150 + r * Math.sin(a) * 0.95;
+    const col = c[i % c.length];
+    items.push(
+      i % 4 === 0
+        ? `<path d='M${x} ${y}l6 2-6 10-6-10Z' fill='${col}' opacity='.9' transform='rotate(${i * 40} ${x} ${y})'/>`
+        : i % 4 === 1
+          ? `<path d='M${x} ${y - 6}l1.6 4.4 4.4 1.6-4.4 1.6L${x} ${y + 6}l-1.6-4.4-4.4-1.6 4.4-1.6Z' fill='#fff' opacity='.9'/>`
+          : i % 4 === 2
+            ? `<ellipse cx='${x}' cy='${y}' rx='3.2' ry='6' fill='${col}' opacity='.85' transform='rotate(${i * 55} ${x} ${y})'/>`
+            : `<circle cx='${x}' cy='${y}' r='2.6' fill='${col}' opacity='.8'/>`,
+    );
+  }
+  return dataUrl(`<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 300 300'>${items.join("")}</svg>`);
+}
