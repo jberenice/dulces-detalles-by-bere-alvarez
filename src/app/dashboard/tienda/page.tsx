@@ -40,7 +40,7 @@ import { salesLink } from "@/lib/legal";
 import { useAsync } from "@/hooks/useAsync";
 import { StoreQrCard } from "@/components/dashboard/StoreQrCard";
 import { CustomCakeSettingsCard, cleanCake } from "@/components/dashboard/CustomCakeSettings";
-import { DESIGNS, PRESETS, SECTION_LABELS, applyDesign, normalizeTheme, type StoreTheme } from "@/lib/storeTheme";
+import { DESIGNS, PRESETS, STORE_FONTS, STORE_FONT_LABELS, SECTION_LABELS, applyDesign, normalizeTheme, type StoreTheme } from "@/lib/storeTheme";
 import { DECOR_OPTIONS, decorTiles } from "@/lib/storeDecor";
 import { FESTIVE_THEMES } from "@/lib/festive";
 import { cn } from "@/lib/cn";
@@ -275,7 +275,7 @@ export default function StoreSettingsPage() {
                           </div>
                           <span
                             className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-[60%] text-lg whitespace-nowrap"
-                            style={{ color: look.text, fontWeight: 600, fontFamily: look.font === "romantica" ? "var(--font-dancing)" : look.font === "moderna" ? "var(--font-body)" : "var(--font-display-serif)" }}
+                            style={{ color: look.text, fontWeight: 600, fontFamily: STORE_FONTS[look.font] }}
                           >
                             Mi tienda
                           </span>
@@ -385,14 +385,8 @@ export default function StoreSettingsPage() {
 
               <Card className="p-5 sm:p-6">
                 <h3 className="text-lg font-semibold">Tipografía de títulos</h3>
-                <div className="mt-4 grid gap-2 sm:grid-cols-3">
-                  {(
-                    [
-                      ["elegante", "Elegante", "var(--font-display-serif)"],
-                      ["romantica", "Romántica", "var(--font-dancing)"],
-                      ["moderna", "Moderna", "var(--font-body)"],
-                    ] as const
-                  ).map(([id, label, family]) => (
+                <div className="mt-4 grid grid-cols-2 gap-2 sm:grid-cols-4">
+                  {STORE_FONT_LABELS.map(([id, label]) => [id, label, STORE_FONTS[id]] as const).map(([id, label, family]) => (
                     <Option key={id} active={theme.font === id} onClick={() => t({ font: id })}>
                       <p className="text-2xl text-cocoa-700" style={{ fontFamily: family, fontWeight: 600 }}>Pastel de fresa</p>
                       <p className="mt-1 text-xs font-bold text-cocoa-400">{label}</p>

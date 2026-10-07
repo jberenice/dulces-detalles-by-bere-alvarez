@@ -53,6 +53,7 @@ import { DemoBanner } from "./DemoBanner";
 import type { Profile } from "@/lib/types";
 import { useBusiness } from "./BusinessProvider";
 import { NotificationBell } from "./NotificationBell";
+import { ThemeToggle } from "@/components/theme/ThemeToggle";
 import { UpgradeCard } from "./UpgradeCard";
 import { planAllows, routePlan, PLANS } from "@/lib/plans";
 
@@ -173,6 +174,7 @@ export function Shell({ children }: { children: React.ReactNode }) {
           <p className="truncate text-xs text-cocoa-400">{profile.owner_name ?? profile.email}</p>
         </div>
       </Link>
+      <ThemeToggle className="mr-1 max-lg:hidden" />
       <NotificationBell className="max-lg:hidden" />
       </div>
       <SidebarArt />
@@ -195,7 +197,9 @@ export function Shell({ children }: { children: React.ReactNode }) {
                         active ? "bg-rose-500 text-white shadow-rose" : "text-cocoa-500 hover:bg-cream-200 hover:text-cocoa-700",
                       )}
                     >
-                      <Icon className={cn("h-[18px] w-[18px] shrink-0", active ? "text-white" : "nav-ico text-cocoa-300 group-hover:text-rose-400")} />
+                      <span className="nav-chip grid shrink-0 place-items-center">
+                        <Icon className={cn("h-[18px] w-[18px] shrink-0", active ? "text-white" : "nav-ico text-cocoa-300 group-hover:text-rose-400")} />
+                      </span>
                       <span className="min-w-0 flex-1 truncate">{it.label}</span>
                       {needLabel && (
                         <span
@@ -258,7 +262,10 @@ export function Shell({ children }: { children: React.ReactNode }) {
           <Image src="/logo-transparent.svg" unoptimized alt="Dulces Detalles" width={40} height={40} className="shrink-0" />
           <span className="truncate font-script text-xl font-bold whitespace-nowrap text-cocoa-600 max-[359px]:hidden">Dulces Detalles</span>
         </Link>
-        <NotificationBell />
+        <div className="flex items-center gap-1">
+          <ThemeToggle />
+          <NotificationBell />
+        </div>
       </header>
 
       <PanelGarland />

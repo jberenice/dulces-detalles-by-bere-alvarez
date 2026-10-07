@@ -34,10 +34,10 @@ const THEMES: Record<FestiveId, Omit<PdfPalette, "ink" | "muted">> = {
   sanvalentin: { primary: "#d81b60", accent: "#b83b6b", soft: "#fff5f8", soft2: "#ffe8ef", colors: ["#e53950", "#f48fb1", "#d81b60", "#ff8a80"], kind: "hearts", message: "Feliz día del amor y la amistad" },
   primavera: { primary: "#a16c00", accent: "#4f8a3a", soft: "#fffbea", soft2: "#f3f9ec", colors: ["#fbc02d", "#ffd54f", "#f9a825", "#aed581"], kind: "flowers", message: "¡Feliz primavera!" },
   nino: { primary: "#1e6fd0", accent: "#d17a00", soft: "#f3faff", soft2: "#fff6e8", colors: ["#e53935", "#fbc02d", "#43a047", "#1e88e5", "#8e24aa", "#fb8c00"], kind: "balloons", message: "¡Feliz Día del Niño!" },
-  madres: { primary: "#c2185b", accent: "#5f8f2e", soft: "#fff5f8", soft2: "#f3f8ec", colors: ["#ec407a", "#f8bbd0", "#ab47bc", "#f06292"], kind: "hearts", message: "Feliz Día de las Madres" },
+  madres: { primary: "#8a3ba6", accent: "#2f7d5b", soft: "#fbf6fe", soft2: "#f1f8f3", colors: ["#b57edc", "#f48fb1", "#ce93d8", "#8e44ad"], kind: "flowers", message: "Feliz Día de las Madres" },
   maestro: { primary: "#c62828", accent: "#2e7d32", soft: "#fffaf0", soft2: "#eef6ee", colors: ["#e53935", "#1e88e5", "#fbc02d", "#43a047"], kind: "picado", message: "Feliz Día del Maestro" },
-  padre: { primary: "#1f4e79", accent: "#a8742f", soft: "#f4f8fc", soft2: "#fbf4ea", colors: ["#1f4e79", "#4f8ac9", "#c08a3e", "#2d6a4f"], kind: "stars", message: "Feliz Día del Padre" },
-  independencia: { primary: "#b5121f", accent: "#6b4426", soft: "#fffdf9", soft2: "#f7efe6", colors: ["#c8102e", "#ffffff", "#7a4a22", "#c8102e", "#ffffff", "#7a4a22"], kind: "picado", message: "¡Viva México!" },
+  padre: { primary: "#1f4e79", accent: "#a8742f", soft: "#f4f7fb", soft2: "#fbf4ea", colors: ["#1f4e79", "#c99a4b", "#5b3b22", "#4f8ac9"], kind: "stars", message: "Feliz Día del Padre" },
+  independencia: { primary: "#0b6b46", accent: "#c8102e", soft: "#f6fbf8", soft2: "#fdf2f3", colors: ["#0b6b46", "#ffffff", "#c8102e"], kind: "picado", message: "¡Viva México!" },
   halloween: { primary: "#d0560f", accent: "#6a1b9a", soft: "#fff8f1", soft2: "#f6effa", colors: ["#ef6c00", "#6a1b9a", "#212121", "#7cb342"], kind: "picado", message: "¡Feliz Halloween!" },
   muertos: { primary: "#d9480f", accent: "#7b2d8e", soft: "#fff8f1", soft2: "#f9effa", colors: ["#e91e63", "#ff9800", "#8e24aa", "#43a047", "#fbc02d", "#00acc1"], kind: "picado", message: "Día de Muertos" },
 };
@@ -144,34 +144,82 @@ export function PdfGarland({ p, width = 612 }: { p: PdfPalette; width?: number }
   );
 }
 
-/** Marca de agua muy tenue de la temporada (esquina inferior derecha) */
+/** Figura de la temporada (para marca de agua y adornos) */
+function motif(p: PdfPalette, x: number, y: number, r: number, color: string, op: number, key: string | number) {
+  const o = { fill: color, fillOpacity: op };
+  switch (p.kind) {
+    case "hearts":
+    case "drip":
+      return <Path key={key} d={heart(x, y, r * 0.8)} {...o} />;
+    case "stars":
+      return <Polygon key={key} points={starPts(x, y, r)} {...o} />;
+    case "lights":
+      return (
+        <G key={key}>
+          <Rect x={x - r * 0.18} y={y - r * 1.05} width={r * 0.36} height={r * 0.32} fill="#4a3215" fillOpacity={op} />
+          <Ellipse cx={x} cy={y} rx={r * 0.55} ry={r * 0.78} {...o} />
+        </G>
+      );
+    case "balloons":
+      return <Ellipse key={key} cx={x} cy={y} rx={r * 0.7} ry={r * 0.85} {...o} />;
+    case "flowers":
+      return (
+        <G key={key}>
+          {Array.from({ length: 5 }, (_, k) => (
+            <Circle key={k} cx={x + r * 0.55 * Math.cos((Math.PI * 2 * k) / 5)} cy={y + r * 0.55 * Math.sin((Math.PI * 2 * k) / 5)} r={r * 0.42} {...o} />
+          ))}
+          <Circle cx={x} cy={y} r={r * 0.3} fill="#e67e22" fillOpacity={op} />
+        </G>
+      );
+    default: {
+      // banderita de papel picado
+      let edge = "";
+      for (let k = 0; k <= 6; k++) edge += ` L${x + r - (k * 2 * r) / 6} ${y + r + (k % 2 ? -r * 0.18 : 0)}`;
+      return <Path key={key} d={`M${x - r} ${y - r} H${x + r} V${y + r}${edge} Z`} {...o} />;
+    }
+  }
+}
+
+/** Marca de agua tenue de la temporada, repartida en la hoja (detrás del contenido) */
 export function PdfWatermark({ p }: { p: PdfPalette }) {
-  const c = p.primary;
-  const shapes: Record<PdfPalette["kind"], React.ReactNode> = {
-    drip: <Path d={heart(100, 100, 70)} fill={c} />,
-    hearts: <Path d={heart(100, 100, 70)} fill={c} />,
-    stars: <Polygon points={starPts(100, 100, 90)} fill={c} />,
-    lights: <Polygon points="100,10 150,80 130,80 175,140 145,140 190,190 10,190 55,140 25,140 70,80 50,80" fill={c} />,
-    balloons: <Ellipse cx={100} cy={90} rx={70} ry={82} fill={c} />,
-    flowers: (
-      <G>
-        {Array.from({ length: 6 }, (_, k) => (
-          <Circle key={k} cx={100 + 48 * Math.cos((Math.PI * 2 * k) / 6)} cy={100 + 48 * Math.sin((Math.PI * 2 * k) / 6)} r={38} fill={c} />
-        ))}
-      </G>
-    ),
-    picado: (
-      <G>
-        <Rect x={20} y={20} width={160} height={150} fill={c} />
-        <Circle cx={100} cy={90} r={40} fill="#ffffff" />
-      </G>
-    ),
-  };
+  const spots = [
+    [90, 330, 34],
+    [520, 300, 26],
+    [470, 520, 44],
+    [140, 600, 26],
+    [306, 430, 70],
+    [560, 700, 30],
+    [60, 470, 18],
+  ];
   return (
-    <View fixed style={{ position: "absolute", right: -30, bottom: 40, width: 200, height: 200, opacity: 0.05 }}>
-      <Svg width={200} height={200} viewBox="0 0 200 200">
-        {shapes[p.kind]}
+    <View fixed style={{ position: "absolute", left: 0, top: 0, width: 612, height: 792 }}>
+      <Svg width={612} height={792} viewBox="0 0 612 792">
+        {spots.map(([x, y, r], i) => motif(p, x, y, r, p.colors[i % p.colors.length] === "#ffffff" ? p.primary : p.colors[i % p.colors.length], i === 4 ? 0.045 : 0.07, i))}
       </Svg>
     </View>
+  );
+}
+
+/** Logo sin círculo: resplandor blanco que lo funde con el encabezado y adornos de la temporada alrededor */
+export function PdfLogoGlow({ p, size = 132 }: { p: PdfPalette; size?: number }) {
+  const c = size / 2;
+  const rings = [
+    [c, 0.25],
+    [c * 0.9, 0.35],
+    [c * 0.8, 0.55],
+    [c * 0.72, 1],
+  ];
+  const n = 11;
+  const orn = Array.from({ length: n }, (_, i) => {
+    const a = Math.PI + (Math.PI * i) / (n - 1);
+    return motif(p, c + (c - 7) * Math.cos(a), c + (c - 7) * Math.sin(a), 6, p.colors[i % p.colors.length] === "#ffffff" ? p.accent : p.colors[i % p.colors.length], 1, `o${i}`);
+  });
+  return (
+    <Svg width={size} height={size} viewBox={`0 0 ${size} ${size}`} style={{ position: "absolute", left: 0, top: 0 }}>
+      {rings.map(([r, o], i) => (
+        <Circle key={i} cx={c} cy={c} r={r} fill="#ffffff" fillOpacity={o} />
+      ))}
+      {p.kind === "drip" ? null : orn}
+    </Svg>
   );
 }

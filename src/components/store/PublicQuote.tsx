@@ -1,5 +1,10 @@
 "use client";
 import { BizLogo } from "./BizLogo";
+import { useMemo } from "react";
+import { cn } from "@/lib/cn";
+import { FestiveColors, FestiveParticles, useFestive } from "@/components/festive/Festive";
+import { FestiveSwags, LogoFrame } from "@/components/festive/Decor";
+import { viewerSkinCss } from "@/lib/festiveSkin";
 import { storeUrl } from "@/lib/domains";
 import { useState } from "react";
 import { CalendarHeart, Check, Download, MessageCircle, Store } from "lucide-react";
@@ -35,6 +40,7 @@ export function PublicQuote({ data, token }: { data: PublicQuoteData; token: str
   const [status, setStatus] = useState(q.status);
   const [busy, setBusy] = useState(false);
   const code = folio("C", q.folio);
+  const fest = useFestive("auto");
   const expired = q.valid_until && new Date(q.valid_until + "T23:59:59") < new Date();
 
   async function accept() {
@@ -71,13 +77,29 @@ export function PublicQuote({ data, token }: { data: PublicQuoteData; token: str
   }
 
   return (
-    <div className="sprinkles min-h-dvh bg-cream-100 px-4 py-8 sm:py-14">
+    <div data-fs={fest ? "viewer" : undefined} className="sprinkles min-h-dvh bg-cream-100 px-4 py-8 sm:py-14">
+      {fest && (
+        <>
+          <FestiveColors theme={fest} />
+          <ViewerSkin id={fest.id} />
+          <FestiveParticles theme={fest} count={12} />
+        </>
+      )}
       <article className="mx-auto max-w-3xl overflow-hidden rounded-[32px] bg-white shadow-lift animate-fade-up">
-        <header className="flex flex-col items-center gap-4 bg-cream-100 px-6 py-7 text-center sm:flex-row sm:justify-between sm:px-10 sm:text-left">
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <BizLogo src={b.logo_url} name={b.business_name} className="h-24 w-24 bg-white text-[96px] shadow-sm" />
-          <div className="sm:text-right">
+        <header className={cn("relative flex flex-col items-center gap-4 bg-cream-100 px-6 py-7 text-center sm:flex-row sm:justify-between sm:px-10 sm:text-left", fest && "pt-16")}>
+          {fest && <FestiveSwags theme={fest} />}
+          {fest && b.logo_url ? (
+            <span className="relative h-32 w-32 shrink-0">
+              <LogoFrame theme={fest} compact />
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src={b.logo_url} alt={b.business_name} className="relative h-full w-full object-contain p-2" />
+            </span>
+          ) : (
+            <BizLogo src={b.logo_url} name={b.business_name} className="h-24 w-24 bg-white text-[96px] shadow-sm" />
+          )}
+          <div className="relative sm:text-right">
             <p className="font-display text-2xl font-semibold text-cocoa-700 italic">{b.business_name}</p>
+            {fest && <p className="mt-1 inline-block rounded-full bg-rose-500 px-3 py-1 text-xs font-bold text-white">{fest.emoji} {fest.name}</p>}
             <p className="text-sm text-cocoa-400">{[b.whatsapp, b.email].filter(Boolean).join(" · ")}</p>
           </div>
         </header>
@@ -151,4 +173,9 @@ export function PublicQuote({ data, token }: { data: PublicQuoteData; token: str
       </div>
     </div>
   );
+}
+
+function ViewerSkin({ id }: { id: Parameters<typeof viewerSkinCss>[0] }) {
+  const css = useMemo(() => viewerSkinCss(id), [id]);
+  return <style dangerouslySetInnerHTML={{ __html: css }} />;
 }

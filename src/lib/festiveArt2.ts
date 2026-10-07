@@ -153,6 +153,18 @@ export function papelPicadoFlag(color: string, motif: Motif, id: string) {
   const H = 62;
   let edge = "";
   for (let k = 0; k <= 9; k++) edge += ` L${W - (k * W) / 9} ${H + (k % 2 ? -5 : 0)}`;
+  if (color === "mx") {
+    // banderita de México: verde, blanco con el escudo (águila café) y rojo, con orilla de picos
+    const shape = `M0 0H${W}V${H}${edge}Z`;
+    const dots = Array.from({ length: 6 }, (_, i) => `<circle cx='${6 + i * 8.4}' cy='6' r='1.5'/>`).join("");
+    return (
+      `<mask id='${id}'><path d='${shape}' fill='white'/><g fill='black'>${dots}</g></mask>` +
+      `<g mask='url(#${id})'><rect width='18' height='${H}' fill='#0b6b46'/><rect x='18' width='18' height='${H}' fill='#ffffff'/><rect x='36' width='18' height='${H}' fill='#c8102e'/>` +
+      `<path d='M21 30c3-4 9-4 12 0-2-1-4 0-6 2-2-2-4-3-6-2Z' fill='#7a4a22'/><ellipse cx='27' cy='29' rx='3' ry='4.5' fill='#7a4a22'/><circle cx='27' cy='24.5' r='2' fill='#5d3416'/>` +
+      `<path d='M22 36q5 4 10 0' stroke='#2e7d32' stroke-width='1.6' fill='none'/><path d='${shape}' fill='url(#pp-shade)'/></g>` +
+      `<path d='${shape}' fill='none' stroke='#d8ccb8' stroke-width='.8'/>`
+    );
+  }
   const holes =
     motifPath(motif, W / 2, 30) +
     // orilla de puntitos y rombitos
@@ -305,9 +317,9 @@ export const BOUQUET: Record<FestiveId, [BigArt, BigArt, BigArt, BigArt, BigArt]
   sanvalentin: ["rosaRoja", "pastelCorazon", "cupido", "corazonRojo", "carta"],
   primavera: ["tulipanAmarillo", "florAmarilla", "mariposa", "florAmarilla", "tulipanAmarillo"],
   nino: ["globoAzul", "globoRojo", "papalote", "rehileteNino", "paleta"],
-  madres: ["rosaRosa", "tulipanRosa", "corazonRosa", "rosaRosa", "regaloRosa"],
+  madres: ["tulipanRosa", "rosaRosa", "mariposa", "florAmarilla", "regaloRosa"],
   maestro: ["estrellaOro", "manzana", "lapiz", "estrellaOro", "libro"],
-  padre: ["estrellaOro", "corbata", "taza", "estrellaOro", "bigote"],
+  padre: ["taza", "corbata", "estrellaOro", "bigote", "regaloRojo"],
   independencia: ["campana", "aguila", "chile", "rehileteMx", "campana"],
 };
 
@@ -321,10 +333,10 @@ export const PICADO: Record<FestiveId, { colors: string[]; motifs: Motif[] }> = 
   sanvalentin: { colors: ["#e53950", "#f48fb1", "#d81b60", "#ff8a80", "#ad1457", "#f06292"], motifs: ["corazon", "flor", "corazon", "corazon", "rombo", "corazon"] },
   primavera: { colors: ["#fbc02d", "#ffd54f", "#f9a825", "#ffb300", "#aed581", "#ffca28"], motifs: ["flor", "mariposa", "flor", "flor", "mariposa", "flor"] },
   nino: { colors: ["#e53935", "#fbc02d", "#43a047", "#1e88e5", "#8e24aa", "#fb8c00"], motifs: ["estrella", "corazon", "mariposa", "estrella", "flor", "rombo"] },
-  madres: { colors: ["#ec407a", "#f8bbd0", "#ab47bc", "#f06292", "#ce93d8", "#ec407a"], motifs: ["corazon", "flor", "mariposa", "corazon", "flor", "corazon"] },
+  madres: { colors: ["#b57edc", "#f3e5f5", "#8e44ad", "#ce93d8", "#f8bbd0", "#7b1fa2"], motifs: ["flor", "mariposa", "flor", "flor", "mariposa", "flor"] },
   maestro: { colors: ["#e53935", "#1e88e5", "#fbc02d", "#43a047", "#e53935", "#1e88e5"], motifs: ["estrella", "rombo", "corazon", "estrella", "flor", "rombo"] },
-  padre: { colors: ["#1f4e79", "#4f8ac9", "#c08a3e", "#2d6a4f", "#1f4e79", "#8fb3d9"], motifs: ["estrella", "rombo", "corona", "estrella", "rombo", "corona"] },
-  independencia: { colors: ["#ffffff", "#7a4a22", "#c8102e", "#ffffff", "#7a4a22", "#c8102e"], motifs: ["estrella", "campana", "flor", "estrella", "campana", "rombo"] },
+  padre: { colors: ["#1f4e79", "#c99a4b", "#0f2742", "#4f8ac9", "#1f4e79", "#c99a4b"], motifs: ["estrella", "rombo", "corona", "estrella", "rombo", "corona"] },
+  independencia: { colors: ["#0b6b46", "#ffffff", "#c8102e", "mx", "#0b6b46", "#ffffff", "#c8102e", "mx"], motifs: ["estrella", "campana", "flor", "rombo", "campana", "estrella", "rombo", "rombo"] },
 };
 
 const SHADE = `<linearGradient id='pp-shade' x1='0' y1='0' x2='0' y2='1'><stop offset='0' stop-color='#fff' stop-opacity='.28'/><stop offset='1' stop-color='#000' stop-opacity='.1'/></linearGradient>`;
@@ -393,7 +405,8 @@ export function confettiUri(id: FestiveId) {
   const pieces = Array.from({ length: 16 }, (_, i) => {
     const x = (i * 53) % 220;
     const y = (i * 97) % 220;
-    const col = c[i % c.length] === "#ffffff" ? "#e0e0e0" : c[i % c.length];
+    const raw = c[i % c.length] === "mx" ? "#0b6b46" : c[i % c.length];
+    const col = raw === "#ffffff" ? "#e0e0e0" : raw;
     const r = (i * 67) % 180;
     return i % 3 === 0
       ? `<ellipse cx='${x}' cy='${y}' rx='3.4' ry='6' fill='${col}' transform='rotate(${r} ${x} ${y})'/>`
@@ -563,11 +576,24 @@ export function logoBackdrop(id: FestiveId): { uri: string; mode: "arch" | "full
           [[30, 30, 1], [170, 40, 0.8], [160, 170, 0.7]].map(([x, y, k]) => `<path transform='translate(${x} ${y}) scale(${k})' d='M0 0c-4-6-14-8-22-2 4 0 6 4 6 8 4-4 8-4 10 0 2-2 4-4 6-4 2 0 4 2 6 4 2-4 6-4 10 0 0-4 2-8 6-8-8-6-18-4-22 2Z' fill='#1a0d26'/>`).join(""),
         `<radialGradient id='m'><stop offset='0' stop-color='#fffbe0'/><stop offset='.75' stop-color='#fdf1b8'/><stop offset='1' stop-color='#fdf1b8' stop-opacity='0'/></radialGradient>`,
       );
-    case "sanvalentin":
-    case "madres": {
-      const c = id === "madres" ? "#f8bbd0" : "#ffc1d1";
-      const d = id === "madres" ? "#ec407a" : "#e8456b";
-      const flowers = id === "madres" ? arcPts(100, 104, 92, 200, 340, 8).map(([x, y], i) => flower(x, y, 9, i % 2 ? "#fff" : "#f48fb1", "#ffd54f", "#ad1457")).join("") : "";
+    case "madres":
+      // corona de flores lilas alrededor de todo el logo
+      return full(
+        `<circle cx='100' cy='100' r='94' fill='#fbf3ff' opacity='.85'/>` +
+          arcPts(100, 100, 88, 0, 350, 24).map(([x, y], i) => (i % 3 === 2 ? leaf(x, y, 16, (i * 15 + 90) % 360, "#66bb6a") : flower(x, y, 10, ["#b57edc", "#f48fb1", "#ce93d8"][i % 3], "#fff59d", "#7b1fa2"))).join(""),
+      );
+    case "padre":
+      // moño grande con bigote, sobre rayos dorados
+      return full(
+        `<circle cx='100' cy='100' r='96' fill='url(#p)'/>${rays(28, "#c99a4b", "#ffffff", 96).replace(/<path/g, "<path opacity='.22'")}` +
+          `<g transform='translate(100 22)'><path d='M-8 0L-46 -18c-6-2-10 2-10 8v20c0 6 4 10 10 8L-8 0Z' fill='#1f4e79' stroke='#0f2742' stroke-width='3'/><path d='M8 0L46 -18c6-2 10 2 10 8v20c0 6-4 10-10 8L8 0Z' fill='#1f4e79' stroke='#0f2742' stroke-width='3'/>` +
+          `<path d='M-40 -10l10 8M-44 2l12 -2M40 -10l-10 8M44 2l-12 -2' stroke='#c99a4b' stroke-width='3'/><rect x='-10' y='-10' width='20' height='20' rx='5' fill='#c99a4b' stroke='#0f2742' stroke-width='3'/></g>`,
+        `<radialGradient id='p'><stop offset='0' stop-color='#ffffff'/><stop offset='.6' stop-color='#dbe7f4' stop-opacity='.8'/><stop offset='1' stop-color='#dbe7f4' stop-opacity='0'/></radialGradient>`,
+      );
+    case "sanvalentin": {
+      const c = "#ffc1d1";
+      const d = "#e8456b";
+      const flowers = "";
       return full(
         `<path d='M100 186C34 140 6 104 10 66 14 34 40 16 66 18c16 1 28 10 34 24 6-14 18-23 34-24 26-2 52 16 56 48 4 38-24 74-90 120Z' fill='${c}' stroke='${d}' stroke-width='4' stroke-dasharray='1 7' stroke-linecap='round'/>` +
           `<path d='M100 174C42 132 18 100 22 68 26 42 46 28 68 30c14 1 24 9 32 22 8-13 18-21 32-22 22-2 42 12 46 38 4 32-20 64-78 106Z' fill='#fff' opacity='.75'/>` +
@@ -584,8 +610,6 @@ export function logoBackdrop(id: FestiveId): { uri: string; mode: "arch" | "full
       );
     case "maestro":
       return full(`<rect x='18' y='26' width='164' height='120' rx='8' fill='#2f5a3f' stroke='#a1683a' stroke-width='8' opacity='.85'/><text x='34' y='60' font-size='18' fill='#fff' fill-opacity='.4' font-family='serif'>a b c  1 2 3</text><circle cx='160' cy='150' r='16' fill='#e53935'/><path d='M160 134q2-8 8-10' stroke='#5d4037' stroke-width='3'/>`);
-    case "padre":
-      return full(`<circle cx='100' cy='100' r='96' fill='url(#n)'/>${rays(28, "#e0b15c", "#fff", 96).replace(/<path/g, "<path opacity='.18'")}`, `<radialGradient id='n'><stop offset='0' stop-color='#ffffff'/><stop offset='.6' stop-color='#cfe0f2' stop-opacity='.7'/><stop offset='1' stop-color='#cfe0f2' stop-opacity='0'/></radialGradient>`);
     case "independencia":
       return arch(
         `<path d='M100 100C76 64 40 50 4 58c14 6 18 12 16 18 12-4 18 0 18 6 12-4 18 0 18 6 12 0 22 2 30 10Z' fill='#7a4a22' stroke='#3b2412' stroke-width='3'/>` +
@@ -598,12 +622,20 @@ export function logoBackdrop(id: FestiveId): { uri: string; mode: "arch" | "full
 }
 
 /** Marco de focos de colores (para border-image de tarjetas navideñas) */
-export function lightsBorderUri(frame = "#8d5a2b") {
-  const b = (x: number, y: number, c: string, rot = 0) => `<g transform='translate(${x} ${y}) rotate(${rot})'><rect x='-2' y='-9' width='4' height='4' fill='#4a3215'/><ellipse cx='0' cy='0' rx='4' ry='5.5' fill='${c}'/><ellipse cx='-1.2' cy='-1.8' rx='1.1' ry='1.7' fill='#fff' opacity='.7'/></g>`;
+export function lightsBorderUri(frame = "#8d5a2b", phase: 0 | 1 | -1 = -1) {
+  // phase: -1 todos prendidos; 0/1 prende solo la mitad (para que parpadeen alternando)
+  let n = 0;
+  const b = (x: number, y: number, c: string, rot = 0) => {
+    const on = phase === -1 || n++ % 2 === phase;
+    const glow = on ? `<ellipse cx='0' cy='0' rx='7' ry='8.5' fill='${c}' opacity='.35'/>` : "";
+    return `<g transform='translate(${x} ${y}) rotate(${rot})'>${glow}<rect x='-2' y='-9' width='4' height='4' fill='#4a3215'/><ellipse cx='0' cy='0' rx='4' ry='5.5' fill='${c}' opacity='${on ? 1 : 0.35}'/>${on ? `<ellipse cx='-1.2' cy='-1.8' rx='1.1' ry='1.7' fill='#fff' opacity='.8'/>` : ""}</g>`;
+  };
   const L = LIGHTS;
+  const bg = phase === 1 ? "" : `<rect width='84' height='84' fill='${frame}'/><rect x='5' y='5' width='74' height='74' fill='none' stroke='#c48a4a' stroke-width='2'/>`;
+  const wire = phase === 1 ? "" : `<path d='M0 8q7 4 14 0t14 0 14 0 14 0 14 0 14 0M0 76q7 4 14 0t14 0 14 0 14 0 14 0 14 0M8 0q4 7 0 14t0 14 0 14 0 14 0 14 0 14M76 0q4 7 0 14t0 14 0 14 0 14 0 14 0 14' stroke='#2e2410' stroke-width='1.2' fill='none'/>`;
   const body =
-    `<rect width='84' height='84' fill='${frame}'/><rect x='5' y='5' width='74' height='74' fill='none' stroke='#c48a4a' stroke-width='2'/>` +
-    `<path d='M0 8q7 4 14 0t14 0 14 0 14 0 14 0 14 0M0 76q7 4 14 0t14 0 14 0 14 0 14 0 14 0M8 0q4 7 0 14t0 14 0 14 0 14 0 14 0 14M76 0q4 7 0 14t0 14 0 14 0 14 0 14 0 14' stroke='#2e2410' stroke-width='1.2' fill='none'/>` +
+    bg +
+    wire +
     [21, 42, 63].map((x, i) => b(x, 10, L[i]) + b(x, 74, L[i + 3], 180) + b(10, x, L[(i + 1) % 6], -90) + b(74, x, L[(i + 4) % 6], 90)).join("") +
     b(9, 9, L[5], -45) + b(75, 9, L[2], 45) + b(9, 75, L[1], -135) + b(75, 75, L[4], 135);
   return dataUrl(`<svg xmlns='http://www.w3.org/2000/svg' width='84' height='84'>${body}</svg>`);
@@ -615,12 +647,14 @@ export function stripUri(id: FestiveId): { uri: string; w: number; h: number } {
   switch (id) {
     case "navidad":
       return wrapS(96, 16, `<path d='M0 3Q12 9 24 3T48 3T72 3T96 3' stroke='#2e2410' stroke-width='1.1' fill='none'/>` + LIGHTS.slice(0, 4).map((c, i) => `<rect x='${11 + i * 24}' y='4' width='3' height='3' fill='#4a3215'/><ellipse cx='${12.5 + i * 24}' cy='10.5' rx='3.4' ry='4.6' fill='${c}'/><ellipse cx='${11.6 + i * 24}' cy='9' rx='.9' ry='1.4' fill='#fff' opacity='.7'/>`).join(""));
-    case "sanvalentin":
     case "madres":
+      return wrapS(48, 16, `<path d='M0 3Q12 8 24 3T48 3' stroke='#b39ddb' stroke-width='1' fill='none'/>` + [[12, "#b57edc"], [36, "#f48fb1"]].map(([x, c]) => [0, 72, 144, 216, 288].map((a) => `<ellipse cx='${x}' cy='5' rx='2.4' ry='3.8' fill='${c}' transform='rotate(${a} ${x} 9)'/>`).join("") + `<circle cx='${x}' cy='9' r='1.8' fill='#fff59d'/>`).join(""));
+    case "padre":
+      return wrapS(56, 16, `<path d='M6 8c3-4 7-4 9 0 2-4 6-4 9 0-3 3-7 3-9 0-2 3-6 3-9 0Z' fill='#3e2a12'/><path d='M38 3h6l-1.5 3 3 8-4.5 2-4.5-2 3-8Z' fill='#1f4e79'/><path d='M38 3h6l-1.5 3h-3Z' fill='#c99a4b'/>`);
+    case "sanvalentin":
       return wrapS(60, 16, `<path d='M0 3Q15 8 30 3T60 3' stroke='#f48fb1' stroke-width='1' fill='none'/>` + [[10, "#e53950"], [30, "#f48fb1"], [50, "#d81b60"]].map(([x, c]) => `<path d='M${x} 15c-7-4-7-9-3.5-9.5 1.6-.3 2.8.6 3.5 1.8.7-1.2 1.9-2.1 3.5-1.8 3.5.5 3.5 5.5-3.5 9.5Z' fill='${c}'/>`).join(""));
     case "anonuevo":
     case "reyes":
-    case "padre":
       return wrapS(48, 14, [[8, 7, 5, "#d4af37"], [24, 6, 3, "#f3d27a"], [40, 7, 4.5, "#c9a646"]].map(([x, y, r, c]) => `<path d='M${x} ${(y as number) - (r as number)}L${(x as number) + (r as number) * 0.3} ${(y as number) - (r as number) * 0.3} ${(x as number) + (r as number)} ${y} ${(x as number) + (r as number) * 0.3} ${(y as number) + (r as number) * 0.3} ${x} ${(y as number) + (r as number)} ${(x as number) - (r as number) * 0.3} ${(y as number) + (r as number) * 0.3} ${(x as number) - (r as number)} ${y} ${(x as number) - (r as number) * 0.3} ${(y as number) - (r as number) * 0.3}Z' fill='${c}'/>`).join(""));
     case "halloween":
       return wrapS(64, 16, `<path d='M0 3Q16 9 32 3T64 3' stroke='#4a148c' stroke-width='1' fill='none'/><ellipse cx='16' cy='11' rx='5.5' ry='4.5' fill='#ef6c00'/><path d='M16 6.5v-2' stroke='#2e7d32' stroke-width='1.6'/><path d='M48 9c-1-2-4-3-7-1 1.5 0 2 1.5 2 3 1-1 2.5-1 3 0 .5-.6 1-1 2-1s1.5.4 2 1c.5-1 2-1 3 0 0-1.5.5-3 2-3-3-2-6-1-7 1Z' fill='#1a0d26'/>`);
@@ -635,4 +669,53 @@ export function stripUri(id: FestiveId): { uri: string; w: number; h: number } {
       return { uri: t.image, w: Math.round(t.width * 0.5), h: Math.round(t.height * 0.5) };
     }
   }
+}
+
+/* ======================================================================
+   Fondos de los íconos del menú (esfera, calabaza, corazón, flor, globo…)
+   Devuelve 3 variantes de color para alternar entre las opciones del menú.
+   ====================================================================== */
+export function navChipUris(id: FestiveId): string[] {
+  const S = (body: string) => dataUrl(`<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 40 40'>${body}</svg>`);
+  const petals = (n: number, r: number, pr: number, c: string) =>
+    Array.from({ length: n }, (_, i) => {
+      const a = (Math.PI * 2 * i) / n - Math.PI / 2;
+      return `<circle cx='${(20 + r * Math.cos(a)).toFixed(1)}' cy='${(21 + r * Math.sin(a)).toFixed(1)}' r='${pr}' fill='${c}'/>`;
+    }).join("");
+  const burst = (n: number, r1: number, r2: number) =>
+    Array.from({ length: n * 2 }, (_, i) => {
+      const a = (Math.PI * i) / n - Math.PI / 2;
+      const r = i % 2 ? r2 : r1;
+      return `${(20 + r * Math.cos(a)).toFixed(1)},${(20 + r * Math.sin(a)).toFixed(1)}`;
+    }).join(" ");
+  const shine = `<ellipse cx='14' cy='13' rx='3.5' ry='2.2' fill='#fff' opacity='.45' transform='rotate(-30 14 13)'/>`;
+  const shape: Record<FestiveId, (c: string) => string> = {
+    navidad: (c) => `<rect x='16' y='2' width='8' height='6' rx='1.5' fill='#d4af37' stroke='#7a5a12'/><circle cx='20' cy='22' r='15' fill='${c}' stroke='#00000033'/><path d='M7 20c4 3 22 3 26 0' stroke='#ffffff66' stroke-width='2' fill='none'/>${shine}`,
+    halloween: (c) => `<path d='M20 8c0-3 2-5 4-6' stroke='#2e7d32' stroke-width='3' fill='none' stroke-linecap='round'/><ellipse cx='12' cy='23' rx='9' ry='12' fill='${c}'/><ellipse cx='28' cy='23' rx='9' ry='12' fill='${c}'/><ellipse cx='20' cy='23' rx='9' ry='13' fill='${c}' stroke='#00000026'/>`,
+    muertos: (c) => `<path d='M3 3H37V31L34 37 31 31 28 37 25 31 22 37 20 33 18 37 15 31 12 37 9 31 6 37 3 31Z' fill='${c}'/><circle cx='7' cy='7' r='1.3' fill='#fff9'/><circle cx='33' cy='7' r='1.3' fill='#fff9'/>`,
+    sanvalentin: (c) => `<path d='M20 36C4 26 1 17 4 11c3-6 11-7 16 0 5-7 13-6 16 0 3 6 0 15-16 25Z' fill='${c}'/>${shine}`,
+    madres: (c) => petals(6, 10, 8, c) + `<circle cx='20' cy='21' r='9' fill='${c}'/>`,
+    primavera: (c) => petals(8, 11, 7, "#ffe082") + `<circle cx='20' cy='21' r='11' fill='${c}'/>`,
+    nino: (c) => `<path d='M20 33q3 4-1 7' stroke='#777' stroke-width='1' fill='none'/><ellipse cx='20' cy='18' rx='15' ry='16' fill='${c}'/><path d='M17 33h6l-3 3Z' fill='${c}'/>${shine}`,
+    maestro: (c) => `<path d='M20 9c2-4 5-6 8-6' stroke='#5d4037' stroke-width='2.4' fill='none'/><path d='M26 6c3-2 7-1 8 1-3 2-6 2-8-1Z' fill='#43a047'/><path d='M20 11c-4-3-15-3-16 9 0 9 7 17 12 17 2 0 3-1 4-1s2 1 4 1c5 0 12-8 12-17-1-12-12-12-16-9Z' fill='${c}'/>${shine}`,
+    padre: (c) => `<path d='M20 3l15 6v10c0 9-7 15-15 18C12 34 5 28 5 19V9Z' fill='${c}' stroke='#c99a4b' stroke-width='2.5'/>`,
+    anonuevo: (c) => `<polygon points='${burst(8, 18, 12)}' fill='${c}' stroke='#7a5a12' stroke-width='1'/>`,
+    reyes: (c) => `<polygon points='${burst(6, 18, 13)}' fill='${c}' stroke='#a87b10' stroke-width='1.2'/>`,
+    independencia: (c) => `<circle cx='20' cy='20' r='17' fill='${c}'/><path d='M20 3a17 17 0 0 1 0 34' fill='none' stroke='#fff' stroke-width='2'/><circle cx='20' cy='20' r='17.5' fill='none' stroke='#fffdf9' stroke-width='1.5'/>`,
+  };
+  const colors: Record<FestiveId, string[]> = {
+    navidad: ["#c62828", "#2e7d32", "#c99a1f"],
+    halloween: ["#ef6c00", "#e65100", "#f57c00"],
+    muertos: ["#e91e63", "#ff9800", "#8e24aa"],
+    sanvalentin: ["#e53950", "#d81b60", "#f06292"],
+    madres: ["#b57edc", "#ec407a", "#8e44ad"],
+    primavera: ["#f9a825", "#fbc02d", "#f57f17"],
+    nino: ["#e53935", "#1e88e5", "#43a047"],
+    maestro: ["#d32f2f", "#c62828", "#388e3c"],
+    padre: ["#1f4e79", "#2d6aa3", "#173a5e"],
+    anonuevo: ["#b8901e", "#8a6508", "#c9a646"],
+    reyes: ["#7b2d8e", "#c0392b", "#2e7d4f"],
+    independencia: ["#0b6b46", "#c8102e", "#7a4a22"],
+  };
+  return colors[id].map((c) => S(shape[id](c)));
 }

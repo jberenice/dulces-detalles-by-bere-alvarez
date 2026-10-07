@@ -1,6 +1,6 @@
 "use client";
 import { FestiveCluster, FestiveParticles, useFestive, useFestiveDecor } from "@/components/festive/Festive";
-import { FestiveSwags } from "@/components/festive/Decor";
+import { FestiveSwags, LogoFrame } from "@/components/festive/Decor";
 import { storeSkinCss } from "@/lib/festiveSkin";
 import type { FestiveId } from "@/lib/festive";
 import { BizLogo } from "./BizLogo";
@@ -896,7 +896,15 @@ export function Storefront({ data, slug, preview = false }: { data: StoreData; s
           <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/25 to-black/5" />
           <div className="absolute inset-x-0 bottom-0 flex items-end gap-4 p-5 @2xl:p-8">
             {/* eslint-disable-next-line @next/next/no-img-element */}
-            <BizLogo src={logo} name={store.business_name} className="h-20 w-20 shrink-0 bg-white text-[80px] shadow-lg ring-4 ring-white/80 @2xl:h-24 @2xl:w-24 @2xl:text-[96px]" />
+            {fest && logo ? (
+              <span className="relative h-24 w-24 shrink-0 @2xl:h-28 @2xl:w-28">
+                <span aria-hidden className="absolute -inset-3 rounded-full" style={{ background: "radial-gradient(circle, rgb(255 250 242 / .97) 0 46%, rgb(255 244 230 / .6) 60%, transparent 72%)" }} />
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img src={logo} alt={store.business_name} className="relative h-full w-full object-contain" />
+              </span>
+            ) : (
+              <BizLogo src={logo} name={store.business_name} className="h-20 w-20 shrink-0 bg-white text-[80px] shadow-lg ring-4 ring-white/80 @2xl:h-24 @2xl:w-24 @2xl:text-[96px]" />
+            )}
             <div className="min-w-0 text-white">
               <h1 className="text-3xl leading-tight font-semibold !text-white @2xl:text-5xl">{store.title}</h1>
               {store.description && <p className="mt-1 line-clamp-2 text-sm opacity-90 @2xl:text-base">{store.description}</p>}
@@ -923,10 +931,19 @@ export function Storefront({ data, slug, preview = false }: { data: StoreData; s
           <div className="absolute inset-0 bg-gradient-to-b from-transparent via-transparent to-[var(--st-bg)]" />
         </div>
         <div className="relative mx-auto -mt-16 max-w-3xl px-4 text-center @2xl:-mt-20">
-          <div className="mx-auto h-32 w-32 overflow-hidden rounded-full bg-[var(--st-surface)] shadow-lg ring-4 ring-[var(--st-surface)] @2xl:h-40 @2xl:w-40">
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <BizLogo src={logo} name={store.business_name} className="h-full w-full text-[128px] @2xl:text-[160px]" />
-          </div>
+          {fest && logo ? (
+            // En temporada: logo sin círculo, fundido con un resplandor y con los adornos de la temporada alrededor
+            <div className="relative mx-auto h-44 w-44 @2xl:h-56 @2xl:w-56">
+              <LogoFrame theme={fest} />
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src={logo} alt={store.business_name} className="relative h-full w-full object-contain p-3" />
+            </div>
+          ) : (
+            <div className="mx-auto h-32 w-32 overflow-hidden rounded-full bg-[var(--st-surface)] shadow-lg ring-4 ring-[var(--st-surface)] @2xl:h-40 @2xl:w-40">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <BizLogo src={logo} name={store.business_name} className="h-full w-full text-[128px] @2xl:text-[160px]" />
+            </div>
+          )}
           <h1 className="mt-4 text-3xl font-semibold @2xl:text-4xl">{store.title}</h1>
           {store.description && <p className="mx-auto mt-2 max-w-xl text-[15px] leading-relaxed text-[var(--st-muted)]">{store.description}</p>}
         </div>

@@ -9,7 +9,7 @@ import type { FestiveId } from "./festive";
 import { THEME_ART } from "./festiveArt";
 import { BOUQUET, bigUri, lightsBorderUri, stripUri, type BigArt } from "./festiveArt2";
 
-export type CardSkin = "gold" | "wood" | "woodCream" | "parchment" | "lace" | "white" | "glass" | "cream" | "board" | "lights" | "lightsCream" | "redline" | "cupid";
+export type CardSkin = "mx" | "plaid" | "lilac" | "gold" | "wood" | "woodCream" | "parchment" | "lace" | "white" | "glass" | "cream" | "board" | "lights" | "lightsCream" | "redline" | "cupid";
 type Tone = {
   /** fondo (CSS background) */
   bg: string;
@@ -32,13 +32,19 @@ export type Skin = {
   /** glaseado de cada plan: básico, profesional, premium */
   glaze: [string, string, string];
   /** adorno sobre el glaseado */
-  topping: "snow" | "gold" | "hearts" | "slime" | "picado" | "sprinkles" | "flowers" | "reyes";
+  topping: "snow" | "gold" | "hearts" | "slime" | "picado" | "sprinkles" | "flowers" | "reyes" | "mexico" | "ties";
   /** aro alrededor del logo */
   ring: string;
   /** color de las tarjetas del panel de bienvenida (texto claro u oscuro) */
   ink: { dark: string; muted: string };
   /** ilustraciones que se asoman en las orillas (cupidos, roscas, águila…) */
   edge?: BigArt[];
+  /** fondo del menú lateral del panel (por defecto el del pie de página) */
+  side?: string;
+  /** el contenido del pie de página va sobre una placa clara */
+  plaque?: boolean;
+  /** fondo de cada plan (básico, profesional, premium) y si su texto va claro */
+  plans?: { bg: [string, string, string]; dark: [boolean, boolean, boolean] };
 };
 
 const enc = (s: string) => `url("data:image/svg+xml,${encodeURIComponent(s)}")`;
@@ -68,6 +74,10 @@ const P = {
   confetti: tile(["#ffca28", "#26c6da", "#ec407a", "#ab47bc", "#66bb6a", "#ff7043"].map((c, i) => conf((i * 61) % 170 + 5, (i * 47) % 170 + 5, c, i * 37, 0.75)).join("") + star(140, 40, 5, "#fff", 0.8) + star(40, 130, 4, "#fff3c4", 0.8) + dot(100, 90, 2, "#fff", 0.7)),
   confettiLight: tile(["#ffca28", "#26c6da", "#ec407a", "#ab47bc", "#66bb6a", "#ff7043"].map((c, i) => conf((i * 61) % 170 + 5, (i * 47) % 170 + 5, c, i * 37, 0.45)).join("") + dot(100, 90, 2, "#ffca28", 0.4)),
   flowers: tile([[30, 40], [130, 70], [80, 140], [160, 160]].map(([x, y], i) => [0, 72, 144, 216, 288].map((a) => `<ellipse cx='${x}' cy='${y - 6}' rx='3.4' ry='6' fill='${i % 2 ? "#ffd54f" : "#fff8c4"}' opacity='.75' transform='rotate(${a} ${x} ${y})'/>`).join("") + dot(x, y, 2.6, "#f9a825", 0.9)).join("")),
+  lilac: tile([[30, 40], [130, 70], [80, 140], [160, 160], [20, 110]].map(([x, y], i) => [0, 72, 144, 216, 288].map((a) => `<ellipse cx='${x}' cy='${y - 6}' rx='3.6' ry='6.4' fill='${["#f3d7ff", "#ffffff", "#f8bbd0"][i % 3]}' opacity='.5' transform='rotate(${a} ${x} ${y})'/>`).join("") + dot(x, y, 2.4, "#fff59d", 0.8)).join("") + `<path d='M110 120c-4-8-14-8-14-2s8 6 14 2Zm0 0c4-8 14-8 14-2s-8 6-14 2Z' fill='#fff' opacity='.35'/>`),
+  lilacLight: tile([[30, 40], [130, 70], [80, 140], [160, 160]].map(([x, y], i) => [0, 72, 144, 216, 288].map((a) => `<ellipse cx='${x}' cy='${y - 5}' rx='3' ry='5.4' fill='${i % 2 ? "#ce93d8" : "#f48fb1"}' opacity='.28' transform='rotate(${a} ${x} ${y})'/>`).join("") + dot(x, y, 2, "#fbc02d", 0.4)).join("")),
+  ties: tile(`<g opacity='.16' fill='#fff'><path d='M30 30h10l-2 4 5 14-8 4-8-4 5-14Z'/><path d='M110 60c4-6 10-6 14 0 4-6 10-6 14 0-4 5-10 5-14 0-4 5-10 5-14 0Z'/><path d='M70 130h10l-2 4 5 14-8 4-8-4 5-14Z'/><path d='M140 150c4-6 10-6 14 0 4-6 10-6 14 0-4 5-10 5-14 0-4 5-10 5-14 0Z'/></g>` + star(160, 30, 4, "#f1c27d", 0.5) + star(30, 160, 3, "#f1c27d", 0.5)),
+  tiesLight: tile(`<g opacity='.12' fill='#1f4e79'><path d='M30 30h10l-2 4 5 14-8 4-8-4 5-14Z'/><path d='M110 60c4-6 10-6 14 0 4-6 10-6 14 0-4 5-10 5-14 0-4 5-10 5-14 0Z' fill='#5b3b22'/><path d='M70 130h10l-2 4 5 14-8 4-8-4 5-14Z'/><path d='M140 150c4-6 10-6 14 0 4-6 10-6 14 0-4 5-10 5-14 0-4 5-10 5-14 0Z' fill='#5b3b22'/></g>`),
   chalk: tile(star(30, 40, 6, "#fff", 0.25) + `<path d='M110 30h30M115 40h20' stroke='#fff' stroke-opacity='.18' stroke-width='2' stroke-linecap='round'/><text x='60' y='120' font-size='22' font-family='serif' fill='#fff' fill-opacity='.16'>a+b</text><text x='120' y='160' font-size='18' font-family='serif' fill='#fff' fill-opacity='.14'>ABC</text>` + dot(150, 100, 2, "#fff", 0.2)),
   navy: tile(star(30, 40, 5, "#e0b15c", 0.6) + star(130, 120, 4, "#fff", 0.5) + dot(80, 80, 1.6, "#fff", 0.5) + dot(160, 30, 1.4, "#e0b15c", 0.6) + `<path d='M20 150q10-10 20 0t20 0' stroke='#e0b15c' stroke-opacity='.3' fill='none' stroke-width='2'/>`),
   flag: tile(conf(30, 30, "#ffffff", 20, 0.6) + conf(120, 50, "#e53950", -30, 0.8) + conf(70, 120, "#ffffff", 60, 0.5) + conf(150, 150, "#d7a46a", 10, 0.7) + star(100, 20, 4, "#fff", 0.6) + star(30, 150, 5, "#ffd8a8", 0.6) + dot(160, 90, 2, "#fff", 0.6)),
@@ -94,6 +104,30 @@ const fireworks = enc(
 );
 
 
+/** Tela escocesa (Día del Padre) */
+const TARTAN =
+  "repeating-linear-gradient(0deg, rgb(255 255 255 / .05) 0 8px, transparent 8px 32px), repeating-linear-gradient(90deg, rgb(255 255 255 / .05) 0 8px, transparent 8px 32px), repeating-linear-gradient(0deg, rgb(201 154 75 / .28) 0 2px, transparent 2px 64px), repeating-linear-gradient(90deg, rgb(201 154 75 / .28) 0 2px, transparent 2px 64px), repeating-linear-gradient(0deg, rgb(0 0 0 / .14) 16px 24px, transparent 24px 64px), repeating-linear-gradient(90deg, rgb(0 0 0 / .14) 16px 24px, transparent 24px 64px)";
+
+/** Silueta del águila (para fondos de Fiestas Patrias) */
+const eagle = (fill: string, op: number) =>
+  enc(
+    `<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 140 110'><g fill='${fill}' opacity='${op}'>` +
+      `<path d='M68 52C56 34 38 22 20 18c-6-1-12 0-16 3 6 1 10 3 12 6-6 0-11 2-13 6 6 0 10 2 12 4-5 1-9 4-10 8 6-1 11 0 14 2-3 2-5 6-4 10 8-4 16-5 22-3-2 3-2 7 0 10 8-6 18-7 26-4Z'/>` +
+      `<path d='M72 52c12-18 30-30 48-34 6-1 12 0 16 3-6 1-10 3-12 6 6 0 11 2 13 6-6 0-10 2-12 4 5 1 9 4 10 8-6-1-11 0-14 2 3 2 5 6 4 10-8-4-16-5-22-3 2 3 2 7 0 10-8-6-18-7-26-4Z'/>` +
+      `<path d='M60 50c-2 18 2 34 10 44 8-10 12-26 10-44-6-6-14-6-20 0Z'/><path d='M60 46c-2-12 4-20 12-20 8 0 14 6 14 14 0 4-2 8-6 10l-12 2Z'/><path d='M84 36l10 4-9 5Z'/>` +
+      `<ellipse cx='70' cy='104' rx='18' ry='6'/></g></svg>`,
+  );
+const MX = {
+  eagleLight: eagle("#fff4dc", 0.16),
+  eagleBrown: eagle("#7a4a22", 0.13),
+  light: "linear-gradient(90deg, #dcefe5 0%, #f4faf6 22%, #fffdf9 38%, #fffdf9 62%, #fdf1f2 78%, #f9dfe2 100%)",
+  dark: "linear-gradient(105deg, #06523a 0%, #0b6b46 30%, #5b3a22 50%, #a8101f 70%, #7d0c16 100%)",
+  /** bandera: verde a la izquierda, blanco al centro (con el águila café) y rojo a la derecha */
+  flag: "linear-gradient(90deg, #0b6b46 0%, #0b6b46 2.5%, #cfe6da 10%, #fffdf9 20%, #fffdf9 80%, #f8d9de 90%, #c8102e 97.5%, #c8102e 100%)",
+  eagleBig: eagle("#7a4a22", 0.16),
+  footer: "linear-gradient(90deg, #0b6b46 0%, #0b6b46 10%, #fffdf9 30%, #fffdf9 70%, #c8102e 90%, #c8102e 100%)",
+};
+
 /* ------------------------------------------------------------------ Pieles por temporada */
 const cream = (c = "#fff8ec") => c;
 export const SKINS: Record<FestiveId, Skin> = {
@@ -111,6 +145,7 @@ export const SKINS: Record<FestiveId, Skin> = {
     topping: "gold",
     ring: "#d4af37",
     ink: { dark: "#fff6df", muted: "#e6d4a8" },
+    plans: { bg: ["#16130e", "#fbf3df", "#12204a"], dark: [true, false, true] },
   },
   navidad: {
     header: { bg: `${P.snowSoft}, #fdf3e7`, dark: false },
@@ -126,6 +161,7 @@ export const SKINS: Record<FestiveId, Skin> = {
     topping: "snow",
     ring: "#1f6b3f",
     ink: { dark: "#fff8ee", muted: "#f4dcd2" },
+    plans: { bg: ["#1b5e3b", "#a31515", "#fff8ee"], dark: [true, true, false] },
     edge: ["regaloRojo", "esfera", "baston", "arbol"],
   },
   reyes: {
@@ -142,6 +178,7 @@ export const SKINS: Record<FestiveId, Skin> = {
     topping: "reyes",
     ring: "#d4a017",
     ink: { dark: "#fff8ec", muted: "#e7d3ef" },
+    plans: { bg: ["#4a1466", "#fbf1d8", "#7d1425"], dark: [true, false, true] },
     edge: ["roscaDeluxe", "camello", "elefante", "caballo"],
   },
   sanvalentin: {
@@ -158,6 +195,7 @@ export const SKINS: Record<FestiveId, Skin> = {
     topping: "hearts",
     ring: "#e8456b",
     ink: { dark: "#fff5f7", muted: "#ffd6e0" },
+    plans: { bg: ["#ffe4ec", "#b0123f", "#fffafb"], dark: [false, true, false] },
     edge: ["cupido", "pastelCorazon", "corazonRojo", "cupido"],
   },
   primavera: {
@@ -174,6 +212,7 @@ export const SKINS: Record<FestiveId, Skin> = {
     topping: "flowers",
     ring: "#fbc02d",
     ink: { dark: "#fffdf0", muted: "#e8f0d0" },
+    plans: { bg: ["#fff6c4", "#3c6e24", "#fffdf0"], dark: [false, true, false] },
   },
   nino: {
     header: { bg: "#f2fbff", dark: false },
@@ -189,21 +228,24 @@ export const SKINS: Record<FestiveId, Skin> = {
     topping: "sprinkles",
     ring: "#1e88e5",
     ink: { dark: "#ffffff", muted: "#d6ecff" },
+    plans: { bg: ["#e3f4ff", "#1e6fd0", "#fff3d6"], dark: [false, true, false] },
   },
   madres: {
-    header: { bg: "#fff4f8", dark: false },
-    hero: { bg: `${P.hearts}, radial-gradient(ellipse at 60% 40%, #f8bbd0 0%, #f06292 50%, #ad1457 100%)`, dark: true, accent: "#fff0b3" },
-    features: { bg: `${P.heartsLight}, #fff6f9`, dark: false, card: "lace", accent: "#c2185b" },
-    video: { bg: `${P.heartsLight}, #fde7ef`, dark: false, accent: "#c2185b" },
-    how: { bg: `${P.hearts}, linear-gradient(#7b1745, #52102f)`, dark: true, card: "glass", accent: "#f8bbd0" },
-    pricing: { bg: `${P.heartsLight}, #fff6f9`, dark: false, accent: "#c2185b" },
-    faq: { bg: `${P.hearts}, #52102f`, dark: true, card: "glass", accent: "#f8bbd0" },
-    social: { bg: "#fff6f9", dark: false, card: "lace", accent: "#c2185b" },
-    footer: { bg: `${P.hearts}, #52102f`, dark: true, accent: "#f8bbd0" },
-    glaze: ["#f06292", "#ab47bc", "#ec407a"],
+    header: { bg: `${P.lilacLight}, #fbf6fe`, dark: false },
+    hero: { bg: `${P.lilac}, radial-gradient(ellipse at 65% 40%, #e9c9f5 0%, #b57edc 40%, #7b3f9e 75%, #4f2370 100%)`, dark: true, accent: "#fff3a6" },
+    features: { bg: `${P.lilacLight}, linear-gradient(160deg, #fbf6fe, #f5ecfb)`, dark: false, card: "lilac", accent: "#8a3ba6" },
+    video: { bg: `${P.lilacLight}, #f5ecfb`, dark: false, accent: "#8a3ba6" },
+    how: { bg: `${P.lilac}, linear-gradient(#5a2a7c, #3d1a57)`, dark: true, card: "glass", accent: "#f3d7ff" },
+    pricing: { bg: `${P.lilacLight}, linear-gradient(160deg, #fbf6fe, #efe3f8)`, dark: false, card: "lilac", accent: "#8a3ba6" },
+    faq: { bg: `${P.lilac}, linear-gradient(#5a2a7c, #3d1a57)`, dark: true, card: "glass", accent: "#f3d7ff" },
+    social: { bg: `${P.lilacLight}, #fbf6fe`, dark: false, card: "lilac", accent: "#8a3ba6" },
+    footer: { bg: `${P.lilac}, linear-gradient(115deg, #3d1a57, #7b3f9e)`, dark: true, accent: "#fff3a6" },
+    glaze: ["#b57edc", "#f8bbd0", "#8a3ba6"],
     topping: "flowers",
-    ring: "#f06292",
-    ink: { dark: "#fff6f9", muted: "#f8d3e2" },
+    ring: "#b57edc",
+    ink: { dark: "#fdf7ff", muted: "#ead7f5" },
+    plans: { bg: ["#f3e6fb", "#7b3f9e", "#fdeef4"], dark: [false, true, false] },
+    edge: ["tulipanRosa", "mariposa", "rosaRosa", "tulipanRosa"],
   },
   maestro: {
     header: { bg: "#fbf8ef", dark: false },
@@ -219,37 +261,43 @@ export const SKINS: Record<FestiveId, Skin> = {
     topping: "sprinkles",
     ring: "#c62828",
     ink: { dark: "#f7f5ec", muted: "#d7e3d0" },
+    plans: { bg: ["#fff7e0", "#1f3d2b", "#fde8e8"], dark: [false, true, false] },
   },
   padre: {
-    header: { bg: "#f4f7fb", dark: false },
-    hero: { bg: `${P.navy}, radial-gradient(ellipse at 60% 40%, #2d6aa3 0%, #1f4e79 50%, #0f2742 100%)`, dark: true, accent: "#e0b15c" },
-    features: { bg: "#f5f1ea", dark: false, card: "white", accent: "#1f4e79" },
-    video: { bg: `${P.navy}, #0f2742`, dark: true, accent: "#e0b15c" },
-    how: { bg: `${P.navy}, #0f2742`, dark: true, card: "glass", accent: "#e0b15c" },
-    pricing: { bg: `${P.navy}, linear-gradient(#173a5e, #0f2742)`, dark: true, card: "cream", accent: "#e0b15c" },
-    faq: { bg: `${P.navy}, #0f2742`, dark: true, card: "glass", accent: "#e0b15c" },
-    social: { bg: "#f5f1ea", dark: false, card: "white", accent: "#1f4e79" },
-    footer: { bg: `${P.navy}, #0a1c30`, dark: true, accent: "#e0b15c" },
-    glaze: ["#6d4c2f", "#1f4e79", "#a8742f"],
-    topping: "sprinkles",
-    ring: "#1f4e79",
-    ink: { dark: "#f4f7fb", muted: "#c9d8ea" },
+    header: { bg: `${P.tiesLight}, #f6f3ec`, dark: false },
+    hero: { bg: `${P.ties}, ${TARTAN}, linear-gradient(135deg, #10263f, #1f4e79 55%, #0c1d31)`, dark: true, accent: "#f1c27d" },
+    features: { bg: `${P.tiesLight}, linear-gradient(160deg, #f8f4ec, #eef2f7)`, dark: false, card: "plaid", accent: "#1f4e79" },
+    video: { bg: `${TARTAN}, linear-gradient(135deg, #10263f, #1f4e79)`, dark: true, accent: "#f1c27d" },
+    how: { bg: `${P.ties}, ${TARTAN}, linear-gradient(#5b3b22, #3a2414)`, dark: true, card: "glass", accent: "#f1c27d" },
+    pricing: { bg: `${P.ties}, ${TARTAN}, linear-gradient(#173a5e, #0f2742)`, dark: true, card: "plaid", accent: "#f1c27d" },
+    faq: { bg: `${P.ties}, linear-gradient(#5b3b22, #3a2414)`, dark: true, card: "glass", accent: "#f1c27d" },
+    social: { bg: `${P.tiesLight}, #f8f4ec`, dark: false, card: "plaid", accent: "#1f4e79" },
+    footer: { bg: `${TARTAN}, linear-gradient(115deg, #0c1d31, #1f4e79 60%, #5b3b22)`, dark: true, accent: "#f1c27d" },
+    glaze: ["#5b3b22", "#1f4e79", "#c99a4b"],
+    topping: "ties",
+    ring: "#c99a4b",
+    ink: { dark: "#f7f3ea", muted: "#d6dfe9" },
+    plans: { bg: ["#e9eef5", "#1f4e79", "#f3e7d4"], dark: [false, true, false] },
+    edge: ["corbata", "bigote", "taza", "corbata"],
+    side: `${TARTAN}, linear-gradient(180deg, #0c1d31, #1f4e79 60%, #5b3a22)`,
   },
   independencia: {
-    header: { bg: "#fffdf9", dark: false },
-    hero: { bg: `${P.flag}, radial-gradient(ellipse at 60% 40%, #9a6435 0%, #6b4426 50%, #3d2412 100%)`, dark: true, accent: "#ffd8a8" },
-    features: { bg: `${P.flagLight}, #fffdf9`, dark: false, card: "redline", accent: "#b5121f" },
-    video: { bg: `${P.flag}, linear-gradient(#b5121f, #7d0c16)`, dark: true, accent: "#ffe0b2" },
-    how: { bg: `${P.flag}, linear-gradient(#6b4426, #3d2412)`, dark: true, card: "glass", accent: "#ffd8a8" },
-    pricing: { bg: `${P.flagLight}, #fffdf9`, dark: false, card: "redline", accent: "#b5121f" },
-    faq: { bg: `${P.flag}, linear-gradient(#6b4426, #3d2412)`, dark: true, card: "glass", accent: "#ffd8a8" },
-    social: { bg: `${P.flagLight}, #fffdf9`, dark: false, card: "redline", accent: "#b5121f" },
-    footer: { bg: `${P.flag}, linear-gradient(115deg, #3d2412, #6b4426 50%, #b5121f)`, dark: true, accent: "#ffd8a8" },
-    glaze: ["#6b4426", "#b5121f", "#8d5a2b"],
-    topping: "picado",
-    ring: "#6b4426",
-    ink: { dark: "#fffdf9", muted: "#f1e2d3" },
+    header: { bg: `${MX.light}`, dark: false },
+    hero: { bg: `${MX.eagleBig} 72% 55% / min(560px, 70%) auto no-repeat, ${P.flagLight}, ${MX.flag}`, dark: false, accent: "#0b6b46" },
+    features: { bg: `${MX.eagleBrown} center / 420px auto no-repeat, ${P.flagLight}, ${MX.light}`, dark: false, card: "mx", accent: "#0b6b46" },
+    video: { bg: `${MX.eagleBig} center / min(480px, 80%) auto no-repeat, ${P.flagLight}, ${MX.flag}`, dark: false, accent: "#c8102e" },
+    how: { bg: `${MX.eagleBig} center / min(460px, 80%) auto no-repeat, ${P.flagLight}, ${MX.flag}`, dark: false, card: "mx", accent: "#0b6b46" },
+    pricing: { bg: `${MX.eagleBrown} center 60% / 520px auto no-repeat, ${P.flagLight}, ${MX.light}`, dark: false, card: "mx", accent: "#0b6b46" },
+    faq: { bg: `${MX.eagleBig} center / min(460px, 80%) auto no-repeat, ${P.flagLight}, ${MX.flag}`, dark: false, card: "mx", accent: "#c8102e" },
+    social: { bg: `${MX.eagleBrown} center / 300px auto no-repeat, ${P.flagLight}, ${MX.light}`, dark: false, card: "mx", accent: "#0b6b46" },
+    footer: { bg: `${MX.eagleBig} center 40% / 320px auto no-repeat, ${P.flagLight}, ${MX.flag}`, dark: false, accent: "#0b6b46" },
+    glaze: ["#fffdf9", "#0b6b46", "#fffdf9"],
+    topping: "mexico",
+    ring: "#0b6b46",
+    ink: { dark: "#fffdf9", muted: "#f1ece2" },
     edge: ["aguila", "campana", "chile", "rehileteMx"],
+    side: "linear-gradient(180deg, #07583b 0%, #0b6b46 45%, #a8101f 55%, #7d0c16 100%)",
+    plans: { bg: ["#0b6b46", `${MX.eagleBig} center 62% / 78% auto no-repeat, #fffdf9`, "#c8102e"], dark: [true, false, true] },
   },
   halloween: {
     header: { bg: `${P.bats}, #1e0f2e`, dark: true },
@@ -265,6 +313,7 @@ export const SKINS: Record<FestiveId, Skin> = {
     topping: "slime",
     ring: "#6a1b9a",
     ink: { dark: "#fff4e0", muted: "#e2cdf0" },
+    plans: { bg: ["#3a1a57", "#b9480b", "#1c1424"], dark: [true, true, true] },
   },
   muertos: {
     header: { bg: `${P.marigold}, #fdf1e3`, dark: false },
@@ -284,6 +333,7 @@ export const SKINS: Record<FestiveId, Skin> = {
     topping: "picado",
     ring: "#e91e63",
     ink: { dark: "#fff8ee", muted: "#f6e3cf" },
+    plans: { bg: ["#5b1a8c", "#fff3e0", "#a3164f"], dark: [true, false, true] },
   },
 };
 
@@ -311,6 +361,9 @@ const CARD: Record<CardSkin, { css: string; dark: boolean; extra?: string }> = {
   white: { dark: false, css: "background:#fff;border:2px solid var(--color-rose-200);" },
   cream: { dark: false, css: "background:#fffaf0;border:2px solid #e9c46a;box-shadow:0 18px 40px -18px rgb(0 0 0 / .6);" },
   glass: { dark: true, css: "background:rgb(255 255 255 / .07);border:1px solid rgb(255 255 255 / .16);box-shadow:none;backdrop-filter:blur(2px);" },
+  mx: { dark: false, css: "background:linear-gradient(90deg,#0b6b46 0 33.3%,#fff 33.3% 66.6%,#c8102e 66.6%) top/100% 6px no-repeat,#fffefb;border:1.5px solid #e7dccb;box-shadow:0 14px 28px -16px rgb(11 107 70 / .45);" },
+  plaid: { dark: false, css: "background:#fffdf8;border:2px solid #1f4e79;box-shadow:inset 0 0 0 4px #fffdf8,inset 0 0 0 6px #c99a4b,0 14px 28px -16px rgb(31 78 121 / .5);" },
+  lilac: { dark: false, css: "background:radial-gradient(circle at 100% 0,#f3e6fb 0 22%,transparent 23%),#fffdfe;border:1.5px solid #c9a7e3;box-shadow:0 0 0 4px #fbf6fe,0 12px 26px -14px rgb(123 63 168 / .35);" },
   lights: { dark: true, css: "background:linear-gradient(#1f6b3f,#14532f) padding-box;border:16px solid transparent;border-image:LIGHTS 16 round;border-radius:6px;box-shadow:0 14px 26px -14px rgb(0 0 0 / .5);", extra: "snow" },
   lightsCream: { dark: false, css: "background:#fffaf1 padding-box;border:16px solid transparent;border-image:LIGHTS 16 round;border-radius:6px;box-shadow:0 18px 40px -18px rgb(0 0 0 / .6);", extra: "snow" },
   redline: { dark: false, css: "background:#fff;border:2px solid #b5121f;box-shadow:inset 0 5px 0 #6b4426,0 12px 26px -14px rgb(107 68 38 / .45);" },
@@ -343,6 +396,36 @@ function restore(scope: string) {
 
 const SECTIONS = ["header", "hero", "features", "video", "how", "pricing", "faq", "social", "footer"] as const;
 
+/** Ajustes del tema oscuro: las secciones claras se oscurecen y las tarjetas claras pasan a superficie oscura */
+const DIM = "linear-gradient(rgb(16 11 8 / .86), rgb(16 11 8 / .86))";
+function darkSkin(s: Skin) {
+  const D = `:root[data-theme="dark"]`;
+  let css = "";
+  for (const name of SECTIONS) {
+    const t = s[name];
+    const sec = `${D} [data-fs="${name}"]`;
+    if (!t.dark) {
+      css += `${sec}::before{background:${DIM},${t.bg}}`;
+      css += `${sec} :is(.text-white,[class*="text-cream-"]):not(a,button,[class*="bg-rose-"],[class*="bg-mint-"]){color:#f7ede1!important}${sec} .text-mint-300{color:var(--color-mint-300)!important}`;
+      if (t.accent) css += `${sec} :is(h1,h2) .text-rose-500,${sec} .font-script{color:color-mix(in srgb, ${t.accent} 55%, white)}`;
+    }
+    if (t.card) {
+      const c = CARD[t.card];
+      if (!c.dark) {
+        const card = `${sec} :is(.card,.fest-card)`;
+        css += t.card === "mx" ? `${card}{background:linear-gradient(90deg,#0b6b46 0 33.3%,#fff 33.3% 66.6%,#c8102e 66.6%) top/100% 6px no-repeat,#231a14!important}` : t.card.startsWith("lights") ? `${card}{background:#231a14 padding-box!important}` : `${card}{background:#231a14!important}`;
+        // textos de la tarjeta con los colores del tema oscuro
+        css += `${card} :is(h1,h2,h3,h4,summary,figcaption){color:var(--color-cocoa-700)}`;
+        for (const k of [...DARK_TEXT, ...MUTED_TEXT]) css += `${card} ${k}{color:var(--color-${k.slice(6)})}`;
+      }
+    }
+  }
+  // pasos de "Así de fácil" con tarjeta clara: en oscuro pasan a superficie oscura
+  if (s.how.card && !CARD[s.how.card].dark) css += `${D} [data-fs="how"] li{background:${s.how.card === "mx" ? "linear-gradient(90deg,#0b6b46 0 33.3%,#fff 33.3% 66.6%,#c8102e 66.6%) top/100% 6px no-repeat," : ""}#231a14!important}`;
+  if (s.plaque) css += `${D} [data-fs="footer"]>div:not([aria-hidden]):not([data-fest]){background:rgb(28 20 15 / .92)}`;
+  return css;
+}
+
 export function skinCss(id: FestiveId) {
   const s = SKINS[id];
   let css = "";
@@ -353,6 +436,7 @@ export function skinCss(id: FestiveId) {
     css += `${sec}{position:relative;isolation:isolate;background:transparent!important}`;
     css += `${sec}::before{content:"";position:absolute;inset:0 calc(50% - 50vw);z-index:-20;background:${t.bg};pointer-events:none}`;
     if (t.dark) css += ink(sec, s.ink.dark, s.ink.muted);
+    else css += `${sec} :is(.text-white,[class*="text-cream-"]):not(:is(a,button,[class*="bg-rose-"],[class*="bg-mint-"]) *):not(a,button,[class*="bg-rose-"],[class*="bg-mint-"]){color:#2e1d10}${sec} [class*="text-cream-200"]:not(a *){color:#5d4634}${sec} .text-mint-300{color:#0b6b46}`;
     if (t.accent) css += `${sec} :is(h1,h2) .text-rose-500,${sec} .font-script{color:${t.accent}}`;
     // enlaces de color sobre fondo oscuro (fuera de tarjetas claras)
     if (t.dark && t.accent) css += `${sec} :is(.text-rose-500,.text-rose-600):not(${sec} :is(.card,.bg-white,.bg-cream-100,.bg-cream-200) *):not(:is(h1,h2) *):not(.bg-white){color:${t.accent}}`;
@@ -360,7 +444,7 @@ export function skinCss(id: FestiveId) {
     if (t.card) {
       const c = CARD[t.card];
       const card = `${sec} :is(.card,.fest-card)`;
-      css += `${card}{${c.css.replace("LIGHTS", lightsBorderUri())}}`;
+      css += `${card}{${c.css.replace("LIGHTS", lightsBorderUri(undefined, 0))}}`;
       if (c.dark && !t.dark) css += ink(card, s.ink.dark, s.ink.muted);
       if (!c.dark && t.dark) css += restore(card);
       if (c.extra === "cupid")
@@ -380,8 +464,16 @@ export function skinCss(id: FestiveId) {
   if (s.header.dark) css += `[data-fs="header"] .font-script{color:${s.ink.dark}}`;
   // pie de página: enlaces
   if (s.footer.dark) css += `[data-fs="footer"] a:not(.grid){color:${s.ink.muted}}[data-fs="footer"] a:not(.grid):hover{color:${s.ink.dark}}`;
+  if (s.plaque) css += `[data-fs="footer"]>div:not([aria-hidden]):not([data-fest]){background:rgb(255 253 249 / .93);border-radius:32px;margin-block:28px;max-width:min(72rem,calc(100% - 24px));box-shadow:0 20px 50px -24px rgb(0 0 0 / .45)}`;
   // sección "Así de fácil": los pasos usan la tarjeta de la sección
-  if (s.how.card) css += `[data-fs="how"] li{${CARD[s.how.card].css.replace("LIGHTS", lightsBorderUri())}}`;
+  if (s.how.card) css += `[data-fs="how"] li{${CARD[s.how.card].css.replace("LIGHTS", lightsBorderUri(undefined, 0))}}`;
+  // focos que prenden y apagan: en las tarjetas con marco de focos y en los 3 planes de Navidad
+  if (id === "navidad") {
+    const on = lightsBorderUri(undefined, 1);
+    const lit = `[data-fs="features"] :is(.card,.fest-card),[data-fs="social"] :is(.card,.fest-card),[data-fs="pricing"] .plan-card`;
+    css += `[data-fs="pricing"] .plan-card{border:16px solid transparent!important;border-image:${lightsBorderUri(undefined, 0)} 16 round!important;border-radius:6px!important;overflow:visible!important}`;
+    css += `:is(${lit})::after{content:"";position:absolute;inset:-16px;width:auto;height:auto;background:none;transform:none;border:16px solid transparent;border-image:${on} 16 round;pointer-events:none;z-index:4;animation:fest-blink 1.4s steps(1,end) infinite}`;
+  }
   // título del inicio sobre fondo oscuro: sombra suave para que se lea sobre cualquier color
   if (s.hero.dark) css += `[data-fs="hero"] p svg{color:${s.hero.accent ?? s.ink.dark}}`;
   if (s.hero.dark) css += `[data-fs="hero"] :is(h1,p){text-shadow:0 2px 14px rgb(0 0 0 / .28)}[data-fs="hero"] .card :is(h1,p){text-shadow:none}`;
@@ -391,6 +483,22 @@ export function skinCss(id: FestiveId) {
   art.forEach((a, i) => {
     css += `[data-fs="features"] .fest-mini:nth-child(${art.length}n+${i + 1})>span:first-child{background-image:url("${bigUri(a)}")!important;background-position:center;background-size:74% auto;background-repeat:no-repeat}`;
   });
+  // cada plan con su propio fondo (y letras claras u oscuras según el fondo)
+  if (s.plans) {
+    s.plans.bg.forEach((bg, i) => {
+      const card = `:root [data-fs="pricing"] .plan-card.plan-card:nth-child(${i + 1})`;
+      const dark = s.plans!.dark[i];
+      const c = dark ? s.ink.dark : "#2e1d10";
+      const m = dark ? s.ink.muted : "#6b5340";
+      css += `${card}{background:${bg}!important;box-shadow:0 22px 44px -22px rgb(0 0 0 / .55)!important}`;
+      const txt = `${card} :is(h3,p,span,li,label,b,svg):not(:is(a,button,.rounded-2xl,.bg-white,.rounded-full) *):not(a,button,.rounded-full)`;
+      css += `${txt}{color:${c}!important}${card} :is(p,span).text-xs,${card} p[class*="text-["]{color:${m}!important}`;
+      css += `${card} li svg{color:${dark ? s.ink.dark : "#0b6b46"}!important}`;
+      // recuadros (dominio, totales) siempre claros y con letra oscura
+      css += `${card} div.rounded-2xl{background:rgb(255 255 255 / .92)!important}${card} div.rounded-2xl :is(p,span,b,label):not(button *){color:#2e1d10!important}`;
+    });
+  }
+  css += darkSkin(s);
   return css;
 }
 
@@ -424,11 +532,19 @@ export function panelSkinCss(id: FestiveId) {
   const border = CARD_BORDER[id] ?? "var(--color-rose-300)";
   let css = "";
   // fondo de todo el panel (fijo, detrás del contenido)
-  css += `[data-fs="panel"]::before{content:"";position:fixed;inset:0;z-index:-1;background:${light.bg};pointer-events:none}`;
+  const blobs = `radial-gradient(900px 650px at 0% 0%, color-mix(in srgb, var(--color-rose-500) 24%, transparent), transparent 62%), radial-gradient(800px 600px at 100% 15%, color-mix(in srgb, var(--color-mint-500) 20%, transparent), transparent 62%), radial-gradient(900px 600px at 55% 115%, color-mix(in srgb, var(--color-rose-400) 18%, transparent), transparent 60%)`;
+  css += `[data-fs="panel"]::before{content:"";position:fixed;inset:0;z-index:-1;background:${blobs},${light.bg};pointer-events:none}`;
+  css += `:root[data-theme="dark"] [data-fs="panel"]::before{background:${blobs},${DIM},${light.bg}}`;
+  css += `:root[data-theme="dark"] [data-fs="panel"] main .font-script{color:color-mix(in srgb, ${light.accent ?? "var(--color-rose-500)"} 55%, white)}`;
+  // la bienvenida: si el fondo de la temporada es claro, los textos van oscuros
+  if (!s.hero.dark) css += `[data-fs="phero"] :is(h1,h2,p,span,b,strong):not(button *):not(a *){color:#3a2412!important;text-shadow:0 1px 0 rgb(255 255 255 / .5)}`;
   css += `[data-fs="panel"] main .font-script{color:${light.accent ?? "var(--color-rose-500)"}}`;
   // menú lateral con el fondo oscuro de la temporada
   const side = `[data-fs="sidebar"]`;
-  css += `${side}{background:${s.footer.bg}!important;border-color:rgb(255 255 255 / .08)!important}`;
+  // sin patrones encima del texto del menú: solo el degradado de la temporada
+  const sideBg = s.side ?? (s.footer.dark ? s.footer.bg : s.hero.bg).replace(/url\("[^"]*"\)[^,]*,\s*/g, "");
+  css += `${side}{background:linear-gradient(rgb(0 0 0 / .14),rgb(0 0 0 / .14)),${sideBg}!important;border-color:rgb(255 255 255 / .08)!important}`;
+  css += `${side} :is(p,span,a){text-shadow:0 1px 2px rgb(0 0 0 / .35)}${side} .bg-mint-500 *,${side} .bg-rose-500 *{text-shadow:none}`;
   css += ink(side, s.ink.dark, s.ink.muted);
   css += `${side} a:not(.bg-rose-500):not(.bg-mint-500):hover,${side} button:hover{background:rgb(255 255 255 / .1)!important;color:${s.ink.dark}!important}`;
   css += `${side} .text-cocoa-300{color:${s.ink.muted}!important;opacity:.85}`;
@@ -456,11 +572,24 @@ export function storeSkinCss(id: FestiveId) {
   const border = CARD_BORDER[id] ?? "var(--st-primary)";
   let css = "";
   // fondo con el patrón de la temporada encima del color de la tienda
-  css += `[data-fs="store"]{isolation:isolate}[data-fs="store"]::before{content:"";position:absolute;inset:0;z-index:-1;background:${light.bg};opacity:.55;pointer-events:none}`;
+  css += `[data-fs="store"]{isolation:isolate}[data-fs="store"]::before{content:"";position:absolute;inset:0;z-index:-1;background:radial-gradient(700px 500px at 0% 10%, color-mix(in srgb, var(--st-primary) 22%, transparent), transparent 62%), radial-gradient(700px 520px at 100% 40%, color-mix(in srgb, var(--st-accent) 20%, transparent), transparent 62%), radial-gradient(800px 500px at 40% 100%, color-mix(in srgb, var(--st-primary) 16%, transparent), transparent 60%), ${light.bg};opacity:.75;pointer-events:none}`;
   // portada sin foto: fondo de la temporada
   css += `[data-fs="sbanner"]{background:${s.hero.bg}!important}`;
   // tarjetas de productos y paquetes
   css += `[data-fs="store"] .fest-card{position:relative;border:1.5px solid color-mix(in srgb, ${border} 60%, transparent)}`;
   css += `[data-fs="store"] .fest-card::before{content:"";position:absolute;left:12px;right:12px;top:3px;height:${strip.h}px;background:${strip.uri} left top/${strip.w}px ${strip.h}px repeat-x;pointer-events:none;z-index:2}`;
+  return css;
+}
+
+/** Visor público de la cotización: franja con el fondo de la temporada arriba y fondo difuminado */
+export function viewerSkinCss(id: FestiveId) {
+  const s = SKINS[id];
+  const light = lightTone(s);
+  const blobs = `radial-gradient(700px 500px at 0% 30%, color-mix(in srgb, var(--color-rose-500) 22%, transparent), transparent 62%), radial-gradient(700px 520px at 100% 60%, color-mix(in srgb, var(--color-mint-500) 20%, transparent), transparent 62%)`;
+  let css = `[data-fs="viewer"]{position:relative;isolation:isolate;background:transparent!important}`;
+  css += `[data-fs="viewer"]::before{content:"";position:fixed;inset:0;z-index:-2;background:${blobs},${light.bg};pointer-events:none}`;
+  css += `[data-fs="viewer"]::after{content:"";position:absolute;left:0;right:0;top:0;height:360px;z-index:-1;background:${s.hero.bg};-webkit-mask-image:linear-gradient(#000 55%,transparent);mask-image:linear-gradient(#000 55%,transparent);pointer-events:none}`;
+  css += `:root[data-theme="dark"] [data-fs="viewer"]::before{background:${blobs},${DIM},${light.bg}}`;
+  css += `[data-fs="viewer"] article{box-shadow:0 30px 70px -30px rgb(0 0 0 / .45),0 0 0 2px color-mix(in srgb, ${CARD_BORDER[id] ?? "var(--color-rose-300)"} 45%, transparent)}`;
   return css;
 }

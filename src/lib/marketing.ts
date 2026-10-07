@@ -50,7 +50,7 @@ export const FAQ: { q: string; a: string }[] = [
   },
   {
     q: "¿Mi tienda tiene su propia dirección?",
-    a: "Sí. En los planes Profesional y Premium tu tienda queda en tutienda.dulcesdetallesbyberealvarez.com, con el nombre que tú elijas. Si prefieres tu propio dominio (tutienda.com), lo conectamos por ti como servicio extra; en Premium anual la instalación va incluida.",
+    a: "Sí. En los planes Profesional y Premium tu tienda queda en tutienda.dulcesdetallesbyberealvarez.com, con el nombre que tú elijas. Si prefieres tu propio dominio (tutienda.com), lo conectamos por ti como servicio extra; en Premium anual la instalación va incluida. Importante: el costo del nombre de dominio no está incluido en ningún plan y se paga aparte: 1 año $180.84, 2 años $467.68 o 3 años $671.55 (después se renueva en $329.99 al año). El dominio queda a tu nombre.",
   },
   {
     q: "¿Puedo cambiar de plan después?",

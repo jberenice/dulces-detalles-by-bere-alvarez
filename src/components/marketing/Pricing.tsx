@@ -61,7 +61,12 @@ function MeltingGlaze({ plan, shown, fest }: { plan: PlanId; shown: boolean; fes
       style={{ height: H, transform: shown ? undefined : "scaleY(0)", animation: shown ? "pour 1s cubic-bezier(.2,.8,.2,1) both" : undefined }}
       aria-hidden
     >
-      <svg viewBox={`0 0 400 ${VB}`} preserveAspectRatio="none" className="absolute inset-0 h-full w-full overflow-visible">
+      <svg
+        viewBox={`0 0 400 ${VB}`}
+        preserveAspectRatio="none"
+        className="absolute inset-0 h-full w-full overflow-visible"
+        style={/^#f{3,6}$/i.test(d.glaze) ? { filter: "drop-shadow(0 2px 2px rgb(0 0 0 / .25)) drop-shadow(0 0 1px rgb(0 0 0 / .3))" } : undefined}
+      >
         {/* capa base con orilla ondulada */}
         <path style={{ fill: d.glaze }} d={`M0 0H400V${BAND} C370 ${BAND + 8} 340 ${BAND - 4} 300 ${BAND + 4} S220 ${BAND - 2} 180 ${BAND + 6} S90 ${BAND - 4} 50 ${BAND + 4} S10 ${BAND} 0 ${BAND + 2}Z`} />
         {/* brillo */}
@@ -76,7 +81,7 @@ function MeltingGlaze({ plan, shown, fest }: { plan: PlanId; shown: boolean; fes
         ))}
       </svg>
       {/* adorno de la temporada sobre el glaseado (nieve, oro, corazones, burbujas, papel picado…) */}
-      {fest && skin && (skin.topping === "picado" ? <FestPicadoStrip theme={fest} /> : <Topping kind={skin.topping} seed={PLAN_IDX[plan]} />)}
+      {fest && skin && (skin.topping === "picado" ? <FestPicadoStrip id={fest.id} /> : <Topping kind={skin.topping} seed={PLAN_IDX[plan]} />)}
       {/* gotitas que caen de la punta */}
       {drips
         .filter((_, i) => i % 2 === 0)
@@ -112,6 +117,29 @@ const SPRINKLES = [
 /** Adornos sobre el glaseado según la temporada */
 function Topping({ kind, seed }: { kind: string; seed: number }) {
   const r = (n: number) => ((Math.sin((n + 1) * 12.9898 + seed * 78.233) * 43758.5453) % 1 + 1) % 1;
+  if (kind === "mexico")
+    // banderitas de México y, en el plan del centro, el águila sobre el glaseado blanco
+    return (
+      <>
+        <FestPicadoStrip id="independencia" />
+        {seed === 1 && (
+          <span className="fest-bob absolute left-1/2 -translate-x-1/2" style={{ top: -2 }}>
+            <BigArtImg name="aguila" w={64} part={false} />
+          </span>
+        )}
+      </>
+    );
+  if (kind === "ties")
+    // corbatas, moños y bigotes sobre el glaseado
+    return (
+      <>
+        {(["corbata", "bigote", "taza", "corbata", "bigote"] as const).map((n, i) => (
+          <span key={i} className="fest-sway absolute" style={{ left: `${4 + i * 17}%`, top: 4 + (i % 2) * 10, animationDelay: `${-i * 0.9}s`, ["--r" as string]: i % 2 ? "8deg" : "-8deg" }}>
+            <BigArtImg name={n} w={n === "bigote" ? 40 : 30} part={false} />
+          </span>
+        ))}
+      </>
+    );
   if (kind === "reyes")
     // roscas y los animales de los Reyes Magos encima del glaseado
     return (
@@ -161,8 +189,8 @@ function Topping({ kind, seed }: { kind: string; seed: number }) {
   );
 }
 
-function FestPicadoStrip({ theme }: { theme: FestiveTheme }) {
-  const t = picadoTile(theme.id);
+function FestPicadoStrip({ id }: { id: FestiveTheme["id"] }) {
+  const t = picadoTile(id);
   return <span className="fest-flutter absolute inset-x-0 block" style={{ top: 58, height: 36, backgroundImage: t.image, backgroundSize: `${t.width * 0.75}px ${t.height * 0.75}px`, backgroundRepeat: "repeat-x" }} />;
 }
 
@@ -273,7 +301,7 @@ export function Pricing() {
             <div
               key={p.id}
               className={cn(
-                "group relative flex flex-col overflow-hidden rounded-[28px] px-6 pt-32 pb-6 transition duration-500 hover:-translate-y-1.5 sm:px-7 sm:pb-7",
+                "plan-card group relative flex flex-col overflow-hidden rounded-[28px] px-6 pt-32 pb-6 transition duration-500 hover:-translate-y-1.5 sm:px-7 sm:pb-7",
                 dark ? "bg-cocoa-800 text-cream-100 shadow-lift ring-2 ring-rose-400 lg:-my-3 lg:pb-10" : "card hover:shadow-lift",
               )}
               style={{ opacity: shown ? undefined : 0, animation: shown ? `fade-up .7s cubic-bezier(.22,1,.36,1) ${idx * 0.12}s backwards` : undefined }}
@@ -285,7 +313,7 @@ export function Pricing() {
                   <Crown className="h-3.5 w-3.5" /> El favorito
                 </span>
               )}
-              <h3 className={cn("text-2xl font-semibold", dark && "!text-white")}>{p.name}</h3>
+              <h3 className={cn("text-2xl font-semibold", dark && "text-white")}>{p.name}</h3>
               <p className={cn("mt-1 text-sm", muted)}>{p.tagline}</p>
 
               {/* Precio */}

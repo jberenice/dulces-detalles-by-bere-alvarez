@@ -3,8 +3,9 @@ import { useEffect, useMemo, useState } from "react";
 import { X } from "lucide-react";
 import { cn } from "@/lib/cn";
 import { artUri, type ArtName } from "@/lib/festiveArt";
-import { badgeUri, buttonCornerUri, flowerUri, miniPicadoUri, picadoTile } from "@/lib/festiveArt2";
+import { badgeUri, buttonCornerUri, flowerUri, miniPicadoUri, navChipUris, picadoTile } from "@/lib/festiveArt2";
 import { FestiveBouquet } from "./Decor";
+import { useDarkMode } from "@/components/theme/ThemeToggle";
 import { festiveById, festiveVars, resolveFestive, type FestiveSetting, type FestiveTheme } from "@/lib/festive";
 
 /**
@@ -186,16 +187,21 @@ export const saveFestiveColors = (v: boolean) => {
 
 /** Pinta botones, íconos y acentos con los colores de la temporada mientras el componente está montado */
 export function FestiveColors({ theme }: { theme: FestiveTheme }) {
+  const dark = useDarkMode();
   useEffect(() => {
     const root = document.documentElement;
+    const base = festiveVars(theme);
+    // en tema oscuro no se tocan los fondos crema ni los textos chocolate (los pone el tema oscuro)
+    if (dark) for (const k of Object.keys(base)) if (/--color-(cream|cocoa)-/.test(k)) delete base[k];
     const vars = {
-      ...festiveVars(theme),
+      ...base,
       // piezas para botones y tarjetas (ver globals.css)
       "--fest-btn-l": buttonCornerUri(theme.id, "left"),
       "--fest-btn-r": buttonCornerUri(theme.id, "right"),
       "--fest-flower": flowerUri(theme.id),
       "--fest-badge": badgeUri(theme.id),
       "--fest-mini": miniPicadoUri(theme.id),
+      ...Object.fromEntries(navChipUris(theme.id).map((u, i) => [`--fest-chip-${i + 1}`, u])),
     };
     Object.entries(vars).forEach(([k, v]) => root.style.setProperty(k, v));
     root.dataset.festive = theme.id;
@@ -203,7 +209,7 @@ export function FestiveColors({ theme }: { theme: FestiveTheme }) {
       Object.keys(vars).forEach((k) => root.style.removeProperty(k));
       delete root.dataset.festive;
     };
-  }, [theme]);
+  }, [theme, dark]);
   return null;
 }
 

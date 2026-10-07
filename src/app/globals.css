@@ -472,3 +472,167 @@
 :root[data-festive] .card .text-cocoa-300 {
   color: var(--color-cocoa-400);
 }
+/* Focos navideños que prenden y apagan alternando */
+@keyframes fest-blink {
+  0% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  [data-fs]::after {
+    animation: none !important;
+  }
+}
+
+/* ====================================================================
+   Tema oscuro (botón de sol / luna). Se invierten los fondos crema y los textos chocolate.
+   La tienda en línea conserva sus propios colores.
+   ==================================================================== */
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --color-cream-50: #211913;
+  --color-cream-100: #17110d;
+  --color-cream-200: #2b2019;
+  --color-cream-300: #3b2d23;
+  --color-cocoa-100: #3a2c22;
+  --color-cocoa-200: #54412f;
+  --color-cocoa-300: #9a8571;
+  --color-cocoa-400: #bba58f;
+  --color-cocoa-500: #d1bca6;
+  --color-cocoa-600: #e3d0bc;
+  --color-cocoa-700: #f0e2d1;
+  --color-cocoa-800: #f7ede1;
+  --color-cocoa-900: #fff8ef;
+  --color-rose-50: color-mix(in srgb, var(--color-rose-500) 16%, #17110d);
+  --color-rose-100: color-mix(in srgb, var(--color-rose-500) 26%, #17110d);
+  --color-mint-50: color-mix(in srgb, var(--color-mint-500) 16%, #17110d);
+  --color-mint-100: color-mix(in srgb, var(--color-mint-500) 26%, #17110d);
+  --shadow-soft: 0 1px 2px rgb(0 0 0 / 0.3), 0 8px 24px -8px rgb(0 0 0 / 0.5);
+  --shadow-lift: 0 2px 4px rgb(0 0 0 / 0.3), 0 18px 40px -12px rgb(0 0 0 / 0.6);
+}
+:root[data-theme="dark"] body {
+  background: radial-gradient(1200px 600px at 10% -10%, rgb(235 84 115 / 0.08), transparent 60%), radial-gradient(1000px 600px at 110% 10%, rgb(127 202 166 / 0.07), transparent 60%), #17110d;
+}
+:root[data-theme="dark"] :is(.card, .bg-white, .bg-white\/95, .bg-white\/90, .bg-white\/80, .bg-white\/70) {
+  background-color: #231a14;
+}
+:root[data-theme="dark"] .card {
+  border-color: rgb(255 255 255 / 0.07);
+}
+:root[data-theme="dark"] .field {
+  background-color: #1c1510;
+  border-color: rgb(255 255 255 / 0.12);
+}
+:root[data-theme="dark"] .field:focus {
+  background-color: #241b15;
+}
+/* secciones que ya eran oscuras siguen oscuras y con letra clara */
+:root[data-theme="dark"] :is(.bg-cocoa-800, .bg-cocoa-900) {
+  background-color: #0e0a07;
+}
+:root[data-theme="dark"] :is(.bg-cocoa-800, .bg-cocoa-900):is(.text-cream-50, .text-cream-100, .text-cream-200),
+:root[data-theme="dark"] :is(.bg-cocoa-800, .bg-cocoa-900) :is(.text-cream-50, .text-cream-100, .text-cream-200) {
+  color: #f7ede1;
+}
+:root[data-theme="dark"] :is(.bg-cocoa-800, .bg-cocoa-900) [class*="text-cream-"] {
+  color: rgb(247 237 225 / 0.78);
+}
+:root[data-theme="dark"] :is(.bg-cocoa-800, .bg-cocoa-900) [class*="text-cream-100"] {
+  color: rgb(247 237 225 / 0.92);
+}
+/* textos de crema sobre fondos de temporada siempre claros */
+:root[data-theme="dark"] [data-fs] [class*="text-cream-"] {
+  color: rgb(247 237 225 / 0.85);
+}
+:root[data-theme="dark"] [class*="bg-cocoa-900/"] {
+  background-color: rgb(0 0 0 / 0.55);
+}
+/* la tienda (y su vista previa) conserva su diseño claro */
+:root[data-theme="dark"] .st-root {
+  color-scheme: light;
+  --color-cream-50: #fffdf8;
+  --color-cream-100: #fffaef;
+  --color-cream-200: #fbf1dc;
+  --color-cream-300: #f4e4c2;
+  --color-cocoa-100: #f3e8dc;
+  --color-cocoa-200: #e3cdb8;
+  --color-cocoa-300: #c9a585;
+  --color-cocoa-400: #a87b55;
+  --color-cocoa-500: #8a5a2e;
+  --color-cocoa-600: #6f4318;
+  --color-cocoa-700: #5a3512;
+  --color-cocoa-800: #3f250d;
+  --color-cocoa-900: #2a1909;
+}
+:root[data-theme="dark"] .st-root :is(.card, .bg-white) {
+  background-color: #fff;
+}
+
+/* ====================================================================
+   Letras de temporada (títulos y frases manuscritas)
+   ==================================================================== */
+:root[data-festive="navidad"] { --font-display: var(--ff-xmas), var(--font-display-serif), serif; --font-script: var(--ff-vibes), var(--font-dancing), cursive; }
+:root[data-festive="anonuevo"] { --font-display: var(--ff-royal), var(--font-display-serif), serif; --font-script: var(--ff-vibes), var(--font-dancing), cursive; }
+:root[data-festive="reyes"] { --font-display: var(--ff-royal), var(--font-display-serif), serif; --font-script: var(--ff-vibes), var(--font-dancing), cursive; }
+:root[data-festive="sanvalentin"] { --font-display: var(--ff-lobster), var(--font-display-serif), serif; --font-script: var(--ff-vibes), var(--font-dancing), cursive; }
+:root[data-festive="madres"] { --font-script: var(--ff-vibes), var(--font-dancing), cursive; }
+:root[data-festive="primavera"] { --font-display: var(--font-fredoka), var(--font-body), sans-serif; --font-script: var(--font-pacifico), cursive; }
+:root[data-festive="nino"] { --font-display: var(--font-fredoka), var(--font-body), sans-serif; --font-script: var(--font-pacifico), cursive; }
+:root[data-festive="maestro"] { --font-display: var(--ff-chalk), var(--font-body), sans-serif; --font-script: var(--ff-chalk), cursive; }
+:root[data-festive="padre"] { --font-display: var(--ff-slab), var(--font-display-serif), serif; --font-script: var(--ff-rye), cursive; }
+:root[data-festive="independencia"] { --font-display: var(--ff-sancreek), var(--font-display-serif), serif; --font-script: var(--ff-rye), cursive; }
+:root[data-festive="halloween"] { --font-display: var(--ff-creepster), var(--font-display-serif), serif; --font-script: var(--ff-creepster), cursive; }
+:root[data-festive="muertos"] { --font-display: var(--ff-sancreek), var(--font-display-serif), serif; --font-script: var(--font-pacifico), cursive; }
+/* las letras decorativas se ven mejor sin cursiva forzada ni negritas sintéticas */
+:root:is([data-festive="navidad"], [data-festive="halloween"], [data-festive="independencia"], [data-festive="muertos"], [data-festive="padre"], [data-festive="maestro"]) :is(h1, h2, h3, .font-display) {
+  font-style: normal;
+  letter-spacing: 0.01em;
+}
+:root[data-theme="dark"][data-festive] .btn-outline {
+  color: var(--color-mint-300);
+  border-color: var(--color-mint-400);
+  background-color: transparent;
+}
+/* Logos en tema oscuro: mismo logo con un resplandor blanco difuminado detrás para que no se pierda */
+:root[data-theme="dark"] img:is([src*="logo"], [alt*="Dulces Detalles"]) {
+  background: radial-gradient(circle, #fff 0 46%, rgb(255 255 255 / 0.75) 58%, rgb(255 255 255 / 0) 71%) !important;
+  border-radius: 9999px;
+}
+/* logos que ya llevan círculo blanco (menú del panel) se quedan blancos */
+:root[data-theme="dark"] img.bg-white {
+  background-color: #fff !important;
+}
+/* Íconos del menú en temporada: cada ícono va sobre una figura de la temporada (esfera, calabaza, corazón…) */
+:root[data-festive] .nav-chip {
+  width: 34px;
+  height: 34px;
+  margin: -6px -2px;
+  background: var(--fest-chip-1) center / contain no-repeat;
+  filter: drop-shadow(0 2px 2px rgb(0 0 0 / 0.3));
+  transition: transform 0.2s;
+}
+:root[data-festive] li:nth-child(3n + 2) .nav-chip {
+  background-image: var(--fest-chip-2);
+}
+:root[data-festive] li:nth-child(3n) .nav-chip {
+  background-image: var(--fest-chip-3);
+}
+:root[data-festive] .nav-chip svg,
+:root[data-festive] .nav-chip .nav-ico {
+  width: 16px;
+  height: 16px;
+  color: #fff !important;
+  filter: drop-shadow(0 1px 1px rgb(0 0 0 / 0.45));
+}
+:root[data-festive] a:hover .nav-chip {
+  transform: rotate(-8deg) scale(1.08);
+}
+:root[data-festive="padre"] .nav-chip svg {
+  margin-top: -2px;
+}
+:root[data-festive="muertos"] .nav-chip svg {
+  margin-top: -4px;
+}

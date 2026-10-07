@@ -9,7 +9,7 @@ export type StoreTheme = {
   background: string;
   surface: string;
   text: string;
-  font: "elegante" | "romantica" | "moderna";
+  font: "elegante" | "romantica" | "moderna" | "divertida" | "redondita" | "clasica" | "caligrafia" | "vintage";
   hero: "centrado" | "portada" | "minimal";
   layout: "cuadricula" | "lista" | "galeria";
   columns: 2 | 3;
@@ -63,6 +63,28 @@ export const PRESETS: { id: string; name: string; colors: Pick<StoreTheme, "prim
 ];
 
 /** Diseños listos: combinan paleta, decoración, letra, portada y acomodo */
+/** Letras disponibles para los títulos de la tienda */
+export const STORE_FONTS: Record<StoreTheme["font"], string> = {
+  elegante: "var(--font-display-serif), Georgia, serif",
+  romantica: "var(--font-dancing), cursive",
+  moderna: "var(--font-body), system-ui, sans-serif",
+  divertida: "var(--font-pacifico), cursive",
+  redondita: "var(--font-fredoka), system-ui, sans-serif",
+  clasica: "var(--ff-lobster), Georgia, serif",
+  caligrafia: "var(--ff-vibes), cursive",
+  vintage: "var(--ff-slab), Georgia, serif",
+};
+export const STORE_FONT_LABELS: [StoreTheme["font"], string][] = [
+  ["elegante", "Elegante"],
+  ["romantica", "Romántica"],
+  ["moderna", "Moderna"],
+  ["divertida", "Divertida"],
+  ["redondita", "Redondita"],
+  ["clasica", "Clásica"],
+  ["caligrafia", "Caligrafía"],
+  ["vintage", "Vintage"],
+];
+
 export const DESIGNS: { id: string; name: string; hint: string; theme: Pick<StoreTheme, "preset" | "decor" | "font" | "hero" | "layout" | "radius"> }[] = [
   { id: "chorreado-fresa", name: "Glaseado de fresa", hint: "Bordes chorreados y letra romántica", theme: { preset: "frambuesa", decor: "chorreado", font: "romantica", hero: "centrado", layout: "cuadricula", radius: "redondo" } },
   { id: "chocolateria", name: "Chocolatería", hint: "Chocolate escurriendo, elegante", theme: { preset: "chocolate", decor: "chorreado", font: "elegante", hero: "portada", layout: "lista", radius: "suave" } },
@@ -131,7 +153,7 @@ export function normalizeTheme(raw: unknown): StoreTheme {
     background: color("background"),
     surface: color("surface"),
     text: color("text"),
-    font: pick(t.font, ["elegante", "romantica", "moderna"] as const, "elegante"),
+    font: pick(t.font, ["elegante", "romantica", "moderna", "divertida", "redondita", "clasica", "caligrafia", "vintage"] as const, "elegante"),
     hero: pick(t.hero, ["centrado", "portada", "minimal"] as const, "centrado"),
     layout: pick(t.layout, ["cuadricula", "lista", "galeria"] as const, "cuadricula"),
     columns: t.columns === 2 ? 2 : 3,
@@ -156,7 +178,7 @@ export const readableOn = (hex: string) => (luminance(hex) > 0.45 ? "#2a1909" : 
 
 /** Variables CSS que usa la tienda */
 export function themeVars(t: StoreTheme): React.CSSProperties {
-  const fonts = { elegante: "var(--font-display-serif), Georgia, serif", romantica: "var(--font-dancing), cursive", moderna: "var(--font-body), system-ui, sans-serif" };
+  const fonts = STORE_FONTS;
   const radius = { redondo: "1.75rem", suave: "1rem", recto: "0.375rem" };
   return {
     "--st-primary": t.primary,

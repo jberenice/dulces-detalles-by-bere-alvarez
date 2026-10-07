@@ -4,6 +4,7 @@ import { ArrowRight, BarChart3, BellRing, CakeSlice, Calculator, ChevronDown, Fi
 import { redirect } from "next/navigation";
 import { ButtonLink } from "@/components/ui/Button";
 import { SiteFooter } from "@/components/legal/SiteFooter";
+import { ThemeToggle } from "@/components/theme/ThemeToggle";
 import { SocialLinks } from "@/components/legal/SocialLinks";
 import { Pricing } from "@/components/marketing/Pricing";
 import { WhatsAppFloat } from "@/components/marketing/WhatsAppFloat";
@@ -39,6 +40,7 @@ export default async function Landing({ searchParams }: { searchParams: Promise<
           </Link>
           <LandingHeaderArt className="mr-auto max-md:hidden" />
           <nav className="flex shrink-0 items-center gap-2">
+            <ThemeToggle />
             <a href="#precios" className="rounded-xl px-3 py-2 text-[13px] font-bold text-cocoa-600 hover:bg-cocoa-800/5 max-md:hidden">Precios</a>
             <a href="#preguntas" className="rounded-xl px-3 py-2 text-[13px] font-bold text-cocoa-600 hover:bg-cocoa-800/5 max-lg:hidden">Preguntas</a>
             <ButtonLink href="/login" variant="ghost" size="sm" className="max-sm:hidden">Iniciar sesión</ButtonLink>

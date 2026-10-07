@@ -1,7 +1,7 @@
 /* Plantilla PDF de cotización / nota de pedido (se genera en el navegador con @react-pdf/renderer) */
 import { Document, Image, Page, StyleSheet, Text, View } from "@react-pdf/renderer";
 import type { FestiveId } from "@/lib/festive";
-import { PdfGarland, PdfWatermark, pdfPalette, type PdfPalette } from "./PdfDecor";
+import { PdfGarland, PdfLogoGlow, PdfWatermark, pdfPalette, type PdfPalette } from "./PdfDecor";
 
 export type PdfDoc = {
   kind: "cotizacion" | "pedido";
@@ -56,8 +56,8 @@ function makeStyles(P: PdfPalette) {
       page: { fontFamily: "Helvetica", fontSize: 9.5, color: C.ink, paddingBottom: 70, backgroundColor: "#ffffff" },
       garland: { backgroundColor: C.cream },
       header: { backgroundColor: C.cream, paddingHorizontal: 40, paddingTop: 10, paddingBottom: 20, flexDirection: "row", justifyContent: "space-between", alignItems: "center" },
-      logoWrap: { width: 104, height: 104, borderRadius: 52, backgroundColor: "#ffffff", alignItems: "center", justifyContent: "center", borderWidth: 3, borderColor: C.rose },
-      logo: { width: 88, height: 88, objectFit: "contain" },
+      logoWrap: { width: 132, height: 132, position: "relative", alignItems: "center", justifyContent: "center", marginLeft: -14, marginVertical: -10 },
+      logo: { width: 92, height: 92, objectFit: "contain" },
       initials: { width: 88, height: 88, borderRadius: 44, backgroundColor: C.rose, alignItems: "center", justifyContent: "center" },
       initialsText: { fontFamily: "Times-BoldItalic", fontSize: 30, color: "#ffffff" },
       bizBlock: { alignItems: "flex-end", maxWidth: 270 },
@@ -127,6 +127,7 @@ export function DocumentPDF({ doc }: { doc: PdfDoc }) {
         <PdfWatermark p={P} />
         <View style={s.header}>
           <View style={s.logoWrap}>
+            <PdfLogoGlow p={P} />
             {/* eslint-disable-next-line jsx-a11y/alt-text */}
             {doc.business.logo ? (
               <Image src={doc.business.logo} style={s.logo} />
