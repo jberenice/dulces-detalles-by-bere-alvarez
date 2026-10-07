@@ -1,84 +1,151 @@
 "use client";
-import { THEME_ART } from "@/lib/festiveArt";
 import { cn } from "@/lib/cn";
-import { FestiveArt, FestiveCluster, FestiveColors, FestiveGarland, FestiveParticles, FestiveScatter, FestiveSectionGarland, useFestive, useFestiveDecor } from "./Festive";
+import { BOUQUET } from "@/lib/festiveArt2";
+import { FestiveColors, FestiveParticles, useFestive, useFestiveDecor } from "./Festive";
+import { BigArtImg, FestiveBouquet, FestiveConfetti, FestiveEdgeArt, FestiveSidePanels, FestiveSwag, FestiveSwags, LogoFrame, MiniBouquet } from "./Decor";
 
 /** Adornos de temporada de la portada (según la fecha; ?tema=… para verlos antes) */
 export function LandingFestiveDecor() {
   const fest = useFestive("auto");
-  // Ilustraciones en las esquinas de las tarjetas de toda la página
+  // Tirita de papel picado en las tarjetas marcadas con .fest-mini
   useFestiveDecor(fest);
   if (!fest) return null;
   return (
     <>
-      <FestiveGarland theme={fest} className="fest-flutter absolute inset-x-0 top-0 z-10" />
-      <FestiveParticles theme={fest} count={18} contained />
-      <FestiveScatter theme={fest} count={6} seed={2} />
-      <FestiveCluster theme={fest} corner="br" className="bottom-6" />
       <FestiveColors theme={fest} />
+      <FestiveConfetti theme={fest} opacity={0.55} />
+      <FestiveSwags theme={fest} big width={0.46} />
+      <FestiveParticles theme={fest} count={18} contained />
+      <FestiveSidePanels theme={fest} opacity={0.16} />
+      <FestiveBouquet theme={fest} corner="bl" size={230} offset={20} />
+      <FestiveBouquet theme={fest} corner="br" size={230} offset={20} />
     </>
   );
 }
 
-/** Etiqueta de temporada arriba del título, con ilustraciones a los lados */
+/** Etiqueta de temporada arriba del título, con ramilletes a los lados */
 export function LandingFestiveBadge() {
   const fest = useFestive("auto");
   if (!fest) return null;
-  const [a, b] = THEME_ART[fest.id];
   return (
-    <div className="relative mb-4 inline-flex items-center gap-2">
-      <FestiveArt name={a} size={40} className="fest-float -mr-1 shrink-0" />
-      <p className="rounded-full bg-white/90 px-4 py-1.5 text-sm font-bold shadow-soft ring-1 ring-cocoa-800/5" style={{ color: fest.ui.primary }}>
+    <div className="relative mb-4 inline-flex max-w-full items-center gap-1">
+      <MiniBouquet theme={fest} size={50} className="max-[380px]:hidden" />
+      <p className="rounded-full bg-white/95 px-4 py-1.5 text-sm font-bold shadow-soft ring-2" style={{ color: fest.ui.primary, ["--tw-ring-color" as string]: `color-mix(in srgb, ${fest.ui.primary} 25%, transparent)` }}>
         {fest.hero}
       </p>
-      <FestiveArt name={b} size={40} className="fest-float -ml-1 shrink-0" style={{ animationDelay: "-2s" }} />
+      <MiniBouquet theme={fest} size={50} flip className="max-[380px]:hidden" />
     </div>
   );
 }
 
-/** Guirnalda que se mece + ilustraciones flotando en las orillas de una sección */
-export function LandingFestiveSection({ seed = 1, count = 6, garland = true, corners = true, className }: { seed?: number; count?: number; garland?: boolean; corners?: boolean; className?: string }) {
+/** (compatibilidad) El botón principal ya trae su diseño de temporada desde globals.css (.btn-primary.btn-lg) */
+export function FestiveCTA({ children }: { children: React.ReactNode; className?: string }) {
+  return <>{children}</>;
+}
+
+/** Papel picado colgando de las esquinas + ramilletes en las orillas de la pantalla + fondo de temporada */
+export function LandingFestiveSection({
+  seed = 1,
+  garland = true,
+  corners = true,
+  confetti = true,
+  panels = true,
+  edgeArt = 0,
+  dark = false,
+  top = 0,
+}: {
+  seed?: number;
+  /** (compatibilidad) ya no se usa */
+  count?: number;
+  garland?: boolean;
+  corners?: boolean;
+  confetti?: boolean;
+  /** banderotas tenues en los costados */
+  panels?: boolean;
+  /** filas de flores y calaveritas en las orillas (se asoman sobre tarjetas, nunca sobre letras) */
+  edgeArt?: number;
+  dark?: boolean;
+  top?: number;
+  className?: string;
+}) {
   const fest = useFestive("auto");
   if (!fest) return null;
   return (
     <>
-      {garland && <FestiveSectionGarland theme={fest} scale={0.85} className={className} />}
-      <FestiveScatter theme={fest} count={count} seed={seed} />
+      {confetti && <FestiveConfetti theme={fest} opacity={dark ? 0.7 : 0.45} dark={dark} />}
+      {panels && !dark && <FestiveSidePanels theme={fest} />}
+      {garland && <FestiveSwags theme={fest} top={top} />}
+      {edgeArt > 0 && <FestiveEdgeArt theme={fest} rows={edgeArt} seed={seed} />}
       {corners && (
         <>
-          <FestiveCluster theme={fest} corner={seed % 2 ? "tl" : "tr"} />
-          <FestiveCluster theme={fest} corner={seed % 2 ? "br" : "bl"} />
+          <FestiveBouquet theme={fest} corner="bl" size={seed % 2 ? 210 : 170} offset={18} edge />
+          <FestiveBouquet theme={fest} corner="br" size={seed % 2 ? 170 : 210} offset={18} edge />
         </>
       )}
     </>
   );
 }
 
+/** Adornos alrededor del logo grande de la portada (no modifica el logo) */
+export function LandingLogoFrame() {
+  const fest = useFestive("auto");
+  return fest ? <LogoFrame theme={fest} /> : null;
+}
+
 /** Ilustraciones pequeñas junto al logo del encabezado */
 export function LandingHeaderArt({ className }: { className?: string }) {
   const fest = useFestive("auto");
   if (!fest) return null;
-  const art = THEME_ART[fest.id];
+  const [back, hero, tall] = BOUQUET[fest.id];
   return (
-    <span aria-hidden className={cn("flex items-center gap-1", className)}>
-      {art.slice(0, 3).map((n, i) => (
-        <FestiveArt key={i} name={n} size={30} className="fest-float" style={{ animationDelay: `${-i * 1.4}s` }} />
-      ))}
+    <span aria-hidden className={cn("flex items-end gap-1", className)}>
+      <BigArtImg name={back} w={30} part={false} className="fest-bob" />
+      <BigArtImg name={hero} w={34} part={false} className="fest-bob [animation-delay:-1.5s]" />
+      <BigArtImg name={tall} w={tall === "velaDeluxe" ? 18 : 28} part={false} className="fest-bob [animation-delay:-3s]" />
     </span>
   );
 }
 
-/** Fila de ilustraciones al pie de página (velas, pan de muerto, esferas…) */
+/** Pie de página: papel picado arriba, ramilletes en las esquinas y confeti (va directo dentro del <footer>, que es relative) */
+export function FestiveFooterDecor() {
+  const fest = useFestive("auto");
+  if (!fest) return null;
+  return (
+    <>
+      <FestiveConfetti theme={fest} opacity={0.35} />
+      <FestiveSwag theme={fest} side="center" />
+      <FestiveBouquet theme={fest} corner="bl" size={200} offset={10} />
+      <FestiveBouquet theme={fest} corner="br" size={200} offset={10} />
+    </>
+  );
+}
+
+/** Fila de velas, flores y pan al centro del pie de página */
 export function FestiveFooterArt() {
   const fest = useFestive("auto");
   if (!fest) return null;
-  const art = THEME_ART[fest.id];
-  const row = [art[2], art[1], art[0], art[3], art[0], art[1], art[2]];
+  const [back, hero, tall, filler, front] = BOUQUET[fest.id];
+  const row = [tall, filler, front, hero, front, filler, tall];
   return (
-    <div aria-hidden className="pointer-events-none relative -mb-2 flex items-end justify-center gap-1 sm:gap-3">
-      {row.map((n, i) => (
-        <FestiveArt key={i} name={n} size={i === 3 ? 64 : i % 2 ? 44 : 52} className={cn("fest-float", (i === 0 || i === 6) && "max-sm:hidden")} style={{ animationDelay: `${-i * 0.9}s` }} />
-      ))}
-    </div>
+    <>
+      <div aria-hidden data-fest className="pointer-events-none relative mx-auto mt-8 flex items-end justify-center gap-1 sm:gap-3">
+        {row.map((n, i) => (
+          <BigArtImg
+            key={i}
+            name={n === back ? filler : n}
+            w={n === "velaDeluxe" ? 26 : i === 3 ? 64 : n === "panDeluxe" ? 58 : 40}
+            part={false}
+            className={cn("fest-bob", (i === 0 || i === 6) && "max-sm:hidden")}
+            style={{ animationDelay: `${-i * 0.7}s` }}
+          />
+        ))}
+      </div>
+    </>
   );
+}
+
+/** Adornos alrededor del logo del pie de página */
+export function FooterLogoFrame() {
+  const fest = useFestive("auto");
+  return fest ? <LogoFrame theme={fest} compact /> : null;
 }

@@ -21,7 +21,7 @@ export function SocialLinks({ variant = "pill", className }: { variant?: "pill" 
   return (
     <div className={cn("flex flex-col gap-3 sm:flex-row", className)}>
       {items.map(({ href, label, handle, Icon, tone }) => (
-        <a key={label} href={href} target="_blank" rel="noopener noreferrer" className="card group flex flex-1 items-center gap-4 p-4 transition hover:-translate-y-0.5 hover:shadow-lift">
+        <a key={label} href={href} target="_blank" rel="noopener noreferrer" className="card fest-badge group flex flex-1 items-center gap-4 p-4 transition hover:-translate-y-0.5 hover:shadow-lift">
           <span className={cn("grid h-12 w-12 shrink-0 place-items-center rounded-2xl bg-gradient-to-br text-white", tone)}>
             <Icon className="h-6 w-6" />
           </span>

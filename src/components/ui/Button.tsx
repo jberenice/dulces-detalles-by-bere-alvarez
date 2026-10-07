@@ -28,6 +28,8 @@ type CommonProps = { variant?: Variant; size?: Size; loading?: boolean; classNam
 export const buttonClass = (variant: Variant = "primary", size: Size = "md", className?: string) =>
   cn(
     "inline-flex items-center justify-center font-bold whitespace-nowrap transition-all duration-200 select-none",
+    // marcas para el diseño de temporada (globals.css)
+    `btn btn-${variant} btn-${size}`,
     "disabled:pointer-events-none disabled:opacity-50 active:scale-[0.98]",
     variants[variant],
     sizes[size],

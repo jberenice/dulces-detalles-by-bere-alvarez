@@ -6,6 +6,10 @@ import { CUSTOM_DOMAIN_ADDON, IVA_PCT, PLANS, domainSetupIncluded, withIva, type
 import { salesLink } from "@/lib/legal";
 import { money } from "@/lib/format";
 import { cn } from "@/lib/cn";
+import { useFestive } from "@/components/festive/Festive";
+import { BigArtImg } from "@/components/festive/Decor";
+import { BOUQUET, picadoTile } from "@/lib/festiveArt2";
+import type { FestiveTheme } from "@/lib/festive";
 
 /** Cada plan es un postre con su propio glaseado que se derrite */
 // Variables CSS de la app: en fechas especiales toman los colores de la temporada
@@ -44,8 +48,15 @@ const BAND = 36; // alto del glaseado base dentro del viewBox (0–100)
 const VB = 100;
 const H = 96; // alto en px del SVG
 
-function MeltingGlaze({ plan, shown }: { plan: PlanId; shown: boolean }) {
-  const d = DESSERT[plan];
+// En temporada cada plan toma un glaseado de la temporada (morado, chocolate, naranja…)
+const FEST_GLAZE: Record<PlanId, { glaze: string; shine: string }> = {
+  basico: { glaze: "var(--color-mint-500)", shine: "var(--color-mint-200)" },
+  profesional: { glaze: "var(--color-cocoa-400)", shine: "var(--color-cocoa-200)" },
+  premium: { glaze: "var(--color-rose-500)", shine: "var(--color-rose-200)" },
+};
+
+function MeltingGlaze({ plan, shown, fest }: { plan: PlanId; shown: boolean; fest?: FestiveTheme | null }) {
+  const d = fest ? { ...DESSERT[plan], ...FEST_GLAZE[plan] } : DESSERT[plan];
   const drips = DRIPS[plan];
   return (
     <div
@@ -67,6 +78,8 @@ function MeltingGlaze({ plan, shown }: { plan: PlanId; shown: boolean }) {
           />
         ))}
       </svg>
+      {/* tira de papel picado debajo del glaseado */}
+      {fest && <FestPicadoStrip theme={fest} />}
       {/* gotitas que caen de la punta */}
       {drips
         .filter((_, i) => i % 2 === 0)
@@ -99,8 +112,24 @@ const SPRINKLES = [
   { dx: "14px", dy: "34px", rot: "-80deg", c: "var(--color-rose-200)" },
 ];
 
-function DessertBadge({ plan, dark }: { plan: PlanId; dark?: boolean }) {
+function FestPicadoStrip({ theme }: { theme: FestiveTheme }) {
+  const t = picadoTile(theme.id);
+  return <span className="fest-flutter absolute inset-x-0 block" style={{ top: 58, height: 36, backgroundImage: t.image, backgroundSize: `${t.width * 0.75}px ${t.height * 0.75}px`, backgroundRepeat: "repeat-x" }} />;
+}
+
+function DessertBadge({ plan, dark, fest }: { plan: PlanId; dark?: boolean; fest?: FestiveTheme | null }) {
   const d = DESSERT[plan];
+  if (fest) {
+    const [, hero, tall, , front] = BOUQUET[fest.id];
+    const art = plan === "basico" ? hero : plan === "profesional" ? front : tall;
+    return (
+      <div className="absolute top-4 right-4 z-10" title={fest.name}>
+        <span className={cn("grid h-[72px] w-[72px] place-items-center rounded-full shadow-lift ring-4", dark ? "bg-cocoa-900 ring-rose-400" : "bg-white ring-white")} style={{ animation: "bob 4s ease-in-out infinite" }}>
+          <BigArtImg name={art} w={art === "velaDeluxe" ? 30 : 50} part={false} />
+        </span>
+      </div>
+    );
+  }
   const Icon = d.icon;
   return (
     <div className="absolute top-5 right-5 z-10" title={d.label}>
@@ -129,6 +158,7 @@ function DessertBadge({ plan, dark }: { plan: PlanId; dark?: boolean }) {
 export function Pricing() {
   const [billing, setBilling] = useState<"mensual" | "anual">("anual");
   const [shown, setShown] = useState(false);
+  const fest = useFestive("auto");
   const [domain, setDomain] = useState<Partial<Record<PlanId, { on: boolean; years: number }>>>({});
   const ref = useRef<HTMLDivElement>(null);
 
@@ -199,8 +229,8 @@ export function Pricing() {
               )}
               style={{ opacity: shown ? undefined : 0, animation: shown ? `fade-up .7s cubic-bezier(.22,1,.36,1) ${idx * 0.12}s backwards` : undefined }}
             >
-              <MeltingGlaze plan={p.id} shown={shown} />
-              <DessertBadge plan={p.id} dark={dark} />
+              <MeltingGlaze plan={p.id} shown={shown} fest={fest} />
+              <DessertBadge plan={p.id} dark={dark} fest={fest} />
               {dark && (
                 <span className="absolute top-5 left-5 z-10 flex items-center gap-1 rounded-full bg-white px-3 py-1 text-xs font-bold whitespace-nowrap text-rose-600 shadow-soft">
                   <Crown className="h-3.5 w-3.5" /> El favorito

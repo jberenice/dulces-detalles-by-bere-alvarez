@@ -8,7 +8,7 @@ import { SocialLinks } from "@/components/legal/SocialLinks";
 import { Pricing } from "@/components/marketing/Pricing";
 import { WhatsAppFloat } from "@/components/marketing/WhatsAppFloat";
 import { DEMO_VIDEO_ID, FAQ, TESTIMONIALS } from "@/lib/marketing";
-import { LandingFestiveBadge, LandingFestiveDecor, LandingFestiveSection, LandingHeaderArt } from "@/components/festive/LandingFestive";
+import { FestiveCTA, LandingFestiveBadge, LandingLogoFrame, LandingFestiveDecor, LandingFestiveSection, LandingHeaderArt } from "@/components/festive/LandingFestive";
 
 const FEATURES = [
   { icon: Calculator, title: "Costeo exacto", text: "Ingredientes, empaques, gastos fijos, desgaste y ganancia: el precio justo de cada postre.", tone: "bg-mint-50 text-mint-600" },
@@ -66,7 +66,7 @@ export default async function Landing({ searchParams }: { searchParams: Promise<
               recibe pedidos desde tu propia tienda en línea.
             </p>
             <div className="mt-8 flex flex-col justify-center gap-3 sm:flex-row lg:justify-start">
-              <ButtonLink href="/demo" size="lg">Probar demo gratis <ArrowRight className="h-4 w-4" /></ButtonLink>
+              <FestiveCTA><ButtonLink href="/demo" size="lg">Probar demo gratis <ArrowRight className="h-4 w-4" /></ButtonLink></FestiveCTA>
               <ButtonLink href="#precios" size="lg" variant="outline">Ver planes y precios</ButtonLink>
             </div>
             <p className="mt-6 flex items-center justify-center gap-4 text-sm text-cocoa-400 lg:justify-start">
@@ -77,6 +77,7 @@ export default async function Landing({ searchParams }: { searchParams: Promise<
           </div>
           <div className="relative mx-auto w-full max-w-md">
             <div className="absolute inset-6 rounded-full bg-white/70 blur-2xl" />
+            <LandingLogoFrame />
             <Image src="/logo-transparent.svg" unoptimized alt="Dulces Detalles by Bere Álvarez" width={520} height={520} priority fetchPriority="high" className="relative animate-float drop-shadow-2xl" />
             <div className="card absolute -bottom-2 -left-2 hidden w-52 p-4 sm:block">
               <p className="text-[11px] font-bold tracking-wider text-cocoa-300 uppercase">Pastel 3 leches</p>
@@ -102,7 +103,7 @@ export default async function Landing({ searchParams }: { searchParams: Promise<
         </div>
         <div className="mt-12 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {FEATURES.map((f) => (
-            <div key={f.title} className="card p-6 transition hover:-translate-y-1 hover:shadow-lift">
+            <div key={f.title} className="card fest-mini p-6 transition hover:-translate-y-1 hover:shadow-lift">
               <span className={`grid h-12 w-12 place-items-center rounded-2xl ${f.tone}`}><f.icon className="h-6 w-6" /></span>
               <h3 className="mt-4 text-xl font-semibold">{f.title}</h3>
               <p className="mt-1.5 text-[15px] leading-relaxed text-cocoa-400">{f.text}</p>
@@ -145,7 +146,7 @@ export default async function Landing({ searchParams }: { searchParams: Promise<
 
       {/* Cómo funciona */}
       <section className="relative bg-cocoa-800 text-cream-100">
-        <LandingFestiveSection seed={7} count={6} />
+        <LandingFestiveSection seed={7} dark />
         <div className="sprinkles mx-auto grid max-w-6xl gap-10 px-4 py-20 sm:px-6 lg:grid-cols-2 lg:items-center">
           <div>
             <p className="font-script text-2xl text-rose-300">Así de fácil</p>
@@ -220,7 +221,7 @@ export default async function Landing({ searchParams }: { searchParams: Promise<
 
       {/* Preguntas frecuentes */}
       <section id="preguntas" className="relative mx-auto max-w-3xl scroll-mt-20 px-4 py-20 sm:px-6">
-        <LandingFestiveSection seed={11} count={8} />
+        <LandingFestiveSection seed={11} edgeArt={4} corners={false} />
         <div className="text-center">
           <p className="font-script text-2xl text-rose-500">Resolvemos tus dudas</p>
           <h2 className="mt-1 text-4xl font-semibold">Preguntas frecuentes</h2>

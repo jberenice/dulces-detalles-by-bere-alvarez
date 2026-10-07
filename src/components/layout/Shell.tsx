@@ -1,6 +1,7 @@
 "use client";
-import { FestiveArt, FestiveGarland, PanelFestiveColors, useFestiveDecor, usePanelFestive } from "@/components/festive/Festive";
-import { THEME_ART } from "@/lib/festiveArt";
+import { FestiveGarland, PanelFestiveColors, useFestiveDecor, usePanelFestive } from "@/components/festive/Festive";
+import { BigArtImg } from "@/components/festive/Decor";
+import { BOUQUET } from "@/lib/festiveArt2";
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
@@ -319,12 +320,14 @@ function PanelGarland() {
 function SidebarArt() {
   const fest = usePanelFestive();
   if (!fest) return null;
-  const art = THEME_ART[fest.id];
+  const [back, hero, tall, filler, front] = BOUQUET[fest.id];
   return (
-    <div aria-hidden className="pointer-events-none flex items-end justify-center gap-2 pb-2">
-      {[art[1], art[0], art[2]].map((n, i) => (
-        <FestiveArt key={i} name={n} size={i === 1 ? 38 : 28} className="fest-float" style={{ animationDelay: `${-i * 1.5}s` }} />
-      ))}
+    <div aria-hidden className="pointer-events-none flex items-end justify-center gap-1.5 pb-2">
+      <BigArtImg name={tall} w={tall === "velaDeluxe" ? 18 : 28} part={false} className="fest-bob" />
+      <BigArtImg name={back} w={30} part={false} className="fest-bob [animation-delay:-1s]" />
+      <BigArtImg name={hero} w={42} part={false} className="fest-bob [animation-delay:-2s]" />
+      <BigArtImg name={filler} w={26} part={false} className="fest-bob [animation-delay:-3s]" />
+      <BigArtImg name={front} w={front === "panDeluxe" ? 36 : 26} part={false} className="fest-bob [animation-delay:-4s]" />
     </div>
   );
 }

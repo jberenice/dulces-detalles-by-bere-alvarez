@@ -288,46 +288,143 @@
     transform: rotate(calc(var(--r, 12deg) - 10deg)) scale(1.06);
   }
 }
-/* Ilustración en la esquina de las tarjetas (una sí y una no, alternando dibujos) */
-[data-fest-decor] .card:nth-child(odd)::after,
-[data-fest-decor] .fest-card:nth-child(odd)::after {
+/* Tirita de papel picado en la esquina libre de algunas tarjetas (solo las marcadas con .fest-mini) */
+[data-fest-decor] .fest-mini {
+  position: relative;
+}
+[data-fest-decor] .fest-mini::after {
   content: "";
   position: absolute;
-  top: -12px;
-  right: -8px;
-  width: 44px;
-  height: 44px;
-  background: var(--fest-st-1) center / contain no-repeat;
+  top: 8px;
+  right: 10px;
+  width: 116px;
+  height: 55px;
+  background: var(--fest-mini) center top / contain no-repeat;
   pointer-events: none;
-  z-index: 3;
-  --r: 14deg;
-  animation: fest-pop 5s ease-in-out infinite;
-  filter: drop-shadow(1.5px 0 0 #fff) drop-shadow(-1.5px 0 0 #fff) drop-shadow(0 1.5px 0 #fff) drop-shadow(0 -1.5px 0 #fff)
-    drop-shadow(0 3px 4px rgb(0 0 0 / 0.15));
+  transform-origin: top center;
+  animation: fest-flutter 4s ease-in-out infinite;
 }
-[data-fest-decor] .card:nth-child(4n + 3)::after,
-[data-fest-decor] .fest-card:nth-child(4n + 3)::after {
-  background-image: var(--fest-st-2);
-  right: auto;
-  left: -8px;
-  --r: -14deg;
-  animation-delay: -1.6s;
+/* Balanceo y "respiración" suaves de los ramilletes (poquito, para no salirse de su lugar) */
+@keyframes fest-bob {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-4px);
+  }
 }
-[data-fest-decor] .card:nth-child(8n + 5)::after,
-[data-fest-decor] .fest-card:nth-child(8n + 5)::after {
-  background-image: var(--fest-st-3);
-  animation-delay: -3.2s;
+.fest-bob {
+  animation: fest-bob 4.5s ease-in-out infinite;
 }
-/* En ventanas emergentes y menús no se ponen adornos */
-[role="dialog"] .card::after,
-[role="menu"] .card::after {
-  display: none;
+@keyframes fest-sway {
+  0%,
+  100% {
+    transform: rotate(var(--r, 0deg));
+  }
+  50% {
+    transform: rotate(calc(var(--r, 0deg) + 4deg));
+  }
+}
+.fest-sway {
+  transform-origin: 50% 90%;
+  animation: fest-sway 5.5s ease-in-out infinite;
 }
 @media (prefers-reduced-motion: reduce) {
   .fest-float,
   .fest-flutter,
-  [data-fest-decor] .card::after,
-  [data-fest-decor] .fest-card::after {
+  .fest-bob,
+  .fest-sway,
+  [data-fest-decor] .fest-mini::after {
     animation: none !important;
+  }
+}
+
+/* ====================================================================
+   Fechas especiales: botones, íconos y tarjetas con el diseño de la temporada
+   (las variables --fest-* las pone <FestiveColors>; solo aplican mientras hay temporada)
+   ==================================================================== */
+/* Botón principal grande: color de la temporada con papel picado y flores en las esquinas */
+:root[data-festive] .btn-primary.btn-lg {
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
+  padding-inline: 72px;
+  background:
+    var(--fest-btn-l) left center / auto 100% no-repeat,
+    var(--fest-btn-r) right center / auto 100% no-repeat,
+    linear-gradient(180deg, var(--color-rose-400), var(--color-rose-500) 55%, var(--color-rose-600));
+  box-shadow: 0 12px 26px -12px var(--color-rose-500), inset 0 -3px 0 rgb(0 0 0 / 0.12);
+}
+@media (max-width: 380px) {
+  :root[data-festive] .btn-primary.btn-lg {
+    padding-inline: 58px;
+  }
+}
+/* Botón principal mediano: degradado de la temporada */
+:root[data-festive] .btn-primary.btn-md {
+  background: linear-gradient(180deg, var(--color-rose-400), var(--color-rose-500) 60%, var(--color-rose-600));
+  box-shadow: 0 10px 22px -12px var(--color-rose-500), inset 0 -2px 0 rgb(0 0 0 / 0.12);
+}
+/* Botón principal chico (encabezados): color secundario con orilla de puntitos como encaje */
+:root[data-festive] .btn-primary.btn-sm {
+  position: relative;
+  background: var(--color-mint-500);
+  box-shadow: 0 0 0 2px var(--color-rose-400);
+  outline: 2px dotted var(--color-rose-400);
+  outline-offset: 3px;
+}
+:root[data-festive] .btn-primary.btn-sm:hover {
+  background: var(--color-mint-600);
+}
+/* Botón con contorno: orilla gruesa del color secundario */
+:root[data-festive] .btn-outline {
+  border-width: 2px;
+  border-color: var(--color-mint-500);
+  color: var(--color-mint-700);
+}
+:root[data-festive] .btn-outline:hover {
+  border-color: var(--color-rose-500);
+}
+
+/* Íconos de las tarjetas de funciones: marco de encaje y una florecita */
+[data-festive] .fest-mini > span:first-child {
+  position: relative;
+  box-shadow: 0 0 0 3px #fff, 0 0 0 5px var(--color-rose-300);
+  outline: 2px dotted var(--color-mint-400);
+  outline-offset: 6px;
+}
+[data-festive] .fest-mini > span:first-child::after {
+  content: "";
+  position: absolute;
+  right: -12px;
+  bottom: -12px;
+  width: 24px;
+  height: 24px;
+  background: var(--fest-flower) center / contain no-repeat;
+  animation: fest-bob 4.5s ease-in-out infinite;
+}
+
+/* Tarjetas de redes: ramillete a la derecha (con espacio reservado para que no tape el texto) */
+:root[data-festive] .fest-badge {
+  position: relative;
+  padding-right: 84px;
+}
+:root[data-festive] .fest-badge::after {
+  content: "";
+  position: absolute;
+  right: 12px;
+  top: 50%;
+  width: 66px;
+  height: 60px;
+  translate: 0 -50%;
+  background: var(--fest-badge) center / contain no-repeat;
+  animation: fest-bob 5s ease-in-out infinite;
+  pointer-events: none;
+}
+@media (prefers-reduced-motion: reduce) {
+  [data-festive] .fest-mini > span:first-child::after,
+  :root[data-festive] .fest-badge::after {
+    animation: none;
   }
 }

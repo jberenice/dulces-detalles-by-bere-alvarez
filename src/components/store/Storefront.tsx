@@ -1,5 +1,6 @@
 "use client";
-import { FestiveCluster, FestiveGarland, FestiveParticles, FestiveScatter, useFestive, useFestiveDecor } from "@/components/festive/Festive";
+import { FestiveCluster, FestiveParticles, useFestive, useFestiveDecor } from "@/components/festive/Festive";
+import { FestiveSwags } from "@/components/festive/Decor";
 import { BizLogo } from "./BizLogo";
 import { Fragment, useEffect, useMemo, useRef, useState } from "react";
 import { CakeSlice, CalendarDays, Check, FileText, Mail, ChevronLeft, ChevronRight, Clock, Facebook, Gift, Instagram, Loader2, ShieldAlert, Ticket, Wand2, Quote as QuoteIcon, MapPin, Megaphone, MessageCircle, Minus, Plus, ShoppingBag, Sparkles, Star, Truck, X } from "lucide-react";
@@ -951,11 +952,11 @@ export function Storefront({ data, slug, preview = false }: { data: StoreData; s
         </div>
       ))}
       <div className={cn("relative", (decor.edge || fest) && theme.hero === "minimal" && "pt-10")}>
-        {fest ? <FestiveGarland theme={fest} className="absolute inset-x-0 top-0 z-10" /> : decor.edge && <DecorEdge tile={decor.edge} />}
+        {fest ? <FestiveSwags theme={fest} /> : decor.edge && <DecorEdge tile={decor.edge} />}
         {fest && (
           <>
-            <FestiveCluster theme={fest} corner="tl" className="top-12" />
-            <FestiveCluster theme={fest} corner="br" className="bottom-2" />
+            <FestiveCluster theme={fest} corner="bl" size={170} />
+            <FestiveCluster theme={fest} corner="br" size={170} />
           </>
         )}
         {hero}
@@ -963,7 +964,12 @@ export function Storefront({ data, slug, preview = false }: { data: StoreData; s
 
       {fest && <FestiveParticles theme={fest} count={preview ? 10 : 14} contained={preview} />}
       <main className="relative mx-auto max-w-6xl pb-32">
-        {fest && <FestiveScatter theme={fest} count={10} seed={4} className="max-sm:opacity-80" />}
+        {fest && (
+          <>
+            <FestiveCluster theme={fest} corner="bl" size={160} />
+            <FestiveCluster theme={fest} corner="br" size={160} />
+          </>
+        )}
         {theme.sections
           .filter((s) => s.visible && s.id !== "anuncio")
           .map((s, i) => (
