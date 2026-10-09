@@ -18,10 +18,11 @@ import { useConfirm } from "@/components/ui/Confirm";
 import { SearchInput, matches } from "@/components/ui/SearchInput";
 import { money, num } from "@/lib/format";
 import { cn } from "@/lib/cn";
+import { ExtrasPicker, PackagingPicker } from "@/components/dashboard/PackagingPicker";
 import { cleanSurcharges, marginReport, type PackageMarginReport } from "@/lib/pricing";
 import { MarginProblems, PackageMarginPanel, useMinMargin } from "@/components/dashboard/PackageMargins";
 import { SurchargesEditor } from "@/components/dashboard/SurchargesEditor";
-import { KIND_LABEL, cakeOptions, cupcakeOptions, dessertPrice, fixedPieces, kindOf, packageStats, packagingIdsOf, packagingPrice, rangeText, type PackageStats } from "@/lib/packages";
+import { KIND_LABEL, cakeOptions, cupcakeOptions, dessertPrice, fixedPieces, kindOf, packageStats, packagingIdsOf, rangeText, type PackageStats } from "@/lib/packages";
 import type { Dessert, Extra, FlavorGroup, Package, PackageKind } from "@/lib/types";
 
 type Draft = Omit<Package, "id" | "created_at" | "price"> & { id?: string; amount: string };
@@ -813,69 +814,13 @@ function PackageEditor({
         </div>
 
         <div className="grid gap-4 sm:grid-cols-2">
+          <PackagingPicker
+            options={boxes}
+            value={packagingIdsOf(form)}
+            onChange={(ids) => set({ packaging_id: ids[0] ?? null, packaging_ids: ids.slice(1) })}
+          />
           <div>
-            <span className="label">Cajas y empaques</span>
-            {boxes.length ? (
-              <div className="flex flex-wrap gap-1.5">
-                {boxes.map((b) => {
-                  const ids = packagingIdsOf(form);
-                  const on = ids.includes(b.id);
-                  return (
-                    <button
-                      key={b.id}
-                      type="button"
-                      aria-pressed={on}
-                      onClick={() => {
-                        const next = on ? ids.filter((id) => id !== b.id) : [...ids, b.id];
-                        set({ packaging_id: next[0] ?? null, packaging_ids: next.slice(1) });
-                      }}
-                      className={cn(
-                        "rounded-full px-3 py-1.5 text-sm font-semibold ring-1 transition",
-                        on ? "bg-rose-50 text-rose-700 ring-rose-300" : "bg-white text-cocoa-500 ring-cocoa-800/10 hover:ring-cocoa-800/25",
-                      )}
-                    >
-                      {on && <Check className="mr-1 inline h-3.5 w-3.5" />}
-                      {b.name} <span className="font-normal text-cocoa-400">+{money(b.unit_cost)}</span>
-                    </button>
-                  );
-                })}
-              </div>
-            ) : (
-              <p className="text-sm text-cocoa-400">Aún no tienes cajas ni empaques. Créalos en Inventario con el tipo "Empaque".</p>
-            )}
-            <p className="mt-1.5 text-xs text-cocoa-500">
-              Elige todos los que lleva (caja, vaso, papel…). Se le cobran a tu clienta: se suman al precio del paquete
-              {packagingIdsOf(form).length > 0 && <> · <b className="text-cocoa-700">{money(packagingPrice(form, new Map(boxes.map((b) => [b.id, b]))))}</b> en empaques</>}.
-            </p>
-          </div>
-          <div>
-            <span className="label">Extras que puede agregar</span>
-            {extras.length ? (
-              <div className="flex flex-wrap gap-1.5">
-                {extras.map((x) => {
-                  const on = (form.extras ?? []).includes(x.id);
-                  return (
-                    <button
-                      key={x.id}
-                      type="button"
-                      aria-pressed={on}
-                      onClick={() => set({ extras: on ? (form.extras ?? []).filter((id) => id !== x.id) : [...(form.extras ?? []), x.id] })}
-                      className={cn(
-                        "rounded-full border-2 px-3 py-1.5 text-sm font-bold transition",
-                        on ? "border-rose-400 bg-rose-50 text-rose-600" : "border-cocoa-800/10 bg-white text-cocoa-400 hover:border-rose-200",
-                        !x.available && "opacity-60",
-                      )}
-                      title={x.available ? undefined : "No disponible por ahora (actívalo en la pestaña Extras)"}
-                    >
-                      {x.name} <span className="font-normal text-cocoa-400">+{money(x.price)}</span>
-                      {!x.available && <span className="ml-1 text-[11px] font-normal">(agotado)</span>}
-                    </button>
-                  );
-                })}
-              </div>
-            ) : (
-              <p className="rounded-2xl bg-cream-100 px-3 py-2.5 text-xs text-cocoa-500">Crea tu catálogo (listón, moño, tarjeta…) en la pestaña <b>Extras</b>.</p>
-            )}
+            <ExtrasPicker options={extras} value={(form.extras ?? []).filter((id) => extras.some((x) => x.id === id))} onChange={(ids) => set({ extras: ids })} />
             {Number(form.extra_cost) > 0 && <p className="mt-1.5 text-xs text-amber-700">Antes tenía {money(Number(form.extra_cost))} de “otro costo extra”; al guardar se quita y se usan los extras del catálogo.</p>}
           </div>
         </div>
