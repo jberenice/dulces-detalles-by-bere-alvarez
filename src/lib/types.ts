@@ -44,6 +44,8 @@ export type Profile = {
   store_announcement: string | null;
   followup_days?: number;
   margin_tolerance_pct?: number;
+  /** Margen bruto mínimo que quieres en cajas y paquetes (%; migración 0021) */
+  min_margin_pct?: number;
   store_daily_capacity?: number | null;
   store_blocked_dates?: string[];
   store_zones?: DeliveryZone[];
@@ -208,7 +210,7 @@ export type Client = {
 
 export type QuoteStatus = "borrador" | "enviada" | "aceptada" | "rechazada" | "vencida";
 /** Lo que trae UNA caja o paquete */
-export type PackageComponent = { dessert_id: string; name: string; qty: number };
+export type PackageComponent = { dessert_id: string; name: string; qty: number; /** Suplemento por pieza de este sabor (migración 0021) */ surcharge?: number };
 
 export type PackageItem = { dessert_id: string; qty?: number };
 /** Categoría de cupcakes (ej. Clásicos, Mexicanos sin alcohol) */
@@ -231,6 +233,8 @@ export type Package = {
   extras?: string[];
   /** Sabores de pastel mini para elegir (paquete pastel + cupcakes) */
   cake_items?: PackageItem[];
+  /** Suplemento por pieza de cada sabor: id del postre → pesos extra (migración 0021) */
+  surcharges?: Record<string, number>;
   /** Cuántos pasteles mini lleva */
   cakes?: number;
   pieces: number;

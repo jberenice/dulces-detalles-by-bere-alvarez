@@ -8,6 +8,7 @@ import { AlertTriangle, ArrowRight, BellRing, Cake, CalendarClock, CakeSlice, Fi
 import { createClient } from "@/lib/supabase/client";
 import { must, useAsync } from "@/hooks/useAsync";
 import { useBusiness } from "@/components/layout/BusinessProvider";
+import { PackageMarginAlert } from "@/components/dashboard/PackageMargins";
 import { Badge, Card, CardHeader, Skeleton, StatCard } from "@/components/ui/Card";
 import { ButtonLink } from "@/components/ui/Button";
 import { BarList, SalesAreaChart, qtyFmt } from "@/components/dashboard/Charts";
@@ -227,6 +228,8 @@ export default function DashboardHome() {
           </ul>
         </Card>
       )}
+
+      <PackageMarginAlert />
 
       {data && data.lowStock.length > 0 && (
         <Link href="/dashboard/ingredientes" className="mb-6 flex items-start gap-3 rounded-3xl bg-amber-50 p-4 ring-1 ring-amber-200/70 transition hover:bg-amber-100/70">

@@ -1,7 +1,7 @@
 "use client";
 import { useMemo, useState } from "react";
 import Link from "next/link";
-import { Boxes, Cake, Check, Copy, Ribbon, Gift, Pencil, Plus, Store, Tags, Trash2, TrendingUp, X } from "lucide-react";
+import { AlertTriangle, Boxes, Cake, Check, Copy, Ribbon, Gift, Pencil, Plus, Store, Tags, Trash2, TrendingUp, X } from "lucide-react";
 import { toast } from "sonner";
 import { createClient } from "@/lib/supabase/client";
 import { useCatalog } from "@/hooks/useCatalog";
@@ -18,6 +18,9 @@ import { useConfirm } from "@/components/ui/Confirm";
 import { SearchInput, matches } from "@/components/ui/SearchInput";
 import { money, num } from "@/lib/format";
 import { cn } from "@/lib/cn";
+import { cleanSurcharges, marginReport, type PackageMarginReport } from "@/lib/pricing";
+import { MarginProblems, PackageMarginPanel, useMinMargin } from "@/components/dashboard/PackageMargins";
+import { SurchargesEditor } from "@/components/dashboard/SurchargesEditor";
 import { KIND_LABEL, cakeOptions, cupcakeOptions, dessertPrice, fixedPieces, kindOf, packageStats, rangeText, type PackageStats } from "@/lib/packages";
 import type { Dessert, Extra, FlavorGroup, Package, PackageKind } from "@/lib/types";
 
@@ -78,6 +81,9 @@ export default function PackagesPage() {
   const extras = useMemo(() => data?.extras ?? [], [data]);
   const boxes = useMemo(() => (data?.ingredients ?? []).filter((i) => i.kind === "empaque"), [data]);
   const stats = (p: Package | Draft) => packageStats({ ...p, price: "amount" in p ? priceOf(p) : p.price }, allDesserts, costs, ingredientsById);
+  const target = useMinMargin();
+  /** Margen de todas las combinaciones de sabores, con suplementos (Package o borrador del editor) */
+  const report = (p: Package | Draft) => marginReport({ ...p, price: "amount" in p ? priceOf(p) : p.price }, allDesserts, costs, ingredientsById, target);
 
   const all = packsQ.data ?? [];
   const count = (k: PackageKind) => all.filter((p) => kindOf(p) === k).length;
@@ -123,6 +129,12 @@ export default function PackagesPage() {
         return off.length || "excluded" in form ? { excluded: off } : {};
       })(),
       cake_items: k === "pastel" ? (form.cake_items ?? []).map((i) => ({ dessert_id: i.dessert_id })) : [],
+      // Suplementos: solo de sabores que siguen disponibles en la caja y con monto mayor a cero
+      ...(() => {
+        const allowed = new Set([...(k === "postres" ? [] : cupcakeOptions({ ...form, items }, desserts).map((d) => d.id)), ...(k === "pastel" ? (form.cake_items ?? []).map((i) => i.dessert_id) : [])]);
+        const sur = cleanSurcharges(form.surcharges, allowed);
+        return Object.keys(sur).length || "surcharges" in form ? { surcharges: sur } : {};
+      })(),
       price,
       price_mode: k === "pastel" ? "total" : form.price_mode,
       items: items.map((i) => (k === "postres" ? { dessert_id: i.dessert_id, qty: Number(i.qty) } : { dessert_id: i.dessert_id })),
@@ -141,10 +153,11 @@ export default function PackagesPage() {
     setSaving(true);
     const { error } = form.id ? await sb.from("packages").update(payload).eq("id", form.id) : await sb.from("packages").insert({ ...payload, position: all.length });
     setSaving(false);
-    if (error) return toast.error(/extras/.test(error.message) ? "Falta ejecutar la migración 0017 en Supabase" : /excluded/.test(error.message) ? "Falta ejecutar la migración 0016 en Supabase" : /kind|groups|cake_items/.test(error.message) ? "Falta ejecutar la migración 0015 en Supabase" : error.message);
+    if (error) return toast.error(/Suplementos/.test(error.message) ? "Revisa los suplementos: deben ser montos de $0 a $100,000" : /surcharges/.test(error.message) ? "Falta ejecutar la migración 0021 en Supabase" : /extras/.test(error.message) ? "Falta ejecutar la migración 0017 en Supabase" : /excluded/.test(error.message) ? "Falta ejecutar la migración 0016 en Supabase" : /kind|groups|cake_items/.test(error.message) ? "Falta ejecutar la migración 0015 en Supabase" : error.message);
     toast.success("Paquete guardado 🎁");
     setForm(null);
     packsQ.reload();
+    catalog.reload();
   }
 
   async function remove(p: Package) {
@@ -152,6 +165,7 @@ export default function PackagesPage() {
     const { error } = await sb.from("packages").delete().eq("id", p.id);
     if (error) return toast.error(error.message);
     packsQ.reload();
+    catalog.reload();
   }
 
   async function duplicate(p: Package) {
@@ -160,6 +174,7 @@ export default function PackagesPage() {
     const { error } = await sb.from("packages").insert({ ...rest, name: `${p.name} (copia)`, store_visible: false, position: all.length });
     if (error) return toast.error(error.message);
     packsQ.reload();
+    catalog.reload();
   }
 
   const loading = catalog.loading || packsQ.loading;
@@ -194,6 +209,8 @@ export default function PackagesPage() {
       ) : (
       <>
 
+      {!loading && !packsQ.error && <PackageMarginPanel catalog={catalog} onEdit={edit} />}
+
       {kind === "cupcakes" && !loading && <GroupsManager desserts={desserts} groups={groups} onChanged={catalog.reload} />}
 
       {!loading && list.length > 3 && <SearchInput value={q} onChange={setQ} placeholder="Buscar paquete" className="mb-5 lg:w-72" />}
@@ -221,6 +238,8 @@ export default function PackagesPage() {
         <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
           {list.map((p, idx) => {
             const s = stats(p);
+            const rep = report(p);
+            const hasSur = Object.values(p.surcharges ?? {}).some((v) => Number(v) > 0);
             const gNames = (p.groups ?? []).map((g) => groups.find((x) => x.id === g)?.name).filter(Boolean);
             const detail =
               kindOf(p) === "postres"
@@ -253,15 +272,16 @@ export default function PackagesPage() {
                   </div>
                   <p className="mt-1 line-clamp-2 text-xs text-cocoa-400">{detail}</p>
                   <div className="mt-auto grid grid-cols-3 gap-2 pt-5">
-                    <Stat label="Precio">
+                    <Stat label={hasSur ? "Desde" : "Precio"}>
                       <span className="text-rose-500">{money(s.total)}</span>
                       {s.regular.max > s.price + 0.5 && <span className="block text-[11px] font-normal text-cocoa-300 line-through">{rangeText(s.regular, money)}</span>}
                     </Stat>
                     <Stat label="Costo">{rangeText(s.cost, money)}</Stat>
                     <Stat label="Margen">
-                      <span className={cn("flex items-center gap-1", marginTone(s.margin.min))}>
-                        <TrendingUp className="h-3.5 w-3.5" /> {rangeText(s.margin, (n) => `${num(n, 0)}%`)}
+                      <span className={cn("flex items-center gap-1", rep.ok ? "text-mint-600" : "text-rose-600")}>
+                        {rep.ok ? <TrendingUp className="h-3.5 w-3.5" /> : <AlertTriangle className="h-3.5 w-3.5" />} {rangeText({ min: rep.worst?.margin ?? 0, max: rep.best?.margin ?? 0 }, (n) => `${num(n, 0)}%`)}
                       </span>
+                      {!rep.ok && <span className="block text-[11px] font-semibold text-rose-500">bajo {num(target, 0)}%</span>}
                     </Stat>
                   </div>
                 </div>
@@ -297,6 +317,8 @@ export default function PackagesPage() {
             boxes={boxes}
             seasons={seasonsQ.data ?? []}
             stats={stats(form)}
+            report={report(form)}
+            target={target}
           />
         )}
       </Modal>
@@ -304,7 +326,6 @@ export default function PackagesPage() {
   );
 }
 
-const marginTone = (m: number) => (m >= 30 ? "text-mint-600" : m >= 15 ? "text-amber-600" : "text-rose-600");
 
 function Stat({ label, children }: { label: string; children: React.ReactNode }) {
   return (
@@ -571,6 +592,8 @@ function PackageEditor({
   boxes,
   seasons,
   stats,
+  report,
+  target,
 }: {
   form: Draft;
   setForm: (fn: (f: Draft | null) => Draft | null) => void;
@@ -581,6 +604,8 @@ function PackageEditor({
   boxes: NonNullable<ReturnType<typeof useCatalog>["data"]>["ingredients"];
   seasons: { id: string; name: string; emoji: string | null }[];
   stats: PackageStats;
+  report: PackageMarginReport;
+  target: number;
 }) {
   const set = (patch: Partial<Draft>) => setForm((f) => (f ? { ...f, ...patch } : f));
   const k = kindOf(form);
@@ -743,8 +768,21 @@ function PackageEditor({
           </div>
         )}
 
+        {k !== "postres" && (cups.length > 0 || cakeIds.size > 0) && (
+          <SurchargesEditor
+            surcharges={form.surcharges ?? {}}
+            onChange={(next) => set({ surcharges: next })}
+            cups={cups}
+            cakes={desserts.filter((d) => cakeIds.has(d.id))}
+            groups={groups}
+            pieces={pieces}
+            nCakes={k === "pastel" ? Number(form.cakes) || 1 : 0}
+            base={stats.price + stats.boxPrice}
+          />
+        )}
+
         <div>
-          <span className="label">Precio del paquete</span>
+          <span className="label">{k === "postres" ? "Precio del paquete" : "Precio base del paquete"}</span>
           <div className="flex flex-wrap items-center gap-2">
             {k !== "pastel" && (
               <div className="inline-flex rounded-2xl bg-cream-200 p-1">
@@ -822,24 +860,32 @@ function PackageEditor({
         )}
       </div>
 
-      <Summary stats={stats} variable={k !== "postres"} contents={k === "pastel" ? `${Number(form.cakes) || 1} pastel mini + ${pieces} cupcakes` : undefined} />
+      <Summary stats={stats} report={report} target={target} formPkg={form} priceNow={stats.price} variable={k !== "postres"} contents={k === "pastel" ? `${Number(form.cakes) || 1} pastel mini + ${pieces} cupcakes` : undefined} />
     </div>
   );
 }
 
-function Summary({ stats: s, variable, contents }: { stats: PackageStats; variable: boolean; contents?: string }) {
+function Summary({ stats: s, report, target, formPkg, priceNow, variable, contents }: { stats: PackageStats; report: PackageMarginReport; target: number; formPkg: Draft; priceNow: number; variable: boolean; contents?: string }) {
   const row = (label: string, value: React.ReactNode, cls = "") => (
     <div className={cn("flex items-baseline justify-between gap-3 py-1.5 text-sm", cls)}>
       <span className="text-cocoa-500">{label}</span>
       <span className="text-right font-semibold tabular-nums">{value}</span>
     </div>
   );
-  const loss = s.price > 0 && s.profit.min < 0;
+  const sMax = report.scenarios.length ? Math.max(...report.scenarios.map((x) => x.revenue)) : s.total;
+  const loss = report.scenarios.some((x) => x.revenue - x.cost < 0);
+  const mMin = report.worst?.margin ?? 0;
+  const mMax = report.best?.margin ?? 0;
+  const pMin = report.scenarios.length ? Math.min(...report.scenarios.map((x) => x.revenue - x.cost)) : 0;
+  const pMax = report.scenarios.length ? Math.max(...report.scenarios.map((x) => x.revenue - x.cost)) : 0;
   return (
     <div className="space-y-3 lg:sticky lg:top-0 lg:self-start">
       <div className="rounded-3xl bg-cream-100 p-4 ring-1 ring-cocoa-800/5">
         <p className="text-[11px] font-bold tracking-wider text-cocoa-400 uppercase">Para tu clienta</p>
-        <p className="mt-1 font-display text-3xl font-semibold text-rose-500 tabular-nums">{money(s.total)}</p>
+        <p className="mt-1 font-display text-3xl font-semibold text-rose-500 tabular-nums">
+          {sMax > s.total + 0.005 && <span className="mr-1.5 text-sm font-semibold text-cocoa-400">desde</span>}{money(s.total)}
+        </p>
+        {sMax > s.total + 0.005 && <p className="text-xs text-cocoa-500">hasta <b>{money(sMax)}</b> con sabores de suplemento</p>}
         <p className="text-sm text-cocoa-500">{contents ?? <>{num(s.pieces, 0)} piezas · <b>{money(s.perPiece)}</b> c/u</>}</p>
         {s.boxPrice > 0 && (
           <div className="mt-3 border-t border-dashed border-cocoa-800/10 pt-2">
@@ -860,13 +906,24 @@ function Summary({ stats: s, variable, contents }: { stats: PackageStats; variab
         <p className={cn("text-[11px] font-bold tracking-wider uppercase", loss ? "text-rose-600" : "text-mint-600")}>Para ti</p>
         {row("Costo de los postres", rangeText({ min: s.cost.min - s.boxCost, max: s.cost.max - s.boxCost }, money))}
         {s.extraCost > 0 && row("Otros costos", money(s.extraCost))}
-        {row("Ganancia", rangeText(s.profit, money), loss ? "text-rose-600" : "text-mint-700")}
-        {row("Margen", rangeText(s.margin, (n) => `${num(n, 0)}%`), marginTone(s.margin.min))}
+        {row("Ganancia", rangeText({ min: pMin, max: pMax }, money), loss ? "text-rose-600" : "text-mint-700")}
+        {row("Margen bruto", rangeText({ min: mMin, max: mMax }, (n) => `${num(n, 1)}%`), report.ok ? "text-mint-700" : "text-rose-600")}
+        {row("Objetivo", `${num(target, 0)}%`, "text-cocoa-400")}
         {variable && Math.abs(s.cost.max - s.cost.min) > 0.01 && (
           <p className="mt-2 text-[11px] leading-snug text-cocoa-400">Va de la combinación más barata a la más cara de hacer, según los sabores que elija.</p>
         )}
         {loss && <p className="mt-2 text-xs font-semibold text-rose-600">Con este precio podrías perder dinero en algunas combinaciones.</p>}
       </div>
+      {!report.ok && report.scenarios.length > 0 && (
+        <div className="rounded-3xl bg-rose-50 p-4 ring-1 ring-rose-200">
+          <p className="flex items-center gap-1.5 text-sm font-bold text-rose-700"><AlertTriangle className="h-4 w-4" /> Bajo tu margen mínimo de {num(target, 0)}%</p>
+          <p className="mb-2 text-xs text-rose-700">{report.bad.length} de {report.scenarios.length} combinaciones no llegan. Estas son las que causan el problema:</p>
+          <MarginProblems report={report} pkg={{ price: priceNow, kind: formPkg.kind, mode: formPkg.mode, pieces: formPkg.pieces }} target={target} compact />
+        </div>
+      )}
+      {report.ok && report.scenarios.length > 0 && priceNow > 0 && (
+        <p className="flex items-center gap-1.5 rounded-2xl bg-mint-50 px-3 py-2 text-xs font-semibold text-mint-800 ring-1 ring-mint-200/60"><Check className="h-3.5 w-3.5" /> Cumple el {num(target, 0)}% en todas las combinaciones</p>
+      )}
       <p className="px-1 text-[11px] leading-snug text-cocoa-400">El costo de cada postre incluye el empaque que tenga en su receta.</p>
     </div>
   );

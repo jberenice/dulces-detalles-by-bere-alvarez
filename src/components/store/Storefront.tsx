@@ -57,9 +57,9 @@ export type StorePackage = {
   /** Pasteles mini por paquete (solo pastel) */
   cakes?: number | null;
   /** fijo: lo que trae (qty) · surtido: sabores para elegir (con su categoría) */
-  options: { dessert_id: string; name: string; image_url: string | null; qty: number | null; price: number | null; group?: string | null }[];
+  options: { dessert_id: string; name: string; image_url: string | null; qty: number | null; price: number | null; group?: string | null; /** Suplemento por pieza */ surcharge?: number | null }[];
   /** Sabores de pastel mini (solo pastel) */
-  cake_options?: { dessert_id: string; name: string; image_url: string | null; price: number | null }[];
+  cake_options?: { dessert_id: string; name: string; image_url: string | null; price: number | null; surcharge?: number | null }[];
   /** Caja o empaque (ya viene incluida en price) */
   box_price?: number | null;
   /** Extras que se ofrecen con este paquete */
@@ -129,6 +129,17 @@ function splitChoice(k: StorePackage, choices: { dessert_id: string; qty: number
   for (const c of choices) (cakeIds.has(c.dessert_id) ? (cakes += c.qty) : (cups += c.qty));
   return { cakes, cups };
 }
+/** Suplemento por pieza de un sabor en esta caja */
+const surOf = (k: StorePackage, id: string) => {
+  const v = Number(k.options.find((o) => o.dessert_id === id)?.surcharge ?? k.cake_options?.find((o) => o.dessert_id === id)?.surcharge ?? 0);
+  return Number.isFinite(v) && v > 0 ? v : 0;
+};
+const hasSur = (k: StorePackage) => k.mode === "surtido" && [...k.options, ...(k.cake_options ?? [])].some((o) => Number(o.surcharge) > 0);
+/** Suplementos de una elección: Σ piezas × suplemento del sabor */
+const surTotal = (k: StorePackage, choices: { dessert_id: string; qty: number }[]) =>
+  Math.round(choices.reduce((a, c) => a + (Number(c.qty) || 0) * surOf(k, c.dessert_id), 0) * 100) / 100;
+/** Precio final = precio de la caja + suplementos de los sabores elegidos */
+const boxFinal = (k: StorePackage, choices: { dessert_id: string; qty: number }[]) => Math.round((Number(k.price) + surTotal(k, choices)) * 100) / 100;
 /** Sabores agrupados por categoría, en el orden que llegan */
 function byGroup<T extends { group?: string | null }>(opts: T[]) {
   const out: { name: string; items: T[] }[] = [];
@@ -276,9 +287,9 @@ export function Storefront({ data, slug, preview = false }: { data: StoreData; s
       }
       const label =
         k.mode === "surtido"
-          ? l.choices.map((c) => `${c.qty} ${isCakePack(k) && k.cake_options?.some((o) => o.dessert_id === c.dessert_id) ? "Pastel mini " : ""}${nameOf(c.dessert_id)}`).join(", ")
+          ? l.choices.map((c) => `${c.qty} ${isCakePack(k) && k.cake_options?.some((o) => o.dessert_id === c.dessert_id) ? "Pastel mini " : ""}${nameOf(c.dessert_id)}${surOf(k, c.dessert_id) > 0 ? ` (+${money(c.qty * surOf(k, c.dessert_id))})` : ""}`).join(", ")
           : k.options.map((o) => `${Number(o.qty)} ${o.name}`).join(", ");
-      return { key, k, qty: l.qty, choices: l.choices, unit: Number(k.price), label };
+      return { key, k, qty: l.qty, choices: l.choices, unit: boxFinal(k, l.choices), label };
     })
     .filter(Boolean) as { key: string; k: StorePackage; qty: number; choices: BoxChoice[]; unit: number; label: string }[];
   const count = lines.reduce((a, l) => a + l.qty, 0) + packLines.reduce((a, l) => a + l.qty, 0);
@@ -344,6 +355,8 @@ export function Storefront({ data, slug, preview = false }: { data: StoreData; s
   const boxSplit = box ? splitChoice(box, toChoices(boxChoices)) : { cakes: 0, cups: 0 };
   const boxTotal = boxSplit.cups;
   const boxReady = isBoxReady(boxChoices);
+  const boxSur = box ? surTotal(box, toChoices(boxChoices)) : 0;
+  const boxAllTotal = box ? boxes.reduce((a, x) => a + boxFinal(box, toChoices(x)), 0) : 0;
   const pendingBox = boxes.findIndex((x) => !isBoxReady(x));
   const boxExtrasTotal = Object.entries(boxExtras).reduce((a, [id, n]) => a + n * Number(storeExtras.find((x) => x.id === id)?.price ?? 0), 0);
   const setBoxCount = (n: number) => {
@@ -692,9 +705,9 @@ export function Storefront({ data, slug, preview = false }: { data: StoreData; s
                       </p>
                       <div className="mt-auto flex items-end justify-between gap-2 pt-2">
                         <p className="text-lg font-bold text-[var(--st-primary)]">
-                          {price(k.price)}
+                          {hasSur(k) && <span className="mr-1 text-xs font-semibold text-[var(--st-muted)]">desde</span>}{price(k.price)}
                           <span className="block text-[11px] font-normal text-[var(--st-muted)]">
-                            {isCakePack(k) ? `${cakesOf(k)} pastel${cakesOf(k) === 1 ? "" : "es"} + ${k.pieces} cupcakes` : k.mode === "surtido" ? `${k.pieces} piezas · ${price(Number(k.price) / k.pieces)} c/u` : `${k.pieces} piezas`}
+                            {hasSur(k) && "+ suplementos según tus sabores · "}{isCakePack(k) ? `${cakesOf(k)} pastel${cakesOf(k) === 1 ? "" : "es"} + ${k.pieces} cupcakes` : k.mode === "surtido" ? `${k.pieces} piezas${hasSur(k) ? "" : ` · ${price(Number(k.price) / k.pieces)} c/u`}` : `${k.pieces} piezas`}
                             {k.mode === "fijo" && regular > Number(k.price) + 0.5 ? <> · <s>{price(regular)}</s></> : null}
                           </span>
                         </p>
@@ -1131,7 +1144,7 @@ export function Storefront({ data, slug, preview = false }: { data: StoreData; s
 
           {/* Armar caja surtida */}
           <Modal open={!!box} onClose={() => setBox(null)} title={box?.name}
-            description={box ? (isCakePack(box) ? `Elige tu pastel mini y ${box.pieces} cupcakes · ${money(box.price)}` : `Elige ${box.pieces} piezas · ${money(box.price)} la caja`) : undefined} size="md"
+            description={box ? (isCakePack(box) ? `Elige tu pastel mini y ${box.pieces} cupcakes · ${hasSur(box) ? "desde " : ""}${money(box.price)}` : `Elige ${box.pieces} piezas · ${hasSur(box) ? "desde " : ""}${money(box.price)} la caja`) : undefined} size="md"
             footer={box && (
               <div className="flex w-full flex-col-reverse gap-3 sm:flex-row sm:items-center sm:justify-end">
                 <QtyStepper label={isCakePack(box) ? "Paquetes" : "Cajas"} value={boxes.length} max={20} onChange={setBoxCount} />
@@ -1154,7 +1167,7 @@ export function Storefront({ data, slug, preview = false }: { data: StoreData; s
                       ? box.pieces - boxTotal === 1 ? "Falta 1 pieza" : `Faltan ${box.pieces - boxTotal} piezas`
                       : pendingBox >= 0
                         ? `Sigue con la ${isCakePack(box) ? "#" : "caja "}${pendingBox + 1} →`
-                        : `Agregar${boxes.length === 1 ? "" : ` ${boxes.length}`} · ${money(Number(box.price) * boxes.length + boxExtrasTotal)}`}
+                        : `Agregar${boxes.length === 1 ? "" : ` ${boxes.length}`} · ${money(boxAllTotal + boxExtrasTotal)}`}
                 </button>
               </div>
             )}
@@ -1200,7 +1213,7 @@ export function Storefront({ data, slug, preview = false }: { data: StoreData; s
                     </StepTitle>
                     <ul className="mb-5 space-y-2">
                       {(box.cake_options ?? []).map((o) => (
-                        <FlavorRow key={o.dessert_id} o={o} n={boxChoices[o.dessert_id] ?? 0} full={boxCakes !== 1 && boxSplit.cakes >= boxCakes} onChange={(d) => setFlavor(o.dessert_id, d)} />
+                        <FlavorRow key={o.dessert_id} o={o} n={boxChoices[o.dessert_id] ?? 0} full={boxCakes !== 1 && boxSplit.cakes >= boxCakes} sur={surOf(box, o.dessert_id)} showFree={hasSur(box)} onChange={(d) => setFlavor(o.dessert_id, d)} />
                       ))}
                     </ul>
                     <StepTitle n={2} done={boxTotal === box.pieces}>Elige tus {box.pieces} cupcakes</StepTitle>
@@ -1212,13 +1225,24 @@ export function Storefront({ data, slug, preview = false }: { data: StoreData; s
                   </div>
                   <span className="text-sm font-bold text-cocoa-600 tabular-nums">{boxTotal} de {box.pieces}</span>
                 </div>
+                {hasSur(box) && (
+                  <div className="mb-4 rounded-2xl bg-[var(--st-soft)] px-4 py-3 ring-1 ring-[var(--st-primary)]/20" aria-live="polite">
+                    <div className="flex items-baseline justify-between gap-3">
+                      <span className="text-sm font-semibold text-cocoa-600">Precio de {isCakePack(box) ? "este paquete" : "esta caja"}</span>
+                      <span className="text-2xl font-bold text-[var(--st-primary)] tabular-nums">{money(Number(box.price) + boxSur)}</span>
+                    </div>
+                    <p className="mt-0.5 text-xs text-cocoa-500 tabular-nums">
+                      Base {money(box.price)} {boxSur > 0 ? <>+ suplementos {money(boxSur)}</> : "· los sabores marcados con + tienen un costo extra por pieza"}
+                    </p>
+                  </div>
+                )}
                 <div className="space-y-4">
                   {byGroup(box.options).map((g) => (
                     <div key={g.name || "_"}>
                       {g.name && <p className="mb-2 text-xs font-bold tracking-wider text-cocoa-400 uppercase">{g.name}</p>}
                       <ul className="space-y-2">
                         {g.items.map((o) => (
-                          <FlavorRow key={o.dessert_id} o={o} n={boxChoices[o.dessert_id] ?? 0} full={boxTotal >= box.pieces} onChange={(d) => setFlavor(o.dessert_id, d)} />
+                          <FlavorRow key={o.dessert_id} o={o} n={boxChoices[o.dessert_id] ?? 0} full={boxTotal >= box.pieces} sur={surOf(box, o.dessert_id)} showFree={hasSur(box)} onChange={(d) => setFlavor(o.dessert_id, d)} />
                         ))}
                       </ul>
                     </div>
@@ -1439,7 +1463,7 @@ function StepTitle({ n, done, children }: { n: number; done: boolean; children: 
   );
 }
 
-function FlavorRow({ o, n, full, onChange }: { o: { name: string; image_url: string | null }; n: number; full: boolean; onChange: (d: number) => void }) {
+function FlavorRow({ o, n, full, sur = 0, showFree = false, onChange }: { o: { name: string; image_url: string | null }; n: number; full: boolean; /** Suplemento por pieza */ sur?: number; showFree?: boolean; onChange: (d: number) => void }) {
   return (
     <li className={cn("flex items-center gap-3 rounded-2xl p-2 ring-1 transition", n ? "bg-[var(--st-soft)] ring-[var(--st-primary)]" : "ring-cocoa-800/8")}>
       <span className="h-12 w-12 shrink-0 overflow-hidden rounded-xl bg-cream-200">
@@ -1450,7 +1474,16 @@ function FlavorRow({ o, n, full, onChange }: { o: { name: string; image_url: str
           <span className="grid h-full w-full place-items-center"><CakeSlice className="h-5 w-5 text-[var(--st-primary)] opacity-60" /></span>
         )}
       </span>
-      <span className="min-w-0 flex-1 font-semibold text-cocoa-700">{o.name}</span>
+      <span className="min-w-0 flex-1">
+        <span className="block font-semibold text-cocoa-700">{o.name}</span>
+        {sur > 0 ? (
+          <span className="block text-xs font-bold text-[var(--st-primary)] tabular-nums">
+            +{money(sur)} c/u{n > 0 && <span className="font-normal text-cocoa-500"> · {money(sur * n)} en total</span>}
+          </span>
+        ) : showFree ? (
+          <span className="block text-xs text-cocoa-400">Incluido en el precio</span>
+        ) : null}
+      </span>
       <span className="flex items-center gap-1 rounded-full bg-white p-1 shadow-sm">
         <button type="button" onClick={() => onChange(-1)} disabled={!n} className="grid h-8 w-8 place-items-center rounded-full text-[var(--st-primary)] disabled:opacity-30" aria-label={`Quitar ${o.name}`}><Minus className="h-4 w-4" /></button>
         <span className="w-6 text-center font-bold tabular-nums">{n}</span>

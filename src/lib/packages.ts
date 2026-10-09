@@ -150,7 +150,9 @@ export function fixedComponents(p: Pick<Package, "items">, dessertsById: Map<str
 
 /** "Caja de 6 cupcakes: 2 Vainilla, 4 Nutella" */
 export const describePackage = (name: string, comps: PackageComponent[]) =>
-  comps.length ? `${name}: ${comps.map((c) => `${c.qty} ${c.name}`).join(", ")}` : name;
+  comps.length
+    ? `${name}: ${comps.map((c) => `${c.qty} ${c.name}${Number(c.surcharge) > 0 ? ` (+$${Number((c.qty * Number(c.surcharge)).toFixed(2))})` : ""}`).join(", ")}`
+    : name;
 
 /** Costo de UNA caja con un contenido concreto */
 export function componentsCost(comps: PackageComponent[], costs: Map<string, CostBreakdown>, boxCost: number) {

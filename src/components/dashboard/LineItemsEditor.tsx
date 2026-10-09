@@ -6,6 +6,7 @@ import { money, num } from "@/lib/format";
 import type { CostBreakdown } from "@/lib/costing";
 import { roundPrice } from "@/lib/costing";
 import type { Dessert, Extra, FlavorGroup, Ingredient, LineItem, Package, PackageComponent } from "@/lib/types";
+import { surchargeOf, surchargeTotal, round2 } from "@/lib/pricing";
 import { boxCostOf, cakeOptions, componentsCost, countChoice, cupcakeOptions, describePackage, fixedComponents, kindOf, packageTotal } from "@/lib/packages";
 import { cn } from "@/lib/cn";
 import type { calcTotals } from "@/lib/totals";
@@ -88,10 +89,13 @@ export function LineItemsEditor({
   );
 
   /** Recalcula descripción y costo de una caja con su contenido */
-  function withComponents(p: Package, comps: PackageComponent[]): Partial<EditableLine> {
+  function withComponents(p: Package, rawComps: PackageComponent[]): Partial<EditableLine> {
+    // Suplemento por sabor: precio final = precio base de la caja (con su empaque) + Σ piezas × suplemento
+    const comps = rawComps.map((c) => ({ ...c, surcharge: surchargeOf(p.surcharges, c.dessert_id) || undefined }));
     return {
       components: comps,
       description: describePackage(p.name, comps),
+      ...(p.mode === "surtido" ? { unit_price: round2(packageTotal(p, ingredientsById) + surchargeTotal(p.surcharges, comps)) } : {}),
       unit_cost: Math.round(componentsCost(comps, costs, ingredientsById ? boxCostOf(p, ingredientsById) : 0) * 100) / 100,
     };
   }
@@ -275,6 +279,7 @@ function PackageLine({
     return (
       <span key={d.id} className={cn("inline-flex items-center gap-1 rounded-full bg-white py-0.5 pr-1 pl-2.5 text-xs font-bold ring-1", n ? "text-cocoa-700 ring-mint-300" : "text-cocoa-400 ring-cocoa-800/10")}>
         {d.name}
+        {surchargeOf(pack?.surcharges, d.id) > 0 && <span className="text-[10px] font-bold text-rose-500">+{money(surchargeOf(pack?.surcharges, d.id))}</span>}
         <button type="button" onClick={() => onFlavor(pack!, d.id, -1)} disabled={!n} className="grid h-6 w-6 place-items-center rounded-full hover:bg-cream-200 disabled:opacity-30" aria-label={`Quitar ${d.name}`}>
           <Minus className="h-3 w-3" />
         </button>
