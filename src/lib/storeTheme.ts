@@ -68,21 +68,22 @@ export const STORE_FONTS: Record<StoreTheme["font"], string> = {
   elegante: "var(--font-display-serif), Georgia, serif",
   romantica: "var(--font-dancing), cursive",
   moderna: "var(--font-body), system-ui, sans-serif",
-  divertida: "var(--font-pacifico), cursive",
+  // (los nombres internos se conservan para no perder lo ya guardado; las letras son todas fáciles de leer)
+  divertida: "var(--ff-poppins), system-ui, sans-serif",
   redondita: "var(--font-fredoka), system-ui, sans-serif",
-  clasica: "var(--ff-lobster), Georgia, serif",
-  caligrafia: "var(--ff-vibes), cursive",
-  vintage: "var(--ff-slab), Georgia, serif",
+  clasica: "var(--ff-lora), Georgia, serif",
+  caligrafia: "var(--ff-dmserif), Georgia, serif",
+  vintage: "var(--ff-montserrat), system-ui, sans-serif",
 };
 export const STORE_FONT_LABELS: [StoreTheme["font"], string][] = [
-  ["elegante", "Elegante"],
-  ["romantica", "Romántica"],
-  ["moderna", "Moderna"],
-  ["divertida", "Divertida"],
-  ["redondita", "Redondita"],
-  ["clasica", "Clásica"],
-  ["caligrafia", "Caligrafía"],
-  ["vintage", "Vintage"],
+  ["elegante", "Elegante (Playfair)"],
+  ["romantica", "Romántica (script)"],
+  ["moderna", "Moderna (Nunito)"],
+  ["divertida", "Geométrica (Poppins)"],
+  ["redondita", "Redondeada (Fredoka)"],
+  ["clasica", "Clásica (Lora)"],
+  ["caligrafia", "Editorial (DM Serif)"],
+  ["vintage", "Sobria (Montserrat)"],
 ];
 
 export const DESIGNS: { id: string; name: string; hint: string; theme: Pick<StoreTheme, "preset" | "decor" | "font" | "hero" | "layout" | "radius"> }[] = [

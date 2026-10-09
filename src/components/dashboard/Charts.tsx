@@ -14,7 +14,7 @@ export const CHART = {
 
 /** Convierte una variable CSS a un color real (las gráficas SVG lo necesitan así) y se actualiza si cambia la temporada */
 function useResolvedColors() {
-  const fallback = { rose: "#eb5473", axis: "#a87b55" };
+  const fallback = { rose: "#eb5473", axis: "#84583a" };
   const [c, setC] = useState(fallback);
   useEffect(() => {
     const read = () => {

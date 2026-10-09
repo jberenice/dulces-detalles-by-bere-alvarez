@@ -198,8 +198,8 @@ export function FestiveColors({ theme }: { theme: FestiveTheme }) {
   useEffect(() => {
     const root = document.documentElement;
     const base = festiveVars(theme);
-    // en tema oscuro no se tocan los fondos crema ni los textos chocolate (los pone el tema oscuro)
-    if (dark) for (const k of Object.keys(base)) if (/--color-(cream|cocoa)-/.test(k)) delete base[k];
+    // en tema oscuro no se tocan los fondos crema, los textos chocolate ni los tintes claros (los pone el tema oscuro)
+    if (dark) for (const k of Object.keys(base)) if (/--color-(cream|cocoa)-|--color-(rose|mint)-(50|100|200)$/.test(k)) delete base[k];
     const vars = {
       ...base,
       // piezas para botones y tarjetas (ver globals.css)

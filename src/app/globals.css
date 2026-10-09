@@ -35,8 +35,8 @@
 
   --color-cocoa-100: #f3e8dc;
   --color-cocoa-200: #e3cdb8;
-  --color-cocoa-300: #c9a585;
-  --color-cocoa-400: #a87b55;
+  --color-cocoa-300: #9a7350;
+  --color-cocoa-400: #84583a;
   --color-cocoa-500: #8a5a2e;
   --color-cocoa-600: #6f4318;
   --color-cocoa-700: #5a3512;
@@ -510,9 +510,25 @@
   --color-rose-100: color-mix(in srgb, var(--color-rose-500) 26%, #17110d);
   --color-mint-50: color-mix(in srgb, var(--color-mint-500) 16%, #17110d);
   --color-mint-100: color-mix(in srgb, var(--color-mint-500) 26%, #17110d);
+  --color-rose-200: color-mix(in srgb, var(--color-rose-500) 38%, #17110d);
+  --color-mint-200: color-mix(in srgb, var(--color-mint-500) 38%, #17110d);
+  /* tonos claros para letras de color sobre fondo oscuro */
+  --dk-rose: color-mix(in srgb, var(--color-rose-500) 42%, #ffffff);
+  --dk-mint: color-mix(in srgb, var(--color-mint-500) 42%, #ffffff);
+  --dk-amber: #fcd34d;
+  --dk-sky: #7dd3fc;
   --shadow-soft: 0 1px 2px rgb(0 0 0 / 0.3), 0 8px 24px -8px rgb(0 0 0 / 0.5);
   --shadow-lift: 0 2px 4px rgb(0 0 0 / 0.3), 0 18px 40px -12px rgb(0 0 0 / 0.6);
 }
+/* letras de color (rosa, menta, ámbar, cielo) legibles sobre fondo oscuro; la tienda conserva su diseño claro */
+:root[data-theme="dark"] :is(.text-rose-500, .text-rose-600, .text-rose-700, .text-rose-800):not(.st-root *, .btn-primary, .btn-primary *) { color: var(--dk-rose); }
+:root[data-theme="dark"] :is(.text-mint-500, .text-mint-600, .text-mint-700, .text-mint-800):not(.st-root *, .btn-primary, .btn-primary *) { color: var(--dk-mint); }
+:root[data-theme="dark"] :is(.text-amber-600, .text-amber-700, .text-amber-800, .text-amber-900):not(.st-root *) { color: var(--dk-amber); }
+:root[data-theme="dark"] :is(.text-sky-600, .text-sky-700, .text-sky-800):not(.st-root *) { color: var(--dk-sky); }
+:root[data-theme="dark"] :is(.bg-amber-50, .bg-amber-100):not(.st-root *) { background-color: color-mix(in srgb, #f59e0b 16%, #17110d); }
+:root[data-theme="dark"] :is(.bg-amber-200):not(.st-root *) { background-color: color-mix(in srgb, #f59e0b 28%, #17110d); }
+:root[data-theme="dark"] :is(.bg-sky-50, .bg-sky-100):not(.st-root *) { background-color: color-mix(in srgb, #0ea5e9 16%, #17110d); }
+:root[data-theme="dark"] :is(.ring-amber-200, .ring-amber-200\/70, .border-amber-200):not(.st-root *) { --tw-ring-color: rgb(245 158 11 / 0.35); border-color: rgb(245 158 11 / 0.35); }
 :root[data-theme="dark"] body {
   background: radial-gradient(1200px 600px at 10% -10%, rgb(235 84 115 / 0.08), transparent 60%), radial-gradient(1000px 600px at 110% 10%, rgb(127 202 166 / 0.07), transparent 60%), #17110d;
 }
@@ -559,8 +575,8 @@
   --color-cream-300: #f4e4c2;
   --color-cocoa-100: #f3e8dc;
   --color-cocoa-200: #e3cdb8;
-  --color-cocoa-300: #c9a585;
-  --color-cocoa-400: #a87b55;
+  --color-cocoa-300: #9a7350;
+  --color-cocoa-400: #84583a;
   --color-cocoa-500: #8a5a2e;
   --color-cocoa-600: #6f4318;
   --color-cocoa-700: #5a3512;
@@ -574,22 +590,24 @@
 /* ====================================================================
    Letras de temporada (títulos y frases manuscritas)
    ==================================================================== */
-:root[data-festive="navidad"] { --font-display: var(--ff-xmas), var(--font-display-serif), serif; --font-script: var(--ff-vibes), var(--font-dancing), cursive; }
-:root[data-festive="anonuevo"] { --font-display: var(--ff-royal), var(--font-display-serif), serif; --font-script: var(--ff-vibes), var(--font-dancing), cursive; }
-:root[data-festive="reyes"] { --font-display: var(--ff-royal), var(--font-display-serif), serif; --font-script: var(--ff-vibes), var(--font-dancing), cursive; }
-:root[data-festive="sanvalentin"] { --font-display: var(--ff-lobster), var(--font-display-serif), serif; --font-script: var(--ff-vibes), var(--font-dancing), cursive; }
-:root[data-festive="madres"] { --font-script: var(--ff-vibes), var(--font-dancing), cursive; }
-:root[data-festive="primavera"] { --font-display: var(--font-fredoka), var(--font-body), sans-serif; --font-script: var(--font-pacifico), cursive; }
-:root[data-festive="nino"] { --font-display: var(--font-fredoka), var(--font-body), sans-serif; --font-script: var(--font-pacifico), cursive; }
-:root[data-festive="maestro"] { --font-display: var(--ff-chalk), var(--font-body), sans-serif; --font-script: var(--ff-chalk), cursive; }
-:root[data-festive="padre"] { --font-display: var(--ff-slab), var(--font-display-serif), serif; --font-script: var(--ff-rye), cursive; }
-:root[data-festive="independencia"] { --font-display: var(--ff-sancreek), var(--font-display-serif), serif; --font-script: var(--ff-rye), cursive; }
-:root[data-festive="halloween"] { --font-display: var(--ff-creepster), var(--font-display-serif), serif; --font-script: var(--ff-creepster), cursive; }
-:root[data-festive="muertos"] { --font-display: var(--ff-sancreek), var(--font-display-serif), serif; --font-script: var(--font-pacifico), cursive; }
-/* las letras decorativas se ven mejor sin cursiva forzada ni negritas sintéticas */
-:root:is([data-festive="navidad"], [data-festive="halloween"], [data-festive="independencia"], [data-festive="muertos"], [data-festive="padre"], [data-festive="maestro"]) :is(h1, h2, h3, .font-display) {
+/* Tipografías por temporada: serif o sans profesionales, claras de leer en cualquier tamaño */
+:root[data-festive="navidad"] { --font-display: var(--ff-dmserif), var(--font-display-serif), serif; }
+:root[data-festive="anonuevo"] { --font-display: var(--font-display-serif), Georgia, serif; }
+:root[data-festive="reyes"] { --font-display: var(--ff-lora), var(--font-display-serif), serif; }
+:root[data-festive="sanvalentin"] { --font-display: var(--font-display-serif), Georgia, serif; }
+:root[data-festive="madres"] { --font-display: var(--ff-lora), var(--font-display-serif), serif; }
+:root[data-festive="primavera"] { --font-display: var(--ff-poppins), var(--font-body), sans-serif; }
+:root[data-festive="nino"] { --font-display: var(--ff-poppins), var(--font-body), sans-serif; }
+:root[data-festive="maestro"] { --font-display: var(--ff-montserrat), var(--font-body), sans-serif; }
+:root[data-festive="padre"] { --font-display: var(--ff-montserrat), var(--font-body), sans-serif; }
+:root[data-festive="independencia"] { --font-display: var(--ff-dmserif), var(--font-display-serif), serif; }
+:root[data-festive="halloween"] { --font-display: var(--ff-dmserif), var(--font-display-serif), serif; }
+:root[data-festive="muertos"] { --font-display: var(--ff-dmserif), var(--font-display-serif), serif; }
+/* títulos de la app (panel, ventanas, tarjetas): siempre normales, sin efectos */
+:root[data-festive] :is(h1, h2, h3, h4, .font-display) {
   font-style: normal;
-  letter-spacing: 0.01em;
+  letter-spacing: 0;
+  text-transform: none;
 }
 :root[data-theme="dark"][data-festive] .btn-outline {
   color: var(--color-mint-300);

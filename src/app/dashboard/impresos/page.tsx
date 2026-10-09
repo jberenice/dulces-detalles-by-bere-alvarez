@@ -104,7 +104,7 @@ export default function PrintDesignerPage() {
       elegante: v("--font-display-serif", "Georgia, serif"),
       romantica: v("--font-dancing", "cursive"),
       moderna: v("--font-body", "system-ui, sans-serif"),
-      divertida: v("--font-pacifico", "cursive"),
+      divertida: v("--ff-poppins", "sans-serif"),
       redondita: v("--font-fredoka", "system-ui, sans-serif"),
     });
   }, []);

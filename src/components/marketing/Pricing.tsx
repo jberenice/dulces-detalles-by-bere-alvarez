@@ -309,7 +309,7 @@ export function Pricing() {
               <MeltingGlaze plan={p.id} shown={shown} fest={fest} />
               <DessertBadge plan={p.id} dark={dark} fest={fest} />
               {dark && (
-                <span className="absolute top-5 left-5 z-10 flex items-center gap-1 rounded-full bg-white px-3 py-1 text-xs font-bold whitespace-nowrap text-rose-600 shadow-soft">
+                <span className="absolute top-5 left-5 z-10 flex items-center gap-1 rounded-full px-3 py-1 text-xs font-bold whitespace-nowrap !text-rose-700 shadow-soft" style={{ background: "#fffaf3" }}>
                   <Crown className="h-3.5 w-3.5" /> El favorito
                 </span>
               )}

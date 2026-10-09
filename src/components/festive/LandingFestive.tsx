@@ -31,7 +31,7 @@ export function LandingFestiveBadge() {
   return (
     <div className="relative mb-4 inline-flex max-w-full items-center gap-1">
       <MiniBouquet theme={fest} size={50} className="max-[380px]:hidden" />
-      <p className="rounded-full bg-white/95 px-4 py-1.5 text-sm font-bold shadow-soft ring-2" style={{ color: `color-mix(in srgb, ${fest.ui.primary} 78%, black)`, ["--tw-ring-color" as string]: `color-mix(in srgb, ${fest.ui.primary} 25%, transparent)` }}>
+      <p className="rounded-full px-4 py-1.5 text-sm font-bold shadow-soft ring-2" style={{ background: "rgb(255 253 248 / .96)", color: `color-mix(in srgb, ${fest.ui.primary} 78%, black)`, ["--tw-ring-color" as string]: `color-mix(in srgb, ${fest.ui.primary} 25%, transparent)` }}>
         {fest.hero}
       </p>
       <MiniBouquet theme={fest} size={50} flip className="max-[380px]:hidden" />

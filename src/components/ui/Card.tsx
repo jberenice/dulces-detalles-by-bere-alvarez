@@ -82,7 +82,7 @@ export function PageHeader({
   return (
     <div className="mb-6 flex flex-col gap-4 sm:mb-8 sm:flex-row sm:items-end sm:justify-between">
       <div className="animate-fade-up">
-        {eyebrow && <p className="mb-1 font-script text-xl text-rose-500">{eyebrow}</p>}
+        {eyebrow && <p className="mb-1 text-xs font-bold tracking-[0.14em] text-rose-500 uppercase">{eyebrow}</p>}
         <h1 className="text-[28px] leading-tight font-semibold sm:text-[34px]">{title}</h1>
         {subtitle && <p className="mt-1 max-w-2xl text-[15px] text-cocoa-400">{subtitle}</p>}
       </div>

@@ -22,7 +22,7 @@ const DEFAULT: PdfPalette = {
   soft: "#fffaef",
   soft2: "#fdf0f3",
   ink: "#5a3512",
-  muted: "#a87b55",
+  muted: "#84583a",
   colors: ["#eb5473", "#7fcaa6", "#f6c344", "#8ec5ff", "#c792ea"],
   kind: "drip",
   message: null,

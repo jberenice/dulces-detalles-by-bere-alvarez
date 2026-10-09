@@ -428,6 +428,12 @@ function darkSkin(s: Skin) {
       }
     }
   }
+  // diseños con halo blanco (letras oscuras sobre fondo claro): en oscuro vuelven a letras claras y sin halo
+  if (s.halo) {
+    const sc = `${D} [data-fs]:not([data-fs="pricing"])`;
+    css += `${sc} :is(.text-cocoa-500,.text-cocoa-400,.text-cocoa-300):not(:is(.card,.fest-card,li.rounded-3xl,a,button) *){color:#e3d0bc!important}`;
+    css += `${sc} :is(h1,h2,h3,p,li,summary,label,figcaption,blockquote):not(:is(a,button,.card,.fest-card,li.rounded-3xl,.rounded-full) *){text-shadow:none!important}`;
+  }
   // pasos de "Así de fácil" con tarjeta clara: en oscuro pasan a superficie oscura
   if (s.how.card && !CARD[s.how.card].dark) css += `${D} [data-fs="how"] li{background:${s.how.card === "mx" ? "linear-gradient(90deg,#0b6b46 0 33.3%,#fff 33.3% 66.6%,#c8102e 66.6%) top/100% 6px no-repeat," : ""}#231a14!important}`;
   if (s.plaque) css += `${D} [data-fs="footer"]>div:not([aria-hidden]):not([data-fest]){background:rgb(28 20 15 / .92)}`;
@@ -567,7 +573,7 @@ export function panelSkinCss(id: FestiveId) {
   if (s.header.dark) css += ink(`[data-fs="pheader"]`, s.ink.dark, s.ink.muted);
   // bienvenida del inicio
   css += `[data-fs="phero"]{background:${s.hero.bg}!important}`;
-  css += `[data-fs="phero"] .font-script{color:${s.hero.accent ?? s.ink.dark}!important}`;
+  css += `[data-fs="phero"] .font-script{color:${s.hero.dark ? s.hero.accent ?? s.ink.dark : "#6b3414"}!important}`;
   // tarjetas: orilla de la temporada y tirita decorativa arriba
   const card = `[data-fs="panel"] main :is(.card,.fest-card):not([role=dialog] *):not([role=menu] *)`;
   css += `${card}{border:1.5px solid color-mix(in srgb, ${border} 55%, transparent)!important;box-shadow:0 1px 0 #fff inset,0 10px 26px -16px color-mix(in srgb, ${border} 60%, transparent)}`;
