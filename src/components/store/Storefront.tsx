@@ -67,7 +67,7 @@ export type StorePackage = {
   /** Extras que se ofrecen con este paquete */
   extras?: string[];
 };
-export type StoreExtra = { id: string; name: string; description: string | null; image_url: string | null; price: number };
+export type StoreExtra = { id: string; name: string; description: string | null; image_url: string | null; price: number; unit_label?: string; stock_left?: number | null };
 export type StoreData = {
   store: {
     slug: string;
@@ -306,7 +306,8 @@ export function Storefront({ data, slug, preview = false }: { data: StoreData; s
     lines.reduce((a, l) => a + l.qty * l.unit, 0) + packLines.reduce((a, l) => a + l.qty * l.unit, 0) + extraLines.reduce((a, l) => a + l.qty * l.unit, 0);
   const addExtra = (id: string, d = 1) =>
     setExtrasCart((c) => {
-      const n = Math.max(0, Math.min(99, (c[id] ?? 0) + d));
+      const left = storeExtras.find((x) => x.id === id)?.stock_left;
+      const n = Math.max(0, Math.min(99, left != null ? Math.max(0, left) : 99, (c[id] ?? 0) + d));
       const next = { ...c, [id]: n };
       if (!n) delete next[id];
       return next;
@@ -1316,7 +1317,7 @@ export function Storefront({ data, slug, preview = false }: { data: StoreData; s
                       <p className="mb-2 flex items-center gap-2 font-semibold text-cocoa-700"><Sparkles className="h-4 w-4 text-[var(--st-primary)]" /> Agrega un detalle</p>
                       <ul className="space-y-2">
                         {offered.map((x) => (
-                          <ExtraRow key={x.id} x={x} n={boxExtras[x.id] ?? 0} onChange={(d) => setBoxExtras((e) => { const n = Math.max(0, Math.min(99, (e[x.id] ?? 0) + d)); const next = { ...e, [x.id]: n }; if (!n) delete next[x.id]; return next; })} />
+                          <ExtraRow key={x.id} x={x} n={boxExtras[x.id] ?? 0} max={x.stock_left != null ? Math.max(0, x.stock_left - (extrasCart[x.id] ?? 0)) : 99} onChange={(d) => setBoxExtras((e) => { const n = Math.max(0, Math.min(99, x.stock_left != null ? Math.max(0, x.stock_left - (extrasCart[x.id] ?? 0)) : 99, (e[x.id] ?? 0) + d)); const next = { ...e, [x.id]: n }; if (!n) delete next[x.id]; return next; })} />
                         ))}
                       </ul>
                     </div>
@@ -1409,7 +1410,7 @@ export function Storefront({ data, slug, preview = false }: { data: StoreData; s
                     <p className="mb-2 flex items-center gap-2 font-semibold text-cocoa-700"><Sparkles className="h-4 w-4 text-[var(--st-primary)]" /> ¿Le agregamos un detalle?</p>
                     <ul className="space-y-2">
                       {storeExtras.map((x) => (
-                        <ExtraRow key={x.id} x={x} n={extrasCart[x.id] ?? 0} onChange={(d) => addExtra(x.id, d)} />
+                        <ExtraRow key={x.id} x={x} n={extrasCart[x.id] ?? 0} max={x.stock_left != null ? Math.max(0, x.stock_left) : 99} onChange={(d) => addExtra(x.id, d)} />
                       ))}
                     </ul>
                   </div>
@@ -1586,18 +1587,28 @@ function DecorDivider({ tile, wide = false }: { tile: Tile; wide?: boolean }) {
   );
 }
 
-function ExtraRow({ x, n, onChange }: { x: StoreExtra; n: number; onChange: (d: number) => void }) {
+function ExtraRow({ x, n, max, onChange }: { x: StoreExtra; n: number; max: number; onChange: (d: number) => void }) {
+  const unit = x.unit_label && x.unit_label !== "pieza" ? x.unit_label : null;
+  const out = x.stock_left != null && x.stock_left <= 0;
   return (
-    <li className={cn("flex items-center gap-3 rounded-2xl p-2.5 pl-3.5 ring-1 transition", n ? "bg-[var(--st-soft)] ring-[var(--st-primary)]" : "ring-cocoa-800/8")}>
+    <li className={cn("flex items-center gap-3 rounded-2xl p-2.5 pl-3.5 ring-1 transition", n ? "bg-[var(--st-soft)] ring-[var(--st-primary)]" : "ring-cocoa-800/8", out && "opacity-60")}>
       <span className="min-w-0 flex-1">
         <span className="block font-semibold text-cocoa-700">{x.name}</span>
         {x.description && <span className="block text-xs text-cocoa-400">{x.description}</span>}
+        {out ? (
+          <span className="block text-xs font-bold text-rose-600">Agotado por ahora</span>
+        ) : (
+          x.stock_left != null && x.stock_left <= 10 && <span className="block text-xs font-semibold text-amber-700">Quedan {x.stock_left}{unit ? ` ${unit}${x.stock_left === 1 ? "" : "s"}` : ""}</span>
+        )}
       </span>
-      <span className="text-sm font-bold text-[var(--st-primary)] tabular-nums">+{money(x.price)}</span>
+      <span className="text-right text-sm font-bold text-[var(--st-primary)] tabular-nums">
+        +{money(x.price)}
+        {unit && <span className="block text-[10px] font-semibold text-cocoa-400">por {unit}</span>}
+      </span>
       <span className="flex items-center gap-1 rounded-full bg-white p-1 shadow-sm">
         <button type="button" onClick={() => onChange(-1)} disabled={!n} className="grid h-8 w-8 place-items-center rounded-full text-[var(--st-primary)] disabled:opacity-30" aria-label={`Quitar ${x.name}`}><Minus className="h-4 w-4" /></button>
         <span className="w-6 text-center font-bold tabular-nums">{n}</span>
-        <button type="button" onClick={() => onChange(1)} className="grid h-8 w-8 place-items-center rounded-full text-[var(--st-primary)]" aria-label={`Agregar ${x.name}`}><Plus className="h-4 w-4" /></button>
+        <button type="button" onClick={() => onChange(1)} disabled={n >= max} className="grid h-8 w-8 place-items-center rounded-full text-[var(--st-primary)] disabled:opacity-30" aria-label={`Agregar ${x.name}`}><Plus className="h-4 w-4" /></button>
       </span>
     </li>
   );

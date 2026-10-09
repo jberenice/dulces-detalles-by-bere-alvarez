@@ -49,15 +49,17 @@ export async function POST(request: Request) {
     .eq("source", "tienda")
     .eq("push_notified", false)
     .gte("created_at", new Date(Date.now() - 10 * 60_000).toISOString())
-    .select("id, user_id, folio, total, customer_name, delivery_date")
+    .select("id, user_id, folio, total, customer_name, delivery_date, stock_shortage")
     .maybeSingle();
   if (!order) return NextResponse.json({ ok: true, sent: 0 });
 
   const { data: subs } = await admin.from("push_subscriptions").select("id, endpoint, p256dh, auth").eq("user_id", order.user_id);
+  const short = (Array.isArray(order.stock_shortage) ? order.stock_shortage : []) as { name: string; need: number; have: number }[];
+  const shortText = short.length ? ` · ⚠️ Falta stock: ${short.slice(0, 3).map((x) => `${x.name} (necesita ${x.need}, hay ${x.have})`).join(", ")}` : "";
   const money = new Intl.NumberFormat("es-MX", { style: "currency", currency: "MXN" }).format(Number(order.total) || 0);
   const { sent, gone } = await sendPush((subs ?? []) as PushSub[], {
     title: `🛍️ ¡Nuevo pedido de tu tienda! P-${String(order.folio).padStart(5, "0")}`,
-    body: `${order.customer_name ?? "Cliente"} · ${money}${order.delivery_date ? ` · entrega ${order.delivery_date.split("-").reverse().join("/")}` : ""}`,
+    body: `${order.customer_name ?? "Cliente"} · ${money}${order.delivery_date ? ` · entrega ${order.delivery_date.split("-").reverse().join("/")}` : ""}${shortText}`,
     url: `/dashboard/pedidos/${order.id}`,
     tag: `pedido-${order.id}`,
   });

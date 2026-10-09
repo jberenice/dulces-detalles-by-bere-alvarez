@@ -244,6 +244,8 @@ export type Package = {
   packaging_id: string | null;
   /** Empaques adicionales (vaso, papel, etc.); todos se cobran y descuentan inventario */
   packaging_ids?: string[];
+  /** Cantidad de cada empaque (id → piezas); si falta es 1 */
+  packaging_qty?: Record<string, number>;
   extra_cost: number;
   store_visible: boolean;
   active: boolean;
@@ -328,6 +330,8 @@ export type Order = {
   payment_method: string | null;
   public_token?: string;
   inventory_applied?: boolean;
+  /** Faltantes de stock al hacer el pedido (empaques y materiales de extras) */
+  stock_shortage?: { name: string; unit: string; need: number; have: number }[] | null;
   delivery_zone?: string | null;
   coupon_code?: string | null;
   created_at: string;
@@ -354,4 +358,10 @@ export type Extra = {
   cost: number;
   available: boolean;
   position: number;
+  /** Artículo de Inventario del que se descuenta (listón por metro, etc.) */
+  ingredient_id?: string | null;
+  /** Cuánto del artículo gasta cada unidad que se vende */
+  ingredient_qty?: number;
+  /** Cómo se vende: pieza, metro… */
+  unit_label?: string;
 };

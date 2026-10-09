@@ -79,6 +79,7 @@ export type PackageMarginReport = {
 
 type ReportInput = Pick<Package, "mode" | "pieces" | "items" | "price" | "packaging_id" | "extra_cost" | "kind" | "groups" | "cake_items" | "cakes" | "excluded"> & {
   packaging_ids?: string[] | null;
+  packaging_qty?: Record<string, number> | null;
   surcharges?: Surcharges | null;
 };
 

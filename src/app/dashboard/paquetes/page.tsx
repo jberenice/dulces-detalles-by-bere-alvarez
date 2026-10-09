@@ -23,7 +23,7 @@ import { cleanSurcharges, marginReport, type PackageMarginReport } from "@/lib/p
 import { MarginProblems, PackageMarginPanel, useMinMargin } from "@/components/dashboard/PackageMargins";
 import { SurchargesEditor } from "@/components/dashboard/SurchargesEditor";
 import { KIND_LABEL, cakeOptions, cupcakeOptions, dessertPrice, fixedPieces, kindOf, packageStats, packagingIdsOf, rangeText, type PackageStats } from "@/lib/packages";
-import type { Dessert, Extra, FlavorGroup, Package, PackageKind } from "@/lib/types";
+import type { Dessert, Extra, FlavorGroup, Ingredient, Package, PackageKind } from "@/lib/types";
 
 type Draft = Omit<Package, "id" | "created_at" | "price"> & { id?: string; amount: string };
 
@@ -80,6 +80,7 @@ export default function PackagesPage() {
   const desserts = useMemo(() => allDesserts.filter((d) => d.active), [allDesserts]);
   const groups = data?.groups ?? [];
   const extras = useMemo(() => data?.extras ?? [], [data]);
+  const inventoryOn = !!(catalog.profile as { inventory_enabled?: boolean } | undefined)?.inventory_enabled;
   const boxes = useMemo(() => (data?.ingredients ?? []).filter((i) => i.kind === "empaque"), [data]);
   const stats = (p: Package | Draft) => packageStats({ ...p, price: "amount" in p ? priceOf(p) : p.price }, allDesserts, costs, ingredientsById);
   const target = useMinMargin();
@@ -141,6 +142,11 @@ export default function PackagesPage() {
       items: items.map((i) => (k === "postres" ? { dessert_id: i.dessert_id, qty: Number(i.qty) } : { dessert_id: i.dessert_id })),
       packaging_id: packagingIdsOf(form)[0] ?? null,
       ...(packagingIdsOf(form).length > 1 || "packaging_ids" in form ? { packaging_ids: packagingIdsOf(form).slice(1) } : {}),
+      ...(() => {
+        const ids = packagingIdsOf(form);
+        const qty = Object.fromEntries(ids.filter((id) => Number(form.packaging_qty?.[id]) > 0 && Number(form.packaging_qty?.[id]) !== 1).map((id) => [id, Number(form.packaging_qty?.[id])]));
+        return Object.keys(qty).length || "packaging_qty" in form ? { packaging_qty: qty } : {};
+      })(),
       // "Otro costo extra" se reemplazó por el catálogo de extras
       extra_cost: 0,
       ...(() => {
@@ -155,7 +161,7 @@ export default function PackagesPage() {
     setSaving(true);
     const { error } = form.id ? await sb.from("packages").update(payload).eq("id", form.id) : await sb.from("packages").insert({ ...payload, position: all.length });
     setSaving(false);
-    if (error) return toast.error(/packaging_ids/.test(error.message) ? "Falta ejecutar la migración 0022 en Supabase" : /Suplementos/.test(error.message) ? "Revisa los suplementos: deben ser montos de $0 a $100,000" : /surcharges/.test(error.message) ? "Falta ejecutar la migración 0021 en Supabase" : /extras/.test(error.message) ? "Falta ejecutar la migración 0017 en Supabase" : /excluded/.test(error.message) ? "Falta ejecutar la migración 0016 en Supabase" : /kind|groups|cake_items/.test(error.message) ? "Falta ejecutar la migración 0015 en Supabase" : error.message);
+    if (error) return toast.error(/packaging_qty/.test(error.message) ? "Falta ejecutar la migración 0023 en Supabase" : /packaging_ids/.test(error.message) ? "Falta ejecutar la migración 0022 en Supabase" : /Suplementos/.test(error.message) ? "Revisa los suplementos: deben ser montos de $0 a $100,000" : /surcharges/.test(error.message) ? "Falta ejecutar la migración 0021 en Supabase" : /extras/.test(error.message) ? "Falta ejecutar la migración 0017 en Supabase" : /excluded/.test(error.message) ? "Falta ejecutar la migración 0016 en Supabase" : /kind|groups|cake_items/.test(error.message) ? "Falta ejecutar la migración 0015 en Supabase" : error.message);
     toast.success("Paquete guardado 🎁");
     setForm(null);
     packsQ.reload();
@@ -207,7 +213,7 @@ export default function PackagesPage() {
       <p className="mb-5 text-sm text-cocoa-400">{tab === "extras" ? "Lo que vendes aparte para acompañar: listón, moño, tarjeta, carrito… Tu clienta los agrega en la tienda y se suman a su cuenta." : KIND_HINT[kind]}</p>
 
       {tab === "extras" ? (
-        loading ? <Skeleton className="h-60" /> : <ExtrasManager extras={extras} onChanged={catalog.reload} />
+        loading ? <Skeleton className="h-60" /> : <ExtrasManager extras={extras} onChanged={catalog.reload} ingredients={data?.ingredients ?? []} ingredientsById={ingredientsById} inventoryOn={inventoryOn} />
       ) : (
       <>
 
@@ -317,6 +323,8 @@ export default function PackagesPage() {
             extras={extras}
             costs={costs}
             boxes={boxes}
+            ingredientsById={ingredientsById}
+            inventoryOn={inventoryOn}
             seasons={seasonsQ.data ?? []}
             stats={stats(form)}
             report={report(form)}
@@ -473,10 +481,32 @@ function GroupPicker({ group, groups, desserts, onSave }: { group: FlavorGroup; 
 
 /* ------------------------------------------------------------------ extras */
 
-type ExtraDraft = { id?: string; name: string; description: string; price: string; cost: string; available: boolean };
+type ExtraDraft = { id?: string; name: string; description: string; price: string; cost: string; available: boolean; unit_label: string; ingredient_id: string; ingredient_qty: string };
+
+const UNIT_LABELS = ["pieza", "metro", "centímetro", "par", "paquete", "hoja", "litro", "gramo"];
+
+const extraDraftOf = (x: Extra): ExtraDraft => ({
+  id: x.id,
+  name: x.name,
+  description: x.description ?? "",
+  price: String(x.price),
+  cost: Number(x.cost) ? String(x.cost) : "",
+  available: x.available,
+  unit_label: x.unit_label || "pieza",
+  ingredient_id: x.ingredient_id ?? "",
+  ingredient_qty: String(x.ingredient_qty ?? 1),
+});
+
+/** Cuántas unidades del extra alcanzan con lo que hay en inventario (null si no está ligado) */
+const extraStockLeft = (x: Pick<Extra, "ingredient_id" | "ingredient_qty">, ingredientsById: Map<string, Ingredient>) => {
+  const ing = x.ingredient_id ? ingredientsById.get(x.ingredient_id) : null;
+  if (!ing) return null;
+  const per = Number(x.ingredient_qty) > 0 ? Number(x.ingredient_qty) : 1;
+  return Math.floor(Math.max(0, Number(ing.stock) || 0) / per);
+};
 
 /** Catálogo de extras: lo que vendes aparte (listón, moño, tarjeta, carrito…) */
-function ExtrasManager({ extras, onChanged }: { extras: Extra[]; onChanged: () => void }) {
+function ExtrasManager({ extras, onChanged, ingredients, ingredientsById, inventoryOn }: { extras: Extra[]; onChanged: () => void; ingredients: Ingredient[]; ingredientsById: Map<string, Ingredient>; inventoryOn: boolean }) {
   const sb = createClient();
   const confirm = useConfirm();
   const [form, setForm] = useState<ExtraDraft | null>(null);
@@ -488,11 +518,25 @@ function ExtrasManager({ extras, onChanged }: { extras: Extra[]; onChanged: () =
     const price = Number(form.price);
     if (!name) return toast.error("Ponle nombre al extra");
     if (!(price >= 0) || form.price === "") return toast.error("Escribe el precio para tu clienta");
-    const payload = { name: name.slice(0, 60), description: form.description.trim().slice(0, 200) || null, price, cost: Number(form.cost) || 0, available: form.available };
+    const ing = form.ingredient_id ? ingredientsById.get(form.ingredient_id) : null;
+    const per = Number(form.ingredient_qty);
+    if (ing && !(per > 0 && per <= 10000)) return toast.error("Escribe cuánto gasta cada unidad (mayor a 0)");
+    const linked = !!ing;
+    const payload = {
+      name: name.slice(0, 60),
+      description: form.description.trim().slice(0, 200) || null,
+      price,
+      // ligado al inventario: el costo sale del precio del artículo × lo que gasta cada unidad
+      cost: ing ? Math.round(Number(ing.unit_cost) * per * 100) / 100 : Number(form.cost) || 0,
+      available: form.available,
+      ...(linked || form.id || form.unit_label !== "pieza"
+        ? { unit_label: form.unit_label || "pieza", ingredient_id: linked ? form.ingredient_id : null, ingredient_qty: linked ? per : 1 }
+        : {}),
+    };
     setSaving(true);
     const { error } = form.id ? await sb.from("extras").update(payload).eq("id", form.id) : await sb.from("extras").insert({ ...payload, position: extras.length });
     setSaving(false);
-    if (error) return toast.error(/extras/.test(error.message) ? "Falta ejecutar la migración 0017 en Supabase" : error.message);
+    if (error) return toast.error(/ingredient_id|ingredient_qty|unit_label/.test(error.message) ? "Falta ejecutar la migración 0023 en Supabase" : /extras/.test(error.message) ? "Falta ejecutar la migración 0017 en Supabase" : error.message);
     toast.success("Extra guardado");
     setForm(null);
     onChanged();
@@ -508,7 +552,7 @@ function ExtrasManager({ extras, onChanged }: { extras: Extra[]; onChanged: () =
     if (error) return toast.error(error.message);
     onChanged();
   }
-  const blankExtra = (): ExtraDraft => ({ name: "", description: "", price: "", cost: "", available: true });
+  const blankExtra = (): ExtraDraft => ({ name: "", description: "", price: "", cost: "", available: true, unit_label: "pieza", ingredient_id: "", ingredient_qty: "1" });
 
   return (
     <Card className="overflow-hidden">
@@ -532,19 +576,31 @@ function ExtrasManager({ extras, onChanged }: { extras: Extra[]; onChanged: () =
             return (
               <li key={x.id} className={cn("flex flex-wrap items-center gap-3 px-5 py-3.5", !x.available && "bg-cream-50")}>
                 <div className="min-w-0 flex-1">
-                  <button onClick={() => setForm({ id: x.id, name: x.name, description: x.description ?? "", price: String(x.price), cost: Number(x.cost) ? String(x.cost) : "", available: x.available })} className={cn("text-left font-semibold hover:text-rose-500", x.available ? "text-cocoa-700" : "text-cocoa-400 line-through")}>
+                  <button onClick={() => setForm(extraDraftOf(x))} className={cn("text-left font-semibold hover:text-rose-500", x.available ? "text-cocoa-700" : "text-cocoa-400 line-through")}>
                     {x.name}
                   </button>
                   <p className="text-xs text-cocoa-400">
                     {x.description ? `${x.description} · ` : ""}
                     {Number(x.cost) > 0 ? <>te cuesta {money(x.cost)} · ganas <b className={gain >= 0 ? "text-mint-700" : "text-rose-600"}>{money(gain)}</b></> : "sin costo registrado"}
+                    {x.unit_label && x.unit_label !== "pieza" ? ` · se vende por ${x.unit_label}` : ""}
                   </p>
+                  {(() => {
+                    const left = extraStockLeft(x, ingredientsById);
+                    if (left === null) return null;
+                    const ing = x.ingredient_id ? ingredientsById.get(x.ingredient_id) : null;
+                    return (
+                      <p className={cn("text-xs font-semibold", left <= 0 ? "text-rose-600" : left <= 3 ? "text-amber-700" : "text-cocoa-400")}>
+                        {left <= 0 ? "Sin existencias en inventario" : `Quedan ${num(left, 0)} ${x.unit_label || "pieza"}${left === 1 ? "" : "s"}`} · descuenta {num(Number(x.ingredient_qty), 2)} {ing?.unit} de “{ing?.name}” por cada una
+                        {!inventoryOn && <span className="font-normal text-cocoa-400"> (activa el inventario para que se descuente)</span>}
+                      </p>
+                    );
+                  })()}
                 </div>
                 <span className="font-display text-xl font-semibold text-rose-500 tabular-nums">{money(x.price)}</span>
                 <Toggle checked={x.available} onChange={(v) => toggle(x, v)} label={x.available ? "Disponible" : "No disponible"} />
                 <ActionMenu
                   actions={[
-                    { label: "Editar", icon: <Pencil className="h-4 w-4" />, onClick: () => setForm({ id: x.id, name: x.name, description: x.description ?? "", price: String(x.price), cost: Number(x.cost) ? String(x.cost) : "", available: x.available }) },
+                    { label: "Editar", icon: <Pencil className="h-4 w-4" />, onClick: () => setForm(extraDraftOf(x)) },
                     { label: "Eliminar", icon: <Trash2 className="h-4 w-4" />, onClick: () => remove(x), danger: true },
                   ]}
                 />
@@ -572,7 +628,31 @@ function ExtrasManager({ extras, onChanged }: { extras: Extra[]; onChanged: () =
             <Input label="Descripción (se ve en la tienda)" maxLength={200} value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} placeholder="Ej. Modelo sorpresa" />
             <div className="grid gap-4 sm:grid-cols-2">
               <Input label="Precio para tu clienta" type="number" min={0} step="any" prefix="$" value={form.price} onChange={(e) => setForm({ ...form, price: e.target.value })} />
-              <Input label="Lo que te cuesta (opcional)" type="number" min={0} step="any" prefix="$" value={form.cost} onChange={(e) => setForm({ ...form, cost: e.target.value })} hint="Para calcular tu ganancia" />
+              <Input label="Lo que te cuesta (opcional)" type="number" min={0} step="any" prefix="$" value={form.ingredient_id ? "" : form.cost} disabled={!!form.ingredient_id} placeholder={form.ingredient_id ? "Sale del inventario" : undefined} onChange={(e) => setForm({ ...form, cost: e.target.value })} hint="Para calcular tu ganancia" />
+            </div>
+            <div className="rounded-2xl bg-cream-100 p-4">
+              <p className="mb-3 font-semibold text-cocoa-700">Se vende por y se descuenta del inventario</p>
+              <div className="grid gap-4 sm:grid-cols-2">
+                <Select label="Se vende por" value={form.unit_label} onChange={(e) => setForm({ ...form, unit_label: e.target.value })} hint="Ej. listón por metro">
+                  {UNIT_LABELS.map((u) => <option key={u} value={u}>{u}</option>)}
+                </Select>
+                <Select label="Descontar de" value={form.ingredient_id} onChange={(e) => setForm({ ...form, ingredient_id: e.target.value })} hint="Artículo de tu inventario">
+                  <option value="">Nada (no controlo existencias)</option>
+                  {ingredients.map((i) => <option key={i.id} value={i.id}>{i.name} · {num(i.stock, 2)} {i.unit}</option>)}
+                </Select>
+              </div>
+              {form.ingredient_id && (() => {
+                const ing = ingredientsById.get(form.ingredient_id);
+                const per = Number(form.ingredient_qty) || 0;
+                return (
+                  <div className="mt-3">
+                    <Input label={`Cada ${form.unit_label} gasta (${ing?.unit ?? ""})`} type="number" min={0} step="any" value={form.ingredient_qty} onChange={(e) => setForm({ ...form, ingredient_qty: e.target.value })} />
+                    <p className="mt-1.5 text-xs text-cocoa-500">
+                      {ing && <>Te cuesta <b>{money(Number(ing.unit_cost) * per)}</b> por {form.unit_label} ({money(ing.unit_cost)} por {ing.unit}). Tienes <b>{num(ing.stock, 2)} {ing.unit}</b>: alcanzan para <b>{per > 0 ? num(Math.floor(Math.max(0, Number(ing.stock)) / per), 0) : 0}</b> {form.unit_label}s. En la tienda la clienta no podrá pedir más de lo que hay.</>}
+                    </p>
+                  </div>
+                );
+              })()}
             </div>
             <Toggle checked={form.available} onChange={(v) => setForm({ ...form, available: v })} label="Disponible (se muestra en la tienda)" />
           </div>
@@ -592,6 +672,8 @@ function PackageEditor({
   extras,
   costs,
   boxes,
+  ingredientsById,
+  inventoryOn,
   seasons,
   stats,
   report,
@@ -604,6 +686,8 @@ function PackageEditor({
   extras: Extra[];
   costs: ReturnType<typeof useCatalog>["costs"];
   boxes: NonNullable<ReturnType<typeof useCatalog>["data"]>["ingredients"];
+  ingredientsById: Map<string, Ingredient>;
+  inventoryOn: boolean;
   seasons: { id: string; name: string; emoji: string | null }[];
   stats: PackageStats;
   report: PackageMarginReport;
@@ -813,14 +897,17 @@ function PackageEditor({
           </div>
         </div>
 
-        <div className="grid gap-4 sm:grid-cols-2">
+        <div className="grid gap-5">
           <PackagingPicker
             options={boxes}
             value={packagingIdsOf(form)}
-            onChange={(ids) => set({ packaging_id: ids[0] ?? null, packaging_ids: ids.slice(1) })}
+            qtys={form.packaging_qty ?? {}}
+            inventoryOn={inventoryOn}
+            onChange={(ids) => set({ packaging_id: ids[0] ?? null, packaging_ids: ids.slice(1), packaging_qty: Object.fromEntries(Object.entries(form.packaging_qty ?? {}).filter(([id]) => ids.includes(id))) })}
+            onQtyChange={(id, qty) => set({ packaging_qty: { ...(form.packaging_qty ?? {}), [id]: qty } })}
           />
           <div>
-            <ExtrasPicker options={extras} value={(form.extras ?? []).filter((id) => extras.some((x) => x.id === id))} onChange={(ids) => set({ extras: ids })} />
+            <ExtrasPicker options={extras} value={(form.extras ?? []).filter((id) => extras.some((x) => x.id === id))} onChange={(ids) => set({ extras: ids })} stockOf={(id) => { const x = extras.find((e) => e.id === id); return inventoryOn && x ? extraStockLeft(x, ingredientsById) : null; }} />
             {Number(form.extra_cost) > 0 && <p className="mt-1.5 text-xs text-amber-700">Antes tenía {money(Number(form.extra_cost))} de “otro costo extra”; al guardar se quita y se usan los extras del catálogo.</p>}
           </div>
         </div>

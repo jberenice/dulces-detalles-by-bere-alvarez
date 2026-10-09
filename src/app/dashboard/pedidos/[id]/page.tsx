@@ -2,7 +2,7 @@
 import { use, useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { ArrowLeft, Ban, Check, ChefHat, Clock, Copy, Download, FileText, MapPin, MessageCircle, Package, Pencil, PartyPopper, Phone, CalendarPlus, Send, Share2, Store, Trash2, Truck, Wallet } from "lucide-react";
+import { AlertTriangle, ArrowLeft, Ban, Check, ChefHat, Clock, Copy, Download, FileText, MapPin, MessageCircle, Package, Pencil, PartyPopper, Phone, CalendarPlus, Send, Share2, Store, Trash2, Truck, Wallet } from "lucide-react";
 import { toast } from "sonner";
 import { createClient } from "@/lib/supabase/client";
 import { must, useAsync } from "@/hooks/useAsync";
@@ -286,6 +286,18 @@ export default function OrderDetailPage({ params }: { params: Promise<{ id: stri
               <p className="flex items-end justify-between pt-2"><span className="font-bold">Total</span><span className="font-display text-2xl font-semibold text-rose-500 tabular-nums">{money(o.total)}</span></p>
             </div>
           </Card>
+
+          {(o.stock_shortage ?? []).length > 0 && o.status !== "entregado" && o.status !== "cancelado" && (
+            <div className="rounded-3xl bg-rose-50 p-5 ring-1 ring-rose-200/80">
+              <p className="flex items-center gap-2 font-semibold text-rose-800"><AlertTriangle className="h-5 w-5" /> No te alcanza el inventario para este pedido</p>
+              <ul className="mt-2 space-y-1 text-sm text-rose-700">
+                {(o.stock_shortage ?? []).map((x) => (
+                  <li key={x.name}><b>{x.name}</b>: necesitas {x.need} {x.unit}, tienes {x.have} {x.unit}</li>
+                ))}
+              </ul>
+              <Link href="/dashboard/ingredientes" className="mt-2 inline-block text-xs font-bold text-rose-700 hover:underline">Ir a inventario</Link>
+            </div>
+          )}
 
           {o.notes && (
             <Card className="p-6">

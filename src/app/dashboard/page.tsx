@@ -50,6 +50,11 @@ export default function DashboardHome() {
     const lowStock = profile.inventory_enabled
       ? ((must(await sb.from("ingredients").select("id, name, unit, stock, min_stock").gt("min_stock", 0)) as Ingredient[]).filter((i) => Number(i.stock) <= Number(i.min_stock)))
       : [];
+    // Pedidos que necesitan más stock del que hay (empaques de cajas y materiales de extras; migración 0023)
+    const shortRes = profile.inventory_enabled
+      ? await sb.from("orders").select("id, folio, customer_name, stock_shortage").not("stock_shortage", "is", null).in("status", ["pendiente", "confirmado", "en_preparacion", "listo"]).order("created_at", { ascending: false }).limit(20)
+      : null;
+    const stockShort = ((shortRes?.error ? [] : shortRes?.data ?? []) as Pick<Order, "id" | "folio" | "customer_name" | "stock_shortage">[]).filter((o) => (o.stock_shortage ?? []).length > 0);
     const active = must(await sb.from("orders").select("total, deposit, delivery_date").in("status", ["pendiente", "confirmado", "en_preparacion", "listo"])) as Pick<Order, "total" | "deposit" | "delivery_date">[];
     // Cotizaciones enviadas sin respuesta (para "Por seguir")
     const sent = must(await sb.from("quotes").select("sent_at, followed_up_at, created_at, valid_until").eq("status", "enviada")) as Pick<Quote, "sent_at" | "followed_up_at" | "created_at" | "valid_until">[];
@@ -76,6 +81,7 @@ export default function DashboardHome() {
       receivable: active.reduce((a, o) => a + Math.max(Number(o.total) - Number(o.deposit), 0), 0),
       activeCount: active.length,
       lowStock,
+      stockShort,
       followUps,
       soonDue,
       requests: reqs.error ? 0 : reqs.count ?? 0,
@@ -230,6 +236,27 @@ export default function DashboardHome() {
       )}
 
       <PackageMarginAlert />
+
+      {data && data.stockShort.length > 0 && (
+        <div className="mb-6 rounded-3xl bg-rose-50 p-4 ring-1 ring-rose-200/80">
+          <div className="flex items-start gap-3">
+            <span className="grid h-10 w-10 shrink-0 place-items-center rounded-2xl bg-rose-100 text-rose-600"><AlertTriangle className="h-5 w-5" /></span>
+            <div className="min-w-0 flex-1">
+              <p className="font-semibold text-rose-800">Te falta stock para {data.stockShort.length} pedido{data.stockShort.length === 1 ? "" : "s"}</p>
+              <ul className="mt-1.5 space-y-1">
+                {data.stockShort.slice(0, 5).map((o) => (
+                  <li key={o.id} className="text-sm text-rose-700">
+                    <Link href={`/dashboard/pedidos/${o.id}`} className="font-bold hover:underline">{folio("P", o.folio)}{o.customer_name ? ` · ${o.customer_name}` : ""}</Link>
+                    {": "}
+                    {(o.stock_shortage ?? []).map((x) => `${x.name} (necesita ${fmtQty(Number(x.need), x.unit)}, hay ${fmtQty(Number(x.have), x.unit)})`).join(" · ")}
+                  </li>
+                ))}
+              </ul>
+              <Link href="/dashboard/ingredientes" className="mt-2 inline-flex items-center gap-1 text-xs font-bold text-rose-700 hover:underline">Ir a inventario <ArrowRight className="h-3.5 w-3.5" /></Link>
+            </div>
+          </div>
+        </div>
+      )}
 
       {data && data.lowStock.length > 0 && (
         <Link href="/dashboard/ingredientes" className="mb-6 flex items-start gap-3 rounded-3xl bg-amber-50 p-4 ring-1 ring-amber-200/70 transition hover:bg-amber-100/70">
