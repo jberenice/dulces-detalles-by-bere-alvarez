@@ -597,7 +597,7 @@ export function storeSkinCss(id: FestiveId) {
   // letras que están directo sobre el fondo; las tarjetas conservan su texto oscuro
   if (s.hero.dark) {
     css += `:root:not([data-theme="dark"]) [data-fs="store"]:not([data-preview]){--st-text:${s.ink.dark}!important;--st-muted:${s.ink.muted}!important;--st-line:rgb(255 255 255 / .18)!important}`;
-    css += `:root:not([data-theme="dark"]) [data-fs="store"] :is(.fest-card,.st-light){--st-text:#3f250d!important;--st-muted:#7a5a40!important;--st-line:rgb(63 37 13 / .1)!important}`;
+    css += `:root:not([data-theme="dark"]) [data-fs="store"] :is(.fest-card,.st-light,[class*="bg-[var(--st-surface)]"]){--st-text:#3f250d!important;--st-muted:#7a5a40!important;--st-line:rgb(63 37 13 / .1)!important}`;
     css += `[data-fs="store"]:not([data-preview]) section > div > div > h2 > svg:first-child,[data-fs="store"]:not([data-preview]) section h2 > svg:first-child{color:${s.ink.dark}!important}`;
     css += `[data-fs="store"]:not([data-preview]) :is(main,footer) :not(.fest-card,.st-light) > :is(.text-cocoa-400,.text-cocoa-500,.text-cocoa-600){color:${s.ink.muted}}`;
   }

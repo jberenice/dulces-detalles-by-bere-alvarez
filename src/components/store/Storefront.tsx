@@ -7,7 +7,7 @@ import { ThemeToggle, useDarkMode } from "@/components/theme/ThemeToggle";
 import type { FestiveId } from "@/lib/festive";
 import { BizLogo } from "./BizLogo";
 import { Fragment, useEffect, useMemo, useRef, useState } from "react";
-import { CakeSlice, CalendarDays, Check, FileText, Mail, ChevronLeft, ChevronRight, Clock, Facebook, Gift, Instagram, Loader2, ShieldAlert, Ticket, Wand2, Quote as QuoteIcon, MapPin, Megaphone, MessageCircle, Minus, Plus, ShoppingBag, Sparkles, Star, Truck, X } from "lucide-react";
+import { CakeSlice, CalendarDays, Check, FileText, Mail, ChevronLeft, ChevronRight, Clock, Facebook, Gift, Instagram, Loader2, ShieldAlert, Ticket, Wand2, Quote as QuoteIcon, MapPin, Share2, Megaphone, MessageCircle, Minus, Plus, ShoppingBag, Sparkles, Star, Truck, X } from "lucide-react";
 import { toast } from "sonner";
 import { createClient } from "@/lib/supabase/client";
 import { SiteFooter } from "@/components/legal/SiteFooter";
@@ -190,7 +190,7 @@ export function Storefront({ data, slug, preview = false }: { data: StoreData; s
   useFestiveDecor(fest, rootRef);
   const darkMode = useDarkMode();
   const dark = darkMode && !preview;
-  const baseTheme = useMemo(() => (fest ? { ...theme, ...fest.colors } : theme), [theme, fest]);
+  const baseTheme = useMemo(() => (fest ? { ...theme, ...fest.colors, primary: fest.ui.primary, accent: fest.ui.accent } : theme), [theme, fest]);
   const shown = useMemo(() => (dark ? darkTheme(baseTheme) : baseTheme), [baseTheme, dark]);
   const vars = useMemo(() => themeVars(shown), [shown]);
   const decor = useMemo(() => decorTiles(theme), [theme]);
@@ -622,6 +622,26 @@ export function Storefront({ data, slug, preview = false }: { data: StoreData; s
           : "grid-cols-2 @3xl:grid-cols-3";
 
   // ---------- Secciones ----------
+  async function shareStore() {
+    if (preview) return toast.info("Vista previa: aquí tus clientas comparten tu tienda");
+    const url = window.location.href.split("#")[0];
+    const data = { title: store.title || store.business_name, text: `Mira los postres de ${store.business_name} 🧁`, url };
+    try {
+      if (navigator.share) {
+        await navigator.share(data);
+        return;
+      }
+    } catch (e) {
+      if ((e as Error)?.name === "AbortError") return;
+    }
+    try {
+      await navigator.clipboard.writeText(url);
+      toast.success("Enlace de la tienda copiado");
+    } catch {
+      toast.info(url);
+    }
+  }
+
   const sections: Record<string, React.ReactNode> = {
     destacados: featured.length ? (
       <section key="destacados" className="pt-8">
@@ -888,6 +908,14 @@ export function Storefront({ data, slug, preview = false }: { data: StoreData; s
               <Facebook className="h-4 w-4" /> {facebookLabel(store.facebook)}
             </a>
           )}
+          <button
+            type="button"
+            onClick={shareStore}
+            className="st-light flex items-center gap-1.5 rounded-full bg-[var(--st-surface)] px-4 py-2 font-semibold text-[var(--st-text)] ring-1 ring-[var(--st-line)]"
+            aria-label="Compartir esta tienda"
+          >
+            <Share2 className="h-4 w-4" /> Compartir tienda
+          </button>
           {store.address && (
             <a href={`https://maps.google.com/?q=${encodeURIComponent(store.address)}`} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1.5 rounded-full bg-[var(--st-surface)] px-4 py-2 text-[var(--st-muted)] ring-1 ring-[var(--st-line)]">
               <MapPin className="h-4 w-4" /> {store.address}
@@ -1010,7 +1038,17 @@ export function Storefront({ data, slug, preview = false }: { data: StoreData; s
       {fest && <FestiveConfetti theme={fest} opacity={dark ? 0.6 : 0.4} dark={dark} />}
       {fest && !preview && <FestiveSidePanels theme={fest} opacity={dark ? 0.1 : 0.14} />}
       {!preview && (
-        <div className="fixed top-3 right-3 z-[60]">
+        <div className="fixed top-3 right-3 z-[60] flex items-center gap-2">
+          <button
+            type="button"
+            onClick={shareStore}
+            aria-label="Compartir esta tienda"
+            title="Compartir tienda"
+            style={dark ? { background: "#2a1f17", color: "#f7ede1" } : { background: "#fffaf3", color: "#3a2412" }}
+            className="grid h-10 w-10 place-items-center rounded-full shadow-md ring-1 ring-black/10 transition hover:scale-105 active:scale-95"
+          >
+            <Share2 className="h-[18px] w-[18px]" />
+          </button>
           <ThemeToggle className="shadow-md" />
         </div>
       )}
