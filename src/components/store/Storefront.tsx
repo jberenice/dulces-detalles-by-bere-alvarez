@@ -894,30 +894,30 @@ export function Storefront({ data, slug, preview = false }: { data: StoreData; s
       <section key="contacto" className="px-4 pt-6">
         <div className="flex flex-wrap items-center justify-center gap-2 text-sm">
           {store.whatsapp && (
-            <a href={waLink(store.whatsapp, "¡Hola! Tengo una pregunta 🧁")} target="_blank" rel="noopener noreferrer" className={cn("flex items-center gap-1.5 rounded-full px-4 py-2 font-semibold", btnPrimary)}>
+            <a href={waLink(store.whatsapp, "¡Hola! Tengo una pregunta 🧁")} target="_blank" rel="noopener noreferrer" className={cn("st-wa flex items-center gap-1.5 rounded-full px-4 py-2 font-semibold", btnPrimary)}>
               <MessageCircle className="h-4 w-4" /> WhatsApp
             </a>
           )}
           {store.instagram && (
-            <a href={`https://instagram.com/${store.instagram.replace(/^@/, "")}`} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1.5 rounded-full bg-[var(--st-surface)] px-4 py-2 font-semibold text-[var(--st-text)] ring-1 ring-[var(--st-line)]">
+            <a href={`https://instagram.com/${store.instagram.replace(/^@/, "")}`} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1.5 st-pill rounded-full bg-[var(--st-surface)] px-4 py-2 font-semibold text-[var(--st-text)] ring-1 ring-[var(--st-line)]">
               <Instagram className="h-4 w-4" /> @{store.instagram.replace(/^@/, "")}
             </a>
           )}
           {store.facebook && (
-            <a href={facebookUrl(store.facebook)} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1.5 rounded-full bg-[var(--st-surface)] px-4 py-2 font-semibold text-[var(--st-text)] ring-1 ring-[var(--st-line)]">
+            <a href={facebookUrl(store.facebook)} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1.5 st-pill rounded-full bg-[var(--st-surface)] px-4 py-2 font-semibold text-[var(--st-text)] ring-1 ring-[var(--st-line)]">
               <Facebook className="h-4 w-4" /> {facebookLabel(store.facebook)}
             </a>
           )}
           <button
             type="button"
             onClick={shareStore}
-            className="st-light flex items-center gap-1.5 rounded-full bg-[var(--st-surface)] px-4 py-2 font-semibold text-[var(--st-text)] ring-1 ring-[var(--st-line)]"
+            className="st-light flex items-center gap-1.5 st-pill rounded-full bg-[var(--st-surface)] px-4 py-2 font-semibold text-[var(--st-text)] ring-1 ring-[var(--st-line)]"
             aria-label="Compartir esta tienda"
           >
             <Share2 className="h-4 w-4" /> Compartir tienda
           </button>
           {store.address && (
-            <a href={`https://maps.google.com/?q=${encodeURIComponent(store.address)}`} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1.5 rounded-full bg-[var(--st-surface)] px-4 py-2 text-[var(--st-muted)] ring-1 ring-[var(--st-line)]">
+            <a href={`https://maps.google.com/?q=${encodeURIComponent(store.address)}`} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1.5 st-pill rounded-full bg-[var(--st-surface)] px-4 py-2 text-[var(--st-muted)] ring-1 ring-[var(--st-line)]">
               <MapPin className="h-4 w-4" /> {store.address}
             </a>
           )}
