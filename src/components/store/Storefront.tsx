@@ -1,5 +1,6 @@
 "use client";
 import { FestiveCluster, FestiveParticles, useFestive, useFestiveDecor } from "@/components/festive/Festive";
+import { buttonCornerUri } from "@/lib/festiveArt2";
 import { FestiveConfetti, FestiveSidePanels, FestiveSwags, MiniBouquet, SeasonLogo } from "@/components/festive/Decor";
 import { storeSkinCss } from "@/lib/festiveSkin";
 import { ThemeToggle, useDarkMode } from "@/components/theme/ThemeToggle";
@@ -189,7 +190,7 @@ export function Storefront({ data, slug, preview = false }: { data: StoreData; s
   useFestiveDecor(fest, rootRef);
   const darkMode = useDarkMode();
   const dark = darkMode && !preview;
-  const baseTheme = useMemo(() => (fest && theme.festiveColors ? { ...theme, ...fest.colors } : theme), [theme, fest]);
+  const baseTheme = useMemo(() => (fest ? { ...theme, ...fest.colors } : theme), [theme, fest]);
   const shown = useMemo(() => (dark ? darkTheme(baseTheme) : baseTheme), [baseTheme, dark]);
   const vars = useMemo(() => themeVars(shown), [shown]);
   const decor = useMemo(() => decorTiles(theme), [theme]);
@@ -488,7 +489,7 @@ export function Storefront({ data, slug, preview = false }: { data: StoreData; s
     if (popup && !popup.closed) popup.location.href = wa;
   }
 
-  const btnPrimary = "bg-[var(--st-primary)] text-[var(--st-on-primary)] transition hover:brightness-95 active:scale-95";
+  const btnPrimary = "st-btn bg-[var(--st-primary)] text-[var(--st-on-primary)] transition hover:brightness-95 active:scale-95";
   const card = "fest-card overflow-hidden rounded-[var(--st-radius)] bg-[var(--st-surface)] shadow-[0_1px_2px_rgb(0_0_0/0.04),0_10px_28px_-12px_rgb(0_0_0/0.18)] ring-1 ring-[var(--st-line)]";
 
   const qtyControl = (p: StoreProduct, size: "sm" | "md" = "md") => {
@@ -747,7 +748,7 @@ export function Storefront({ data, slug, preview = false }: { data: StoreData; s
             </div>
           </div>
         )}
-        <div className="sticky top-0 z-20 border-y border-[var(--st-line)] bg-[color-mix(in_srgb,var(--st-bg)_90%,transparent)] backdrop-blur-xl">
+        <div className="st-bar sticky top-0 z-20 border-y border-[var(--st-line)] bg-[color-mix(in_srgb,var(--st-bg)_90%,transparent)] backdrop-blur-xl">
           <div className="flex gap-2 overflow-x-auto px-4 py-3 scrollbar-none">
             {categories.map((c) => (
               <button
@@ -755,7 +756,7 @@ export function Storefront({ data, slug, preview = false }: { data: StoreData; s
                 onClick={() => setCat(c)}
                 className={cn(
                   "rounded-full px-4 py-2 text-sm font-bold whitespace-nowrap transition",
-                  cat === c ? btnPrimary : "bg-[var(--st-surface)] text-[var(--st-muted)] ring-1 ring-[var(--st-line)]",
+                  cat === c ? btnPrimary : "st-light bg-[var(--st-surface)] text-[var(--st-muted)] ring-1 ring-[var(--st-line)]",
                 )}
               >
                 {c}
@@ -978,7 +979,7 @@ export function Storefront({ data, slug, preview = false }: { data: StoreData; s
       data-fs={fest ? "store" : undefined}
       data-preview={preview ? "" : undefined}
       className={cn("st-root @container relative bg-[var(--st-bg)] text-[var(--st-text)]", preview ? "min-h-full" : "min-h-dvh")}
-      style={decor.pattern ? { ...vars, backgroundImage: decor.pattern.image, backgroundSize: `${decor.pattern.width}px ${decor.pattern.height}px` } : vars}
+      style={{ ...(fest ? ({ "--fest-btn-l": buttonCornerUri(fest.id, "left"), "--fest-btn-r": buttonCornerUri(fest.id, "right") } as React.CSSProperties) : null), ...(decor.pattern ? { ...vars, backgroundImage: decor.pattern.image, backgroundSize: `${decor.pattern.width}px ${decor.pattern.height}px` } : vars) }}
     >
       {announcementVisible && (
         <div className="flex items-center justify-center gap-2 bg-[var(--st-primary)] px-4 py-2 text-center text-[13px] font-semibold text-[var(--st-on-primary)]">
@@ -1042,7 +1043,7 @@ export function Storefront({ data, slug, preview = false }: { data: StoreData; s
         <div className={cn("inset-x-0 bottom-0 z-40 px-4 pt-4 pb-[max(1rem,env(safe-area-inset-bottom))]", preview ? "sticky" : "fixed")}>
           <button
             onClick={() => (preview ? toast.info("Vista previa: así verán tus clientes el carrito") : setOpen(true))}
-            className="mx-auto flex w-full max-w-md items-center justify-between gap-3 rounded-full bg-[var(--st-text)] py-3 pr-3 pl-6 text-[var(--st-bg)] shadow-lift animate-fade-up"
+            className="mx-auto flex w-full max-w-md items-center justify-between gap-3 rounded-full bg-[#2a1909] py-3 pr-3 pl-6 text-[#fffaef] ring-1 ring-white/15 shadow-lift animate-fade-up"
           >
             <span className="flex items-center gap-3 font-bold">
               <ShoppingBag className="h-5 w-5" /> {count} {count === 1 ? "postre" : "postres"}

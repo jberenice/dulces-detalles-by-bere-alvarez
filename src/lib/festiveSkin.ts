@@ -589,20 +589,39 @@ export function storeSkinCss(id: FestiveId) {
   const strip = { uri: raw.uri, w: Math.round(raw.w * k), h: Math.round(raw.h * k) };
   const border = CARD_BORDER[id] ?? "var(--st-primary)";
   let css = "";
-  // fondo con el patrón de la temporada encima del color de la tienda
-  css += `[data-fs="store"]{isolation:isolate}[data-fs="store"]::before{content:"";position:absolute;inset:0;z-index:-1;background:radial-gradient(700px 500px at 0% 10%, color-mix(in srgb, var(--st-primary) 22%, transparent), transparent 62%), radial-gradient(700px 520px at 100% 40%, color-mix(in srgb, var(--st-accent) 20%, transparent), transparent 62%), radial-gradient(800px 500px at 40% 100%, color-mix(in srgb, var(--st-primary) 16%, transparent), transparent 60%), ${light.bg};pointer-events:none}`;
+  // toda la tienda lleva el mismo fondo de la temporada que la portada de la página principal
+  css += `[data-fs="store"]{isolation:isolate}[data-fs="store"]::before{content:"";position:absolute;inset:0;z-index:-1;background:${s.hero.bg};pointer-events:none}`;
+  css += `:root[data-theme="dark"] [data-fs="store"]::before{background:${DIM},${s.hero.bg}}`;
+  // vista previa: el fondo queda dentro de su recuadro
+  css += `[data-fs="store"][data-preview]::before{position:absolute}`;
+  // letras que están directo sobre el fondo; las tarjetas conservan su texto oscuro
+  if (s.hero.dark) {
+    css += `:root:not([data-theme="dark"]) [data-fs="store"]:not([data-preview]){--st-text:${s.ink.dark}!important;--st-muted:${s.ink.muted}!important;--st-line:rgb(255 255 255 / .18)!important}`;
+    css += `:root:not([data-theme="dark"]) [data-fs="store"] :is(.fest-card,.st-light){--st-text:#3f250d!important;--st-muted:#7a5a40!important;--st-line:rgb(63 37 13 / .1)!important}`;
+    css += `[data-fs="store"]:not([data-preview]) section > div > div > h2 > svg:first-child,[data-fs="store"]:not([data-preview]) section h2 > svg:first-child{color:${s.ink.dark}!important}`;
+    css += `[data-fs="store"]:not([data-preview]) :is(main,footer) :not(.fest-card,.st-light) > :is(.text-cocoa-400,.text-cocoa-500,.text-cocoa-600){color:${s.ink.muted}}`;
+  }
   // letras de la temporada en los títulos de la tienda
   css += `[data-fs="store"]{--st-heading:var(--font-display)}[data-fs="store"] :is(h1,h2,h3){font-family:var(--font-display)}`;
   // tarjetas con el estilo de la temporada (si es una tarjeta clara)
   const fc = s.features.card ? CARD[s.features.card] : null;
   if (fc && !fc.dark) css += `[data-fs="store"] .fest-card{${fc.css.replace("LIGHTS", lightsBorderUri(undefined, 0))}}`;
   // portada sin foto: fondo de la temporada (el mismo de la página principal) con letras que se leen sobre él
-  css += `[data-fs="sbanner"]{background:${s.hero.bg}!important}`;
+  css += `[data-fs="sbanner"]{background:${s.hero.bg}!important}header[data-fs="sbanner"]{background:none!important}`;
   css += `header[data-fs="sbanner"] h1{color:${s.hero.dark ? s.ink.dark : "#3a2412"}!important;text-shadow:${s.hero.dark ? "0 2px 14px rgb(0 0 0 / .35)" : "0 1px 0 rgb(255 255 255 / .6)"}}`;
   css += `header[data-fs="sbanner"] p:not(.rounded-full):not(span *){color:${s.hero.dark ? s.ink.muted : "#5d4634"}!important}`;
-  // tema oscuro: mismo fondo con oscurecido y tarjetas oscuras
-  css += `:root[data-theme="dark"] [data-fs="store"]::before{background:radial-gradient(700px 500px at 0% 10%, color-mix(in srgb, var(--st-primary) 22%, transparent), transparent 62%), radial-gradient(700px 520px at 100% 40%, color-mix(in srgb, var(--st-accent) 20%, transparent), transparent 62%), ${DIM}, ${light.bg}}`;
+  // tema oscuro: tarjetas oscuras
   css += `:root[data-theme="dark"] [data-fs="store"] .fest-card{background-color:#231a14!important;background-image:none}`;
+  css += `[data-fs="store"]:not([data-preview]) .st-bar{background:${s.hero.dark ? "rgb(18 8 30 / .55)" : "rgb(255 255 255 / .55)"}!important;border-color:${s.hero.dark ? "rgb(255 255 255 / .14)" : "rgb(63 37 13 / .1)"}!important}`;
+  css += `:root[data-theme="dark"] [data-fs="store"] .st-bar{background:rgb(10 6 4 / .6)!important}`;
+  css += `[data-fs="store"]:not([data-preview]) footer .font-script{color:${s.hero.dark ? (s.hero.accent ?? s.ink.dark) : "#6b3414"}!important}`;
+  css += `:root[data-theme="dark"] [data-fs="store"]:not([data-preview]) footer .font-script{color:${s.hero.accent ?? s.ink.dark}!important}`;
+  css += `:root[data-theme="dark"] header[data-fs="sbanner"] h1{color:#f7ede1!important;text-shadow:0 2px 14px rgb(0 0 0 / .5)}:root[data-theme="dark"] header[data-fs="sbanner"] p:not(.rounded-full):not(span *){color:rgb(247 237 225 / .78)!important}`;
+  css += `:root[data-theme="dark"] [data-fs="store"]:not([data-preview]){--st-text:#f7ede1!important;--st-muted:rgb(247 237 225 / .72)!important}:root[data-theme="dark"] [data-fs="store"] .fest-card{--st-text:#f7ede1!important;--st-muted:rgb(247 237 225 / .72)!important}`;
+  if (!s.hero.dark) css += `:root:not([data-theme="dark"]) [data-fs="store"]:not([data-preview]) :is(section > div > div > h2,section h2:not(.fest-card *),footer p){text-shadow:0 0 6px #fff,0 0 2px #fff,0 0 12px rgb(255 255 255 / .9)}`;
+  // botones con el diseño de la temporada (degradado, brillo y papel picado en los grandes), como en la página principal
+  css += `.st-btn{background-image:linear-gradient(180deg,rgb(255 255 255 / .24),rgb(255 255 255 / 0) 48%,rgb(0 0 0 / .14))!important;box-shadow:0 10px 22px -12px var(--st-primary),inset 0 -2px 0 rgb(0 0 0 / .14)}`;
+  css += `[data-fs="store"] .st-btn:is(.h-12,.px-6){position:relative;isolation:isolate;overflow:hidden;padding-inline:56px;background-image:var(--fest-btn-l) left center / auto 100% no-repeat,var(--fest-btn-r) right center / auto 100% no-repeat,linear-gradient(180deg,rgb(255 255 255 / .24),rgb(255 255 255 / 0) 48%,rgb(0 0 0 / .14))!important}`;
   // tarjetas de productos y paquetes
   css += `[data-fs="store"] .fest-card{position:relative;border:1.5px solid color-mix(in srgb, ${border} 60%, transparent)}`;
   css += `[data-fs="store"] .fest-card::before{content:"";position:absolute;left:12px;right:12px;top:3px;height:${strip.h}px;background:${strip.uri} left top/${strip.w}px ${strip.h}px repeat-x;pointer-events:none;z-index:2}`;
