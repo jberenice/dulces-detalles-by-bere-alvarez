@@ -7,7 +7,7 @@
  *     → 200 + 6 + 7 + 8 + 14 = $235.   Caja de 12 fresa y nata: 400 + 12 × 14 = $568.
  */
 import type { CostBreakdown } from "./costing";
-import { cakeOptions, cupcakeOptions, kindOf, packagingPrice } from "./packages";
+import { boxCostOf, cakeOptions, cupcakeOptions, kindOf, packagingPrice } from "./packages";
 import type { Dessert, Ingredient, Package } from "./types";
 
 /** Suplemento por pieza de cada sabor (id del postre → pesos extra) */
@@ -78,6 +78,7 @@ export type PackageMarginReport = {
 };
 
 type ReportInput = Pick<Package, "mode" | "pieces" | "items" | "price" | "packaging_id" | "extra_cost" | "kind" | "groups" | "cake_items" | "cakes" | "excluded"> & {
+  packaging_ids?: string[] | null;
   surcharges?: Surcharges | null;
 };
 
@@ -100,7 +101,7 @@ export function marginReport(
   const t = Math.min(Math.max(targetPct, 0), 95) / 100;
   const base = Number(p.price) || 0;
   const boxPrice = packagingPrice(p, ingredientsById);
-  const packCost = (p.packaging_id ? Number(ingredientsById.get(p.packaging_id)?.unit_cost ?? 0) : 0) + (Number(p.extra_cost) || 0);
+  const packCost = boxCostOf(p, ingredientsById);
   const unitCost = (id: string) => costs.get(id)?.unitCost ?? 0;
   const s = p.surcharges ?? {};
   const scenarios: MarginScenario[] = [];

@@ -242,6 +242,8 @@ export type Package = {
   price_mode: "total" | "pieza";
   items: PackageItem[];
   packaging_id: string | null;
+  /** Empaques adicionales (vaso, papel, etc.); todos se cobran y descuentan inventario */
+  packaging_ids?: string[];
   extra_cost: number;
   store_visible: boolean;
   active: boolean;

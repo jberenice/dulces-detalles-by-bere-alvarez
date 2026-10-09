@@ -72,22 +72,28 @@ export type PackageStats = {
   margin: Range;
 };
 
-/** Precio de la caja o empaque: se le cobra a la clienta encima del precio del paquete */
-export function packagingPrice(p: Pick<Package, "packaging_id">, ingredientsById: Map<string, Ingredient>) {
-  return p.packaging_id ? Math.round(Number(ingredientsById.get(p.packaging_id)?.unit_cost ?? 0) * 100) / 100 : 0;
+/** Todos los empaques del paquete (el principal primero, sin repetir) */
+export function packagingIdsOf(p: { packaging_id?: string | null; packaging_ids?: string[] | null }) {
+  return [...new Set([p.packaging_id, ...(p.packaging_ids ?? [])].filter((x): x is string => !!x))];
 }
 
-/** Lo que paga la clienta por un paquete: su precio + la caja */
-export const packageTotal = (p: Pick<Package, "price" | "packaging_id">, ingredientsById?: Map<string, Ingredient>) =>
+/** Precio de la caja o empaques: se le cobra a la clienta encima del precio del paquete (caja + vaso + papel, etc.) */
+export function packagingPrice(p: Pick<Package, "packaging_id"> & { packaging_ids?: string[] | null }, ingredientsById: Map<string, Ingredient>) {
+  const sum = packagingIdsOf(p).reduce((a, id) => a + Math.round(Number(ingredientsById.get(id)?.unit_cost ?? 0) * 100) / 100, 0);
+  return Math.round(sum * 100) / 100;
+}
+
+/** Lo que paga la clienta por un paquete: su precio + los empaques */
+export const packageTotal = (p: Pick<Package, "price" | "packaging_id"> & { packaging_ids?: string[] | null }, ingredientsById?: Map<string, Ingredient>) =>
   Math.round((Number(p.price) + (ingredientsById ? packagingPrice(p, ingredientsById) : 0)) * 100) / 100;
 
-/** Costo de la caja o empaque y del extra */
-export function boxCostOf(p: Pick<Package, "packaging_id" | "extra_cost">, ingredientsById: Map<string, Ingredient>) {
-  const box = p.packaging_id ? Number(ingredientsById.get(p.packaging_id)?.unit_cost ?? 0) : 0;
+/** Costo de los empaques y del extra */
+export function boxCostOf(p: Pick<Package, "packaging_id" | "extra_cost"> & { packaging_ids?: string[] | null }, ingredientsById: Map<string, Ingredient>) {
+  const box = packagingIdsOf(p).reduce((a, id) => a + Number(ingredientsById.get(id)?.unit_cost ?? 0), 0);
   return box + (Number(p.extra_cost) || 0);
 }
 
-type StatsInput = Pick<Package, "mode" | "pieces" | "items" | "price" | "packaging_id" | "extra_cost" | "kind" | "groups" | "cake_items" | "cakes" | "excluded">;
+type StatsInput = Pick<Package, "mode" | "pieces" | "items" | "price" | "packaging_id" | "extra_cost" | "kind" | "groups" | "cake_items" | "cakes" | "excluded"> & { packaging_ids?: string[] | null };
 
 export function packageStats(p: StatsInput, desserts: Dessert[], costs: Map<string, CostBreakdown>, ingredientsById: Map<string, Ingredient>): PackageStats {
   const price = Number(p.price) || 0;

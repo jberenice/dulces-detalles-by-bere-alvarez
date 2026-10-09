@@ -21,7 +21,7 @@ import { cn } from "@/lib/cn";
 import { cleanSurcharges, marginReport, type PackageMarginReport } from "@/lib/pricing";
 import { MarginProblems, PackageMarginPanel, useMinMargin } from "@/components/dashboard/PackageMargins";
 import { SurchargesEditor } from "@/components/dashboard/SurchargesEditor";
-import { KIND_LABEL, cakeOptions, cupcakeOptions, dessertPrice, fixedPieces, kindOf, packageStats, rangeText, type PackageStats } from "@/lib/packages";
+import { KIND_LABEL, cakeOptions, cupcakeOptions, dessertPrice, fixedPieces, kindOf, packageStats, packagingIdsOf, packagingPrice, rangeText, type PackageStats } from "@/lib/packages";
 import type { Dessert, Extra, FlavorGroup, Package, PackageKind } from "@/lib/types";
 
 type Draft = Omit<Package, "id" | "created_at" | "price"> & { id?: string; amount: string };
@@ -138,7 +138,8 @@ export default function PackagesPage() {
       price,
       price_mode: k === "pastel" ? "total" : form.price_mode,
       items: items.map((i) => (k === "postres" ? { dessert_id: i.dessert_id, qty: Number(i.qty) } : { dessert_id: i.dessert_id })),
-      packaging_id: form.packaging_id || null,
+      packaging_id: packagingIdsOf(form)[0] ?? null,
+      ...(packagingIdsOf(form).length > 1 || "packaging_ids" in form ? { packaging_ids: packagingIdsOf(form).slice(1) } : {}),
       // "Otro costo extra" se reemplazó por el catálogo de extras
       extra_cost: 0,
       ...(() => {
@@ -153,7 +154,7 @@ export default function PackagesPage() {
     setSaving(true);
     const { error } = form.id ? await sb.from("packages").update(payload).eq("id", form.id) : await sb.from("packages").insert({ ...payload, position: all.length });
     setSaving(false);
-    if (error) return toast.error(/Suplementos/.test(error.message) ? "Revisa los suplementos: deben ser montos de $0 a $100,000" : /surcharges/.test(error.message) ? "Falta ejecutar la migración 0021 en Supabase" : /extras/.test(error.message) ? "Falta ejecutar la migración 0017 en Supabase" : /excluded/.test(error.message) ? "Falta ejecutar la migración 0016 en Supabase" : /kind|groups|cake_items/.test(error.message) ? "Falta ejecutar la migración 0015 en Supabase" : error.message);
+    if (error) return toast.error(/packaging_ids/.test(error.message) ? "Falta ejecutar la migración 0022 en Supabase" : /Suplementos/.test(error.message) ? "Revisa los suplementos: deben ser montos de $0 a $100,000" : /surcharges/.test(error.message) ? "Falta ejecutar la migración 0021 en Supabase" : /extras/.test(error.message) ? "Falta ejecutar la migración 0017 en Supabase" : /excluded/.test(error.message) ? "Falta ejecutar la migración 0016 en Supabase" : /kind|groups|cake_items/.test(error.message) ? "Falta ejecutar la migración 0015 en Supabase" : error.message);
     toast.success("Paquete guardado 🎁");
     setForm(null);
     packsQ.reload();
@@ -812,10 +813,41 @@ function PackageEditor({
         </div>
 
         <div className="grid gap-4 sm:grid-cols-2">
-          <Select label="Caja o empaque" value={form.packaging_id ?? ""} onChange={(e) => set({ packaging_id: e.target.value || null })} hint="Se le cobra a tu clienta: se suma al precio del paquete.">
-            <option value="">Sin caja</option>
-            {boxes.map((b) => <option key={b.id} value={b.id}>{b.name} · {money(b.unit_cost)}</option>)}
-          </Select>
+          <div>
+            <span className="label">Cajas y empaques</span>
+            {boxes.length ? (
+              <div className="flex flex-wrap gap-1.5">
+                {boxes.map((b) => {
+                  const ids = packagingIdsOf(form);
+                  const on = ids.includes(b.id);
+                  return (
+                    <button
+                      key={b.id}
+                      type="button"
+                      aria-pressed={on}
+                      onClick={() => {
+                        const next = on ? ids.filter((id) => id !== b.id) : [...ids, b.id];
+                        set({ packaging_id: next[0] ?? null, packaging_ids: next.slice(1) });
+                      }}
+                      className={cn(
+                        "rounded-full px-3 py-1.5 text-sm font-semibold ring-1 transition",
+                        on ? "bg-rose-50 text-rose-700 ring-rose-300" : "bg-white text-cocoa-500 ring-cocoa-800/10 hover:ring-cocoa-800/25",
+                      )}
+                    >
+                      {on && <Check className="mr-1 inline h-3.5 w-3.5" />}
+                      {b.name} <span className="font-normal text-cocoa-400">+{money(b.unit_cost)}</span>
+                    </button>
+                  );
+                })}
+              </div>
+            ) : (
+              <p className="text-sm text-cocoa-400">Aún no tienes cajas ni empaques. Créalos en Inventario con el tipo "Empaque".</p>
+            )}
+            <p className="mt-1.5 text-xs text-cocoa-500">
+              Elige todos los que lleva (caja, vaso, papel…). Se le cobran a tu clienta: se suman al precio del paquete
+              {packagingIdsOf(form).length > 0 && <> · <b className="text-cocoa-700">{money(packagingPrice(form, new Map(boxes.map((b) => [b.id, b]))))}</b> en empaques</>}.
+            </p>
+          </div>
           <div>
             <span className="label">Extras que puede agregar</span>
             {extras.length ? (
@@ -899,7 +931,7 @@ function Summary({ stats: s, report, target, formPkg, priceNow, variable, conten
         {s.boxPrice > 0 && (
           <div className="mt-3 border-t border-dashed border-cocoa-800/10 pt-2">
             {row("Paquete", money(s.price))}
-            {row("Caja o empaque", `+${money(s.boxPrice)}`)}
+            {row("Cajas y empaques", `+${money(s.boxPrice)}`)}
           </div>
         )}
         {s.regular.max > 0 && (
