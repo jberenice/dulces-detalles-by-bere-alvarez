@@ -177,6 +177,31 @@ function luminance(hex: string) {
 /** Color de texto legible sobre un fondo dado */
 export const readableOn = (hex: string) => (luminance(hex) > 0.45 ? "#2a1909" : "#ffffff");
 
+const hexOk = (h: string) => /^#[0-9a-f]{6}$/i.test(h);
+const mixHex = (a: string, b: string, t: number) => {
+  const pa = [1, 3, 5].map((i) => parseInt(a.slice(i, i + 2), 16));
+  const pb = [1, 3, 5].map((i) => parseInt(b.slice(i, i + 2), 16));
+  return "#" + pa.map((v, i) => Math.round(v + (pb[i] - v) * t).toString(16).padStart(2, "0")).join("");
+};
+const contrast = (a: string, b: string) => {
+  const [l1, l2] = [luminance(a), luminance(b)].sort((x, y) => y - x);
+  return (l1 + 0.05) / (l2 + 0.05);
+};
+/** Aclara un color hasta que se lea sobre fondo oscuro */
+const lightenFor = (c: string, bg: string) => {
+  if (!hexOk(c)) return c;
+  for (let t = 0; t <= 1; t += 0.1) {
+    const m = mixHex(c, "#ffffff", t);
+    if (contrast(m, bg) >= 4.5) return m;
+  }
+  return "#ffffff";
+};
+/** La misma tienda en tema oscuro: fondos oscuros, letras claras y colores de marca aclarados para que se lean */
+export function darkTheme(t: StoreTheme): StoreTheme {
+  const bg = "#17110d";
+  return { ...t, background: bg, surface: "#231a14", text: "#f7ede1", primary: lightenFor(t.primary, bg), accent: lightenFor(t.accent, bg) };
+}
+
 /** Variables CSS que usa la tienda */
 export function themeVars(t: StoreTheme): React.CSSProperties {
   const fonts = STORE_FONTS;

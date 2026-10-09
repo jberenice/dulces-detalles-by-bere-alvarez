@@ -623,6 +623,7 @@ function PackageEditor({
   const legacy = k !== "postres" && !chosenGroups.length && form.items.length > 0;
 
   return (
+    <>
     <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_300px]">
       <div className="min-w-0 space-y-5">
         <div className="grid gap-4 sm:grid-cols-[1fr_180px]">
@@ -862,6 +863,14 @@ function PackageEditor({
 
       <Summary stats={stats} report={report} target={target} formPkg={form} priceNow={stats.price} variable={k !== "postres"} contents={k === "pastel" ? `${Number(form.cakes) || 1} pastel mini + ${pieces} cupcakes` : undefined} />
     </div>
+      {!report.ok && report.scenarios.length > 0 && (
+        <div className="mt-6 rounded-3xl bg-rose-50 p-4 ring-1 ring-rose-200 sm:p-5">
+          <p className="flex items-center gap-1.5 text-sm font-bold text-rose-700"><AlertTriangle className="h-4 w-4" /> Bajo tu margen mínimo de {num(target, 0)}%</p>
+          <p className="mb-2 text-xs text-rose-700">{report.bad.length} de {report.scenarios.length} combinaciones no llegan. Estas son las que causan el problema:</p>
+          <MarginProblems report={report} pkg={{ price: stats.price, kind: form.kind, mode: form.mode, pieces: form.pieces }} target={target} />
+        </div>
+      )}
+    </>
   );
 }
 
@@ -914,13 +923,6 @@ function Summary({ stats: s, report, target, formPkg, priceNow, variable, conten
         )}
         {loss && <p className="mt-2 text-xs font-semibold text-rose-600">Con este precio podrías perder dinero en algunas combinaciones.</p>}
       </div>
-      {!report.ok && report.scenarios.length > 0 && (
-        <div className="rounded-3xl bg-rose-50 p-4 ring-1 ring-rose-200">
-          <p className="flex items-center gap-1.5 text-sm font-bold text-rose-700"><AlertTriangle className="h-4 w-4" /> Bajo tu margen mínimo de {num(target, 0)}%</p>
-          <p className="mb-2 text-xs text-rose-700">{report.bad.length} de {report.scenarios.length} combinaciones no llegan. Estas son las que causan el problema:</p>
-          <MarginProblems report={report} pkg={{ price: priceNow, kind: formPkg.kind, mode: formPkg.mode, pieces: formPkg.pieces }} target={target} compact />
-        </div>
-      )}
       {report.ok && report.scenarios.length > 0 && priceNow > 0 && (
         <p className="flex items-center gap-1.5 rounded-2xl bg-mint-50 px-3 py-2 text-xs font-semibold text-mint-800 ring-1 ring-mint-200/60"><Check className="h-3.5 w-3.5" /> Cumple el {num(target, 0)}% en todas las combinaciones</p>
       )}

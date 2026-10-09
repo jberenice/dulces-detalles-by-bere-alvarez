@@ -1,7 +1,8 @@
 "use client";
 import { FestiveCluster, FestiveParticles, useFestive, useFestiveDecor } from "@/components/festive/Festive";
-import { FestiveSwags, SeasonLogo } from "@/components/festive/Decor";
+import { FestiveConfetti, FestiveSidePanels, FestiveSwags, MiniBouquet, SeasonLogo } from "@/components/festive/Decor";
 import { storeSkinCss } from "@/lib/festiveSkin";
+import { ThemeToggle, useDarkMode } from "@/components/theme/ThemeToggle";
 import type { FestiveId } from "@/lib/festive";
 import { BizLogo } from "./BizLogo";
 import { Fragment, useEffect, useMemo, useRef, useState } from "react";
@@ -14,7 +15,7 @@ import { DeliveryCalendar, firstAvailable } from "./DeliveryCalendar";
 import { LocationPicker, mapsUrl, type LatLng } from "./LocationPicker";
 import { Modal } from "@/components/ui/Modal";
 import { dateLong, facebookLabel, facebookUrl, folio, money, toISODate, waLink } from "@/lib/format";
-import { normalizeTheme, themeVars, type StoreTheme } from "@/lib/storeTheme";
+import { darkTheme, normalizeTheme, themeVars, type StoreTheme } from "@/lib/storeTheme";
 import { decorTiles } from "@/lib/storeDecor";
 import { cn } from "@/lib/cn";
 import type { CustomCakeSettings, DeliveryZone, VariantGroup } from "@/lib/types";
@@ -186,7 +187,11 @@ export function Storefront({ data, slug, preview = false }: { data: StoreData; s
   // Ilustraciones de temporada en las esquinas de las tarjetas de la tienda
   const rootRef = useRef<HTMLDivElement>(null);
   useFestiveDecor(fest, rootRef);
-  const vars = useMemo(() => themeVars(fest && theme.festiveColors ? { ...theme, ...fest.colors } : theme), [theme, fest]);
+  const darkMode = useDarkMode();
+  const dark = darkMode && !preview;
+  const baseTheme = useMemo(() => (fest && theme.festiveColors ? { ...theme, ...fest.colors } : theme), [theme, fest]);
+  const shown = useMemo(() => (dark ? darkTheme(baseTheme) : baseTheme), [baseTheme, dark]);
+  const vars = useMemo(() => themeVars(shown), [shown]);
   const decor = useMemo(() => decorTiles(theme), [theme]);
   const storageKey = `dd-cart-${slug}`;
   const [cart, setCart] = useState<Record<string, CartLine>>({});
@@ -248,12 +253,12 @@ export function Storefront({ data, slug, preview = false }: { data: StoreData; s
     const body = document.body;
     const prevBg = body.style.background;
     Object.entries(vars).forEach(([k, v]) => body.style.setProperty(k, String(v)));
-    body.style.background = theme.background;
+    body.style.background = shown.background;
     return () => {
       Object.keys(vars).forEach((k) => body.style.removeProperty(k));
       body.style.background = prevBg;
     };
-  }, [vars, theme.background, preview]);
+  }, [vars, shown.background, preview]);
 
   const categories = useMemo(() => ["Todo", ...new Set(products.map((p) => p.category))], [products]);
   const featured = products.filter((p) => p.featured);
@@ -894,6 +899,7 @@ export function Storefront({ data, slug, preview = false }: { data: StoreData; s
 
   const announcementVisible = !!store.announcement && theme.sections.find((s) => s.id === "anuncio")?.visible !== false;
   const logo = store.logo_url || null;
+  const heroFest = !!fest && !store.banner_url && theme.hero === "centrado";
 
   // ---------- Portada ----------
   const hero =
@@ -935,15 +941,15 @@ export function Storefront({ data, slug, preview = false }: { data: StoreData; s
         </div>
       </header>
     ) : (
-      <header className="relative">
-        <div data-fs={fest && !store.banner_url ? "sbanner" : undefined} className={cn("relative h-40 overflow-hidden @2xl:h-60", !store.banner_url && "sprinkles bg-[var(--st-soft)]")}>
+      <header data-fs={heroFest ? "sbanner" : undefined} className={cn("relative", heroFest && "rounded-b-[2.5rem] pb-12")}>
+        <div className={cn("relative overflow-hidden", heroFest ? "h-14" : "h-40 @2xl:h-60", !store.banner_url && !heroFest && "sprinkles bg-[var(--st-soft)]")}>
           {store.banner_url && (
             // eslint-disable-next-line @next/next/no-img-element
             <img src={store.banner_url} alt="" className="h-full w-full object-cover" />
           )}
-          <div className="absolute inset-0 bg-gradient-to-b from-transparent via-transparent to-[var(--st-bg)]" />
+          {!heroFest && <div className="absolute inset-0 bg-gradient-to-b from-transparent via-transparent to-[var(--st-bg)]" />}
         </div>
-        <div className="relative mx-auto -mt-16 max-w-3xl px-4 text-center @2xl:-mt-20">
+        <div className={cn("relative mx-auto max-w-3xl px-4 text-center", heroFest ? "mt-0" : "-mt-16 @2xl:-mt-20")}>
           {fest && logo ? (
             // En temporada: logo sin círculo, fundido con un resplandor y con los adornos de la temporada alrededor
             <SeasonLogo theme={fest} src={logo} alt={store.business_name} className="mx-auto h-44 w-44 @2xl:h-56 @2xl:w-56" compact={false} />
@@ -953,7 +959,14 @@ export function Storefront({ data, slug, preview = false }: { data: StoreData; s
               <BizLogo src={logo} name={store.business_name} className="h-full w-full text-[128px] @2xl:text-[160px]" />
             </div>
           )}
-          <h1 className="mt-4 text-3xl font-semibold @2xl:text-4xl">{store.title}</h1>
+          <h1 className={cn("text-3xl font-semibold @2xl:text-4xl", heroFest ? "mt-16 @2xl:mt-20" : "mt-4")}>{store.title}</h1>
+          {heroFest && fest && (
+            <div className="mt-3 inline-flex max-w-full items-center gap-1">
+              <MiniBouquet theme={fest} size={44} className="max-[420px]:hidden" />
+              <span className="rounded-full px-4 py-1.5 text-sm font-bold shadow-soft" style={{ background: "rgb(255 253 248 / .96)", color: "#3a2412" }}>{fest.hero}</span>
+              <MiniBouquet theme={fest} size={44} flip className="max-[420px]:hidden" />
+            </div>
+          )}
           {store.description && <p className="mx-auto mt-2 max-w-xl text-[15px] leading-relaxed text-[var(--st-muted)]">{store.description}</p>}
         </div>
       </header>
@@ -963,6 +976,7 @@ export function Storefront({ data, slug, preview = false }: { data: StoreData; s
     <div
       ref={rootRef}
       data-fs={fest ? "store" : undefined}
+      data-preview={preview ? "" : undefined}
       className={cn("st-root @container relative bg-[var(--st-bg)] text-[var(--st-text)]", preview ? "min-h-full" : "min-h-dvh")}
       style={decor.pattern ? { ...vars, backgroundImage: decor.pattern.image, backgroundSize: `${decor.pattern.width}px ${decor.pattern.height}px` } : vars}
     >
@@ -992,6 +1006,13 @@ export function Storefront({ data, slug, preview = false }: { data: StoreData; s
       </div>
 
       {fest && <FestiveParticles theme={fest} count={preview ? 10 : 14} contained={preview} />}
+      {fest && <FestiveConfetti theme={fest} opacity={dark ? 0.6 : 0.4} dark={dark} />}
+      {fest && !preview && <FestiveSidePanels theme={fest} opacity={dark ? 0.1 : 0.14} />}
+      {!preview && (
+        <div className="fixed top-3 right-3 z-[60]">
+          <ThemeToggle className="shadow-md" />
+        </div>
+      )}
       {fest && <StoreSkinStyle id={fest.id} />}
       <main className="relative mx-auto max-w-6xl pb-32">
         {fest && (

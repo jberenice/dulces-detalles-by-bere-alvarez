@@ -48,15 +48,15 @@ function Section({ title, items, surcharges, set, setMany }: { title: string; it
           </div>
         )}
       </div>
-      <ul className="grid gap-x-4 gap-y-1.5 sm:grid-cols-2">
+      <ul className="grid gap-x-6 gap-y-2 md:grid-cols-2">
         {items.map((d) => {
           const v = surcharges[d.id];
           const has = surchargeOf(surcharges, d.id) > 0;
           return (
             <li key={d.id} className="flex items-center justify-between gap-2">
-              <span className={cn("min-w-0 truncate text-sm", has ? "font-bold text-cocoa-800" : "text-cocoa-500")}>
+              <span className={cn("min-w-0 flex-1 text-sm leading-tight break-words", has ? "font-bold text-cocoa-800" : "text-cocoa-600")}>
                 {d.name}
-                {!has && <span className="ml-1.5 text-[11px] text-cocoa-300">incluido</span>}
+                {!has && <span className="block text-[11px] font-normal text-cocoa-400">incluido en el precio</span>}
               </span>
               <AmountInput value={v ?? ""} onChange={(x) => set(d.id, x)} label={d.name} />
             </li>

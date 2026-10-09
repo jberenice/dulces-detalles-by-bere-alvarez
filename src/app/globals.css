@@ -521,14 +521,14 @@
   --shadow-lift: 0 2px 4px rgb(0 0 0 / 0.3), 0 18px 40px -12px rgb(0 0 0 / 0.6);
 }
 /* letras de color (rosa, menta, ámbar, cielo) legibles sobre fondo oscuro; la tienda conserva su diseño claro */
-:root[data-theme="dark"] :is(.text-rose-500, .text-rose-600, .text-rose-700, .text-rose-800):not(.st-root *, .btn-primary, .btn-primary *) { color: var(--dk-rose); }
-:root[data-theme="dark"] :is(.text-mint-500, .text-mint-600, .text-mint-700, .text-mint-800):not(.st-root *, .btn-primary, .btn-primary *) { color: var(--dk-mint); }
-:root[data-theme="dark"] :is(.text-amber-600, .text-amber-700, .text-amber-800, .text-amber-900):not(.st-root *) { color: var(--dk-amber); }
-:root[data-theme="dark"] :is(.text-sky-600, .text-sky-700, .text-sky-800):not(.st-root *) { color: var(--dk-sky); }
-:root[data-theme="dark"] :is(.bg-amber-50, .bg-amber-100):not(.st-root *) { background-color: color-mix(in srgb, #f59e0b 16%, #17110d); }
-:root[data-theme="dark"] :is(.bg-amber-200):not(.st-root *) { background-color: color-mix(in srgb, #f59e0b 28%, #17110d); }
-:root[data-theme="dark"] :is(.bg-sky-50, .bg-sky-100):not(.st-root *) { background-color: color-mix(in srgb, #0ea5e9 16%, #17110d); }
-:root[data-theme="dark"] :is(.ring-amber-200, .ring-amber-200\/70, .border-amber-200):not(.st-root *) { --tw-ring-color: rgb(245 158 11 / 0.35); border-color: rgb(245 158 11 / 0.35); }
+:root[data-theme="dark"] :is(.text-rose-500, .text-rose-600, .text-rose-700, .text-rose-800):not(.st-root[data-preview] *, .btn-primary, .btn-primary *) { color: var(--dk-rose); }
+:root[data-theme="dark"] :is(.text-mint-500, .text-mint-600, .text-mint-700, .text-mint-800):not(.st-root[data-preview] *, .btn-primary, .btn-primary *) { color: var(--dk-mint); }
+:root[data-theme="dark"] :is(.text-amber-600, .text-amber-700, .text-amber-800, .text-amber-900):not(.st-root[data-preview] *) { color: var(--dk-amber); }
+:root[data-theme="dark"] :is(.text-sky-600, .text-sky-700, .text-sky-800):not(.st-root[data-preview] *) { color: var(--dk-sky); }
+:root[data-theme="dark"] :is(.bg-amber-50, .bg-amber-100):not(.st-root[data-preview] *) { background-color: color-mix(in srgb, #f59e0b 16%, #17110d); }
+:root[data-theme="dark"] :is(.bg-amber-200):not(.st-root[data-preview] *) { background-color: color-mix(in srgb, #f59e0b 28%, #17110d); }
+:root[data-theme="dark"] :is(.bg-sky-50, .bg-sky-100):not(.st-root[data-preview] *) { background-color: color-mix(in srgb, #0ea5e9 16%, #17110d); }
+:root[data-theme="dark"] :is(.ring-amber-200, .ring-amber-200\/70, .border-amber-200):not(.st-root[data-preview] *) { --tw-ring-color: rgb(245 158 11 / 0.35); border-color: rgb(245 158 11 / 0.35); }
 :root[data-theme="dark"] body {
   background: radial-gradient(1200px 600px at 10% -10%, rgb(235 84 115 / 0.08), transparent 60%), radial-gradient(1000px 600px at 110% 10%, rgb(127 202 166 / 0.07), transparent 60%), #17110d;
 }
@@ -567,7 +567,7 @@
   background-color: rgb(0 0 0 / 0.55);
 }
 /* la tienda (y su vista previa) conserva su diseño claro */
-:root[data-theme="dark"] .st-root {
+:root[data-theme="dark"] .st-root[data-preview] {
   color-scheme: light;
   --color-cream-50: #fffdf8;
   --color-cream-100: #fffaef;
@@ -583,7 +583,7 @@
   --color-cocoa-800: #3f250d;
   --color-cocoa-900: #2a1909;
 }
-:root[data-theme="dark"] .st-root :is(.card, .bg-white) {
+:root[data-theme="dark"] .st-root[data-preview] :is(.card, .bg-white) {
   background-color: #fff;
 }
 

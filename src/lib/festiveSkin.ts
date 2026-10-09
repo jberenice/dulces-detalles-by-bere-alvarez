@@ -596,8 +596,13 @@ export function storeSkinCss(id: FestiveId) {
   // tarjetas con el estilo de la temporada (si es una tarjeta clara)
   const fc = s.features.card ? CARD[s.features.card] : null;
   if (fc && !fc.dark) css += `[data-fs="store"] .fest-card{${fc.css.replace("LIGHTS", lightsBorderUri(undefined, 0))}}`;
-  // portada sin foto: fondo de la temporada
+  // portada sin foto: fondo de la temporada (el mismo de la página principal) con letras que se leen sobre él
   css += `[data-fs="sbanner"]{background:${s.hero.bg}!important}`;
+  css += `header[data-fs="sbanner"] h1{color:${s.hero.dark ? s.ink.dark : "#3a2412"}!important;text-shadow:${s.hero.dark ? "0 2px 14px rgb(0 0 0 / .35)" : "0 1px 0 rgb(255 255 255 / .6)"}}`;
+  css += `header[data-fs="sbanner"] p:not(.rounded-full):not(span *){color:${s.hero.dark ? s.ink.muted : "#5d4634"}!important}`;
+  // tema oscuro: mismo fondo con oscurecido y tarjetas oscuras
+  css += `:root[data-theme="dark"] [data-fs="store"]::before{background:radial-gradient(700px 500px at 0% 10%, color-mix(in srgb, var(--st-primary) 22%, transparent), transparent 62%), radial-gradient(700px 520px at 100% 40%, color-mix(in srgb, var(--st-accent) 20%, transparent), transparent 62%), ${DIM}, ${light.bg}}`;
+  css += `:root[data-theme="dark"] [data-fs="store"] .fest-card{background-color:#231a14!important;background-image:none}`;
   // tarjetas de productos y paquetes
   css += `[data-fs="store"] .fest-card{position:relative;border:1.5px solid color-mix(in srgb, ${border} 60%, transparent)}`;
   css += `[data-fs="store"] .fest-card::before{content:"";position:absolute;left:12px;right:12px;top:3px;height:${strip.h}px;background:${strip.uri} left top/${strip.w}px ${strip.h}px repeat-x;pointer-events:none;z-index:2}`;
